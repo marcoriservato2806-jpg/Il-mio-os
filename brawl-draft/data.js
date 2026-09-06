@@ -7,7 +7,7 @@
 // rete generale — Wikipedia e altri siti si aprono normalmente), ma due
 // altre fonti (pockettactics.com, brawlvision.com) hanno dato una lista
 // per classe quasi completa. Le due però si contraddicono su alcuni nomi
-// (es. Mina, Jae-yong) quindi il roster sotto NON è stato riscritto da
+// (es. Mina, Jae-Yong) quindi il roster sotto NON è stato riscritto da
 // zero sulla loro base: sono serviti solo a trovare "Angelo" (aggiunto,
 // era già citato nei bestPicks delle mappe ma mancava da qui) e a
 // verificare due brawler non ancora inclusi:
@@ -73,6 +73,7 @@ const BRAWLERS = [
   { name: "Lumi", class: "Damage Dealer" },
   { name: "Mina", class: "Damage Dealer" },
   { name: "Najia", class: "Damage Dealer" },
+  { name: "Sirius", class: "Damage Dealer" }, // mancava dal roster (bug: appariva nelle tabelle Ranked di BrawlMetrics ma non qui); aggiunto il 6/9, classe confermata da BrawlMetrics e Brawlvision
 
   // Assassin
   { name: "Mortis", class: "Assassin" },
@@ -150,7 +151,7 @@ const BRAWLERS = [
   { name: "Ruffs", class: "Support" },
   { name: "Gray", class: "Support" },
   { name: "Glowy", class: "Support" },
-  { name: "Jae-yong", class: "Support" },
+  { name: "Jae-Yong", class: "Support" },
 ];
 
 // Matrice dei vantaggi di classe (euristica generale da game design,
@@ -395,7 +396,7 @@ const MAPS = [
   {
     mode: "Hot Zone",
     name: "Open Business",
-    bestPicks: ["Hank", "Tick", "Griff", "Stu", "Meeple", "Meg", "Emz", "Charlie", "Angelo", "Jae-yong", "R-T", "Ollie", "Barley", "Sprout", "Dynamike", "Grom", "Larry & Lawrie", "Edgar", "Mico", "Buzz", "Kenji", "Alli"],
+    bestPicks: ["Hank", "Tick", "Griff", "Stu", "Meeple", "Meg", "Emz", "Charlie", "Angelo", "Jae-Yong", "R-T", "Ollie", "Barley", "Sprout", "Dynamike", "Grom", "Larry & Lawrie", "Edgar", "Mico", "Buzz", "Kenji", "Alli"],
     notes: "I throwers fanno negazione d'area da dietro i muri; gli assassini che bucano i throwers (Edgar, Mico, Buzz, Kenji, Alli) sono un buon contropick a chi difende la zona da lontano.",
   },
   {
@@ -438,49 +439,97 @@ const MAPS = [
   },
 ];
 
-// Base di partenza automatica per i "Dati meta": win rate raccolti da
-// ricerche web del 6 settembre 2026 (Brawl Planet, BrawlMetrics, Dexerto,
-// LDShop, noff.gg — pagine non apribili direttamente, dati dagli estratti
-// di ricerca). NON richiede alcuna azione dell'utente: si applica da sola
-// all'avvio, il riquadro "Dati meta" nell'app serve solo per aggiungere o
-// correggere valori quando si hanno numeri migliori.
+// Base di partenza automatica per i "Dati meta": win rate REALI su
+// Classificata, presi il 6 settembre 2026 direttamente (fetch, non
+// estratti di ricerca) da BrawlMetrics, l'unico sito fra quelli provati
+// che pubblica una tabella completa specifica per Ranked con win rate e
+// use rate per singolo brawler (non una media di tutte le modalità
+// trofei, che è un dato diverso: vedi nota sotto). Incrociato con un
+// secondo sito indipendente, Dexerto (tier list separata, senza numeri),
+// che concorda sulla stessa cinquina S: Wendy, Shade, Gus, Amber, Nori —
+// sono quindi i 5 pick più sicuri in assoluto, confermati da due fonti
+// che non condividono la stessa pipeline di dati.
+// brawlify.com, noff.gg e brawltime.ninja bloccano il fetch diretto
+// (403) anche oggi: i loro numeri, quando citati da terzi (es. Wendy
+// "69%" o "76.5%" su brawlmetrics/brawltime.ninja secondo timesaver.gg),
+// NON tornano con quello letto qui direttamente dalla fonte (58.3%) —
+// probabile pagina/versione diversa. Per questo si usa solo il numero
+// letto di persona dalla tabella, non le citazioni di terzi.
 //
-// Due tipi di dato, marcati diversamente qui sotto:
-//  - numero ESATTO citato da una fonte (es. Wendy 68 da "67.2-69% a seconda
-//    della fonte", Bolt/Gus 64 da "clear 64% adjusted win rate");
-//  - numero STIMATO dalla fascia di tier quando la fonte dava solo la
-//    lettera (S+/S/A) senza percentuale — con la banda ipotizzata:
-//    S+ ~65-68, S ~58-64, A ~53-57, sotto la media quando una fonte
-//    segnalava esplicitamente un problema (es. Edgar: pick rate altissimo
-//    ma win rate reale basso; Dynamike: "una delle win rate medie più
-//    basse del gioco" nonostante sia un pick da competitivo).
-// Copre ~25 dei 108 brawler: per tutti gli altri non è stato trovato un
-// dato affidabile, quindi restano neutri (0) invece di un numero inventato.
+// ATTENZIONE ALLA DIFFERENZA LADDER vs COMPETITIVO (il motivo per cui ci
+// sono DUE tabelle sotto): un brawler come El Primo è S tier con 54.1%
+// a Masters ma va molto peggio nella fascia bassa (serve coordinazione
+// di squadra per brillare); Edgar è il più usato ma vince solo ~49-52%
+// delle partite in ladder pur essendo un pick da competitivo. La
+// "verità" cambia con lo scaglione di rank, quindi non ce n'è una sola:
+//
+//  - DEFAULT_META_SCORES: Ranked aggregato Bronze→Pro (bracket ampio,
+//    fonte: brawlmetrics.gg/tier-list/ranked). Usalo come default per la
+//    maggior parte delle partite.
+//  - DEFAULT_META_SCORES_MASTERS: solo bracket Masters (fonte:
+//    brawlmetrics.gg/tier-list/ranked/masters). Più realistico se giochi
+//    ai ranghi alti / con squadra coordinata. Selezionabile dal menu
+//    "Fascia dati meta" nell'app; manca a 5 brawler con troppo pochi dati
+//    a quel livello per un numero affidabile (Larry & Lawrie, Grom, Sam,
+//    Pam, Mr. P — lasciati neutri quando questa fascia è selezionata).
+//
+// Copre 106 dei 106 brawler del roster (mancano solo Vince e Cosmo, non
+// ancora nel roster — vedi nota in cima al file). Nessun numero stimato o
+// inventato: sono i valori esatti letti nella tabella.
 const DEFAULT_META_SCORES = {
-  "Wendy": 68,       // esatto (fonti tra 67.2 e 69, media)
-  "Draco": 66,        // stimato, S+ "top 5 assoluto"
-  "Hank": 66,          // stimato, S+
-  "Gus": 64,           // esatto ("clear 64% adjusted win rate")
-  "Bolt": 64,          // esatto (stessa fonte di Gus)
-  "Juju": 61,          // stimato, S tier #6 assoluto tra tutti i brawler
-  "Nori": 61,          // stimato, S tier
-  "Starr Nova": 61,    // stimato, S tier
-  "Damian": 61,        // stimato, S tier
-  "Shade": 60,         // stimato, S tier / #1 pick competitivo su noff.gg
-  "Amber": 60,         // stimato, S tier
-  "Bo": 60,            // stimato, S tier
-  "Surge": 60,         // stimato, "miglior Damage Dealer" nonostante i nerf
-  "Kit": 59,           // stimato, "salito di recente a S tier"
-  "Kaze": 57,          // stimato, citato fra i top 10 ma non nel nucleo S esplicito
-  "El Primo": 56,      // stimato, citato fra i top 10
-  "Moe": 55,           // stimato, citato fra i top 10
-  "Mortis": 54,        // stimato, A tier
-  "Pierce": 54,        // stimato, A tier
-  "Sprout": 54,        // stimato, A tier
-  "Chester": 54,       // stimato, A tier
-  "Mandy": 54,         // stimato, A tier
-  "Bull": 53,          // stimato, A tier dopo il rework
-  "Trunk": 53,         // stimato, A tier
-  "Dynamike": 45,      // esatto in senso inverso: fonte segnala esplicitamente win rate media bassa nonostante l'uso competitivo
-  "Edgar": 43,         // esatto in senso inverso: 7.04% use rate ma solo 43.4% win rate su ladder (dato preciso trovato)
+  "Amber": 57.6, "Shade": 57.4, "Wendy": 58.3, "Gus": 53.9, "Nori": 51.5,
+  "Edgar": 52.6, "Brock": 50.5, "El Primo": 54.1, "Griff": 49.4, "Rico": 50.3,
+  "Emz": 52.0, "Kaze": 52.1, "Bo": 53.9, "Bibi": 54.4, "Surge": 49.3,
+  "Trunk": 53.4, "8-Bit": 51.1, "Stu": 49.5, "Ash": 53.6, "Jessie": 52.9,
+  "Pearl": 51.0, "Piper": 48.9, "Bull": 51.3, "Max": 47.4, "Mortis": 49.3,
+  "Doug": 54.0, "Colt": 47.6, "Nita": 52.3, "Colette": 48.7, "Carl": 49.2,
+  "Gray": 49.7, "Willow": 48.7, "Bolt": 51.3, "Sprout": 51.8, "Tick": 49.9,
+  "Meeple": 46.9, "Frank": 50.6, "Starr Nova": 48.9, "Pierce": 45.9, "Mina": 48.3,
+  "Mico": 50.1, "Leon": 48.7, "Chester": 48.5, "Otis": 47.4, "Sirius": 49.9,
+  "Melodie": 49.9, "Angelo": 49.8, "Spike": 47.6, "Mandy": 47.7, "Najia": 49.2,
+  "Meg": 45.9, "Damian": 49.2, "Penny": 47.5, "R-T": 50.4, "Gene": 46.3,
+  "Fang": 47.3, "Maisie": 48.9, "Buster": 50.1, "Shelly": 47.6, "Byron": 44.7,
+  "Kenji": 47.7, "Buzz": 46.9, "Jacky": 49.6, "Nani": 46.9, "Mr. P": 49.5,
+  "Juju": 49.4, "Crow": 44.7, "Eve": 49.0, "Cordelius": 46.7, "Poco": 46.2,
+  "Dynamike": 46.0, "Grom": 47.8, "Janet": 49.1, "Ruffs": 45.5, "Finx": 48.8,
+  "Lily": 46.7, "Lou": 45.5, "Lumi": 43.8, "Hank": 47.8, "Gigi": 46.1,
+  "Moe": 46.7, "Gale": 45.9, "Clancy": 46.2, "Larry & Lawrie": 47.3, "Alli": 46.1,
+  "Glowy": 47.3, "Draco": 47.2, "Belle": 44.4, "Barley": 45.1, "Chuck": 43.1,
+  "Rosa": 45.8, "Tara": 43.1, "Ollie": 46.7, "Sam": 46.8, "Lola": 45.6,
+  "Bea": 44.2, "Squeak": 43.2, "Kit": 43.5, "Charlie": 44.4, "Jae-Yong": 45.6,
+  "Darryl": 43.8, "Sandy": 44.2, "Ziggy": 45.0, "Bonnie": 43.1, "Pam": 38.9,
+  "Berry": 29.2,
+};
+
+// Vedi nota sopra: stessa fonte (BrawlMetrics), solo bracket Masters.
+// Assenti = campione troppo piccolo a quel livello secondo la fonte
+// stessa (mostrati "Unranked" nella tabella originale), non un dato
+// mancante per negligenza.
+const DEFAULT_META_SCORES_MASTERS = {
+  "Shade": 59.5, "Amber": 57.6, "Wendy": 59.5, "Gus": 53.5, "El Primo": 53.2,
+  "Rico": 51.3, "Ash": 54.7, "Emz": 52.7, "Brock": 51.4, "Colette": 51.7,
+  "Stu": 50.6, "Nita": 57.1, "Max": 48.2, "8-Bit": 53.3, "Kaze": 51.5,
+  "Sirius": 54.1, "Mortis": 51.2, "Sprout": 53.9, "Piper": 50.3, "Griff": 48.0,
+  "Meg": 49.8, "Melodie": 52.8, "Tara": 54.5, "Nori": 48.3, "Pierce": 48.3,
+  "Pearl": 51.4, "Mina": 49.0, "Surge": 50.1, "Gene": 49.6, "Bull": 52.0,
+  "Edgar": 49.1, "Gray": 49.5, "Bibi": 52.3, "Lou": 50.4, "Colt": 48.8,
+  "Buster": 52.6, "Angelo": 50.6, "Starr Nova": 50.2, "Maisie": 50.2, "Lumi": 47.3,
+  "Najia": 50.6, "Charlie": 50.5, "Penny": 50.1, "Buzz": 48.1, "Barley": 50.0,
+  "Carl": 49.1, "Moe": 49.6, "Shelly": 49.8, "Bolt": 48.9, "Eve": 50.5,
+  "Meeple": 45.6, "Nani": 48.8, "Kenji": 49.1, "Byron": 46.5, "Janet": 50.0,
+  "Cordelius": 48.5, "Spike": 49.6, "Ruffs": 46.9, "Leon": 49.2, "Glowy": 48.8,
+  "Otis": 47.0, "Willow": 46.7, "Ziggy": 49.1, "Poco": 45.4, "Bo": 47.7,
+  "Doug": 48.1, "Finx": 47.7, "Frank": 47.0, "Damian": 46.9, "Juju": 48.1,
+  "Fang": 46.6, "Lily": 47.4, "Mandy": 46.8, "Alli": 46.4, "Chester": 46.6,
+  "Gigi": 45.7, "Crow": 45.8, "Rosa": 47.3, "Trunk": 45.1, "Chuck": 43.4,
+  "Darryl": 46.5, "Belle": 45.3, "Bea": 45.8, "Gale": 45.6, "R-T": 46.2,
+  "Lola": 45.5, "Ollie": 46.1, "Jacky": 45.8, "Jae-Yong": 44.9, "Hank": 45.5,
+  "Berry": 45.2, "Bonnie": 45.2, "Mico": 42.1, "Clancy": 42.5, "Kit": 39.8,
+  "Sandy": 41.6, "Squeak": 41.0, "Dynamike": 39.3, "Draco": 39.0, "Tick": 36.6,
+  "Jessie": 35.5,
+};
+
+const META_SOURCE_LABELS = {
+  ALL_RANKS: "Ranked, tutti i ranghi (Bronze→Pro) — brawlmetrics.gg, 6/9/2026",
+  MASTERS: "Ranked, solo Masters — brawlmetrics.gg, 6/9/2026",
 };

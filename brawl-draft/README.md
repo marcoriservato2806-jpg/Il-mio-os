@@ -20,16 +20,27 @@ qualsiasi). Nessuna installazione richiesta.
 
 ## Limiti noti (importante)
 
-- **Il roster in `data.js` è compilato via ricerche web di settembre
-  2026**, non da un fetch diretto a un database ufficiale (bloccato dalla
-  rete di questa sessione). Il gioco ha 108 brawler, qui ce ne sono
-  circa 104 con classe abbastanza affidabile. Mancano probabilmente le
-  uscite più recenti. Controlla su brawlify.com/brawlers e aggiorna
-  `data.js` — è un array, una riga per brawler.
-- **I suggerimenti sono un'euristica di classe** (chi batte chi in
-  generale: Tank/Assassin, Damage Dealer/Tank-Assassin-Marksman, ecc.),
-  non una tier-list di meta aggiornata. Non tengono conto di mappa,
-  modalità, gadget/star power o win-rate della stagione corrente.
+- **Roster: 106 brawler su 108.** Mancano solo Vince (release ottobre
+  2026, non ancora uscito) e Cosmo (annunciato per settembre 2026,
+  disponibilità in Classificata non confermata) — esclusi apposta finché
+  non verificati. Aggiornato il 6/9 con accesso web diretto (non più
+  bloccato come nella sessione precedente): corretti due buchi reali
+  (Angelo e Sirius comparivano nei dati ma mancavano dal roster).
+  `brawlify.com`, `noff.gg` e `brawltime.ninja` restano bloccati al
+  fetch diretto (403, anti-bot loro) — se un giorno si aprono, sono le
+  fonti da controllare per primo per un terzo riscontro numerico.
+- **I suggerimenti combinano due cose**: un'euristica di classe (chi
+  batte chi in generale — non cambia mai) più i win rate reali su
+  Classificata di `DEFAULT_META_SCORES`/`DEFAULT_META_SCORES_MASTERS`
+  (106 brawler, letti da BrawlMetrics il 6/9/2026 e incrociati con
+  Dexerto sulla top-5: Wendy, Shade, Gus, Amber, Nori). Non tengono
+  conto di gadget/star power specifici né della mappa esatta oltre a
+  `bestPicks`/tratti.
+- **Ladder vs competitivo**: la fonte distingue "tutti i ranghi" da
+  "solo Masters" perché la meta cambia parecchio con lo scaglione (es.
+  El Primo rende molto di più con squadra coordinata ad alto livello).
+  Scegli la fascia giusta dal menu "Dati meta" nell'app invece di
+  fidarti di un numero unico per tutti i livelli.
 - **Il formato esatto di ban/pick per fascia di rank non è stato
   verificato al 100%**: è per questo che è regolabile a mano invece che
   fisso nel codice.

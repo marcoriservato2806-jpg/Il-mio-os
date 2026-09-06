@@ -77,11 +77,18 @@
   <div class="meta-panel">
     <p class="panel-title">Dati meta</p>
     <p class="meta-hint">
-      Già attivi ~25 win rate reali raccolti automaticamente (nessuna azione richiesta). Se vuoi
-      aggiungerne altri o correggerne uno, incolla qui una lista da Brawlify, Brawl Time Ninja o
-      simili (una riga per brawler, in qualsiasi formato — es. "Piper 62%" o "Piper: 62.3") e premi
-      "Salva e applica"; resta comunque facoltativo. Salvato solo in questo browser.
+      Win rate reali su Classificata (BrawlMetrics, letti il 6/9/2026), attivi di base senza
+      nessuna azione richiesta. "Tutti i ranghi" è la media Bronze→Pro, adatta alla maggior parte
+      delle partite; "Masters" riflette meglio la meta ad alto livello/con squadra coordinata,
+      dove alcuni pick (es. El Primo) rendono molto di più che in ladder. Se vuoi aggiungere o
+      correggere un numero, incolla qui una lista (una riga per brawler, es. "Piper 62%") e premi
+      "Salva e applica"; resta facoltativo. Salvato solo in questo browser.
     </p>
+    <label for="meta-source-select">Fascia dati meta</label>
+    <select id="meta-source-select">
+      <option value="ALL_RANKS">Tutti i ranghi (Bronze→Pro)</option>
+      <option value="MASTERS">Masters / competitivo</option>
+    </select>
     <textarea id="meta-input" rows="5" placeholder="Piper 62%&#10;Brock: 58.4&#10;Edgar 43%"></textarea>
     <div class="meta-actions">
       <button id="meta-save">Salva e applica</button>
@@ -93,13 +100,13 @@
   <footer>
     <strong>Come funzionano i suggerimenti:</strong> punteggio = vantaggio di classe contro i pick avversari (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) più un bonus di sinergia per non ripetere troppo la stessa classe e coprire ruoli mancanti (frontline, support). È un'euristica di design generale, <em>non</em> una tier-list della meta attuale: i numeri non tengono conto di mappa, modalità, livello dei power/gadget o dei dati di win-rate della stagione in corso.
     <br /><br />
-    <strong>Roster:</strong> compilato a settembre 2026 da ricerche web; potrebbero mancare i brawler usciti più di recente e alcune classificazioni sono incerte (vedi commento in <code>data.js</code>). Aggiungi o correggi una riga in <code>data.js</code> quando serve.
+    <strong>Roster:</strong> 106 brawler su 108. Mancano solo Vince (non ancora uscito, release ottobre 2026) e Cosmo (annunciato per settembre 2026, disponibilità in Classificata non confermata) — esclusi apposta finché non sono verificati, non per svista. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
     <br /><br />
     <strong>Modalità:</strong> le 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout) danno un bonus/malus di ruolo legato a cosa serve per vincere quella modalità (es. Gem Grab premia chi tiene la posizione, Bounty punisce chi muore spesso).
     <br /><br />
     <strong>Mappe:</strong> le 30 mappe in <code>data.js</code> sono il pool reale e completo della Classificata attuale (Bounty 4, Brawl Ball 7, Gem Grab 5, Heist 6, Hot Zone 4, Knockout 4), verificato il 6 settembre 2026 da screenshot del draft tool di metapick-ai.com. I pick consigliati e le note per ciascuna mappa vengono da ricerche web dello stesso giorno (Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl, TheriaGames, Brawlio, BrawlIQ) — non un fetch diretto ai siti (bloccato in questa sessione), quindi non un tier-list con percentuali esatte. Se in game vedi una mappa che non c'è in elenco, seleziona "Nessuna / non elencata" e usa i tratti sotto.
     <br /><br />
-    <strong>Dati meta:</strong> ~25 win rate reali (Wendy, Draco, Hank, Gus, Bolt, Juju, Nori, Starr Nova, Shade, Kit, Surge, Edgar, Dynamike e altri) sono già inclusi in <code>DEFAULT_META_SCORES</code> dentro <code>data.js</code>, raccolti da ricerche web del 6 settembre 2026 (Brawl Planet, BrawlMetrics, Dexerto, LDShop, noff.gg) — nessuna azione richiesta. Il riquadro qui sopra applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi lì si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage).
+    <strong>Dati meta:</strong> 106 win rate reali su Classificata (uno per quasi ogni brawler del roster), letti il 6 settembre 2026 direttamente dalle tabelle di BrawlMetrics — non stime, non citazioni di seconda mano. Incrociati con Dexerto (tier list indipendente, senza numeri): i due concordano sulla stessa cinquina S — Wendy, Shade, Gus, Amber, Nori — che sono quindi i pick più sicuri in assoluto. Due tabelle disponibili dal menu "Fascia dati meta": <strong>tutti i ranghi</strong> (Bronze→Pro, il default) e <strong>Masters</strong>, perché la meta cambia parecchio con lo scaglione — es. El Primo è S tier a Masters (serve coordinazione di squadra) ma molto più debole in ladder media. Il riquadro applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage). Brawlify, noff.gg e Brawl Time Ninja restano bloccati (403) al fetch diretto anche oggi: non è stato possibile usarli come terza fonte numerica indipendente, solo BrawlMetrics + Dexerto.
   </footer>
 </div>
 

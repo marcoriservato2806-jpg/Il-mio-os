@@ -13,23 +13,30 @@ const state = {
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
   map: null, // riferimento a un oggetto di MAPS, o null
   customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
+  metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
 };
 
 const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
+const META_SOURCE_STORAGE_KEY = "bsdraft_meta_source_v1";
 
-// I valori di DEFAULT_META_SCORES (data.js) si applicano sempre, senza che
-// l'utente debba incollare nulla. Quello che l'utente eventualmente incolla
-// e salva (persistito in localStorage) si somma sopra, sovrascrivendo il
-// default nome per nome dove i due coincidono.
+function baseMetaScores() {
+  return state.metaSource === "MASTERS" ? DEFAULT_META_SCORES_MASTERS : DEFAULT_META_SCORES;
+}
+
+// I valori della tabella di base scelta (vedi baseMetaScores) si applicano
+// sempre, senza che l'utente debba incollare nulla. Quello che l'utente
+// eventualmente incolla e salva (persistito in localStorage) si somma
+// sopra, sovrascrivendo il default nome per nome dove i due coincidono.
 function loadCustomScores() {
   let raw = "";
   try {
     raw = localStorage.getItem(META_STORAGE_KEY) || "";
+    state.metaSource = localStorage.getItem(META_SOURCE_STORAGE_KEY) || "ALL_RANKS";
   } catch (e) {
     raw = "";
   }
   const { scores } = parseMetaText(raw);
-  state.customScores = { ...DEFAULT_META_SCORES, ...scores };
+  state.customScores = { ...baseMetaScores(), ...scores };
   return raw;
 }
 
@@ -38,6 +45,15 @@ function saveMetaRaw(raw) {
     localStorage.setItem(META_STORAGE_KEY, raw);
   } catch (e) {
     // localStorage non disponibile (es. modalità privata): i dati restano solo per questa sessione
+  }
+}
+
+function saveMetaSource(source) {
+  state.metaSource = source;
+  try {
+    localStorage.setItem(META_SOURCE_STORAGE_KEY, source);
+  } catch (e) {
+    // localStorage non disponibile: la scelta vale solo per questa sessione
   }
 }
 
@@ -138,8 +154,9 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
     metaBonus = (state.customScores[candidateName] - 50) / 10; // 60% -> +1, 70% -> +2, 40% -> -1...
   }
 
-  const total = matchup * 2 + synergy + modeBonus * 2 + mapBonus + metaBonus;
-  return { total, matchup, synergy, modeBonus, mapBonus, metaBonus };
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const total = round2(matchup * 2 + synergy + modeBonus * 2 + mapBonus + metaBonus);
+  return { total, matchup, synergy, modeBonus, mapBonus, metaBonus: round2(metaBonus) };
 }
 
 function computeSuggestions() {
@@ -409,10 +426,11 @@ function initModeAndMap() {
 
 function renderMetaStatus(unrecognized) {
   const el = document.getElementById("meta-status");
-  const defaultCount = Object.keys(DEFAULT_META_SCORES).length;
+  const defaultCount = Object.keys(baseMetaScores()).length;
   const totalCount = Object.keys(state.customScores).length;
   const pastedText = (document.getElementById("meta-input").value || "").trim();
-  let msg = `${defaultCount} brawler già inclusi di base (nessuna azione richiesta).`;
+  const sourceLabel = META_SOURCE_LABELS[state.metaSource] || META_SOURCE_LABELS.ALL_RANKS;
+  let msg = `${defaultCount} brawler già inclusi di base — fonte: ${sourceLabel}.`;
   if (pastedText.length > 0) {
     msg += ` ${totalCount} in totale contando quelli che hai incollato/corretto tu.`;
   }
@@ -424,14 +442,24 @@ function renderMetaStatus(unrecognized) {
 
 function initMetaPanel() {
   const textarea = document.getElementById("meta-input");
+  const sourceSelect = document.getElementById("meta-source-select");
   const raw = loadCustomScores();
   textarea.value = raw;
+  sourceSelect.value = state.metaSource;
   renderMetaStatus(null);
+
+  sourceSelect.addEventListener("change", (e) => {
+    saveMetaSource(e.target.value);
+    const { scores } = parseMetaText(textarea.value);
+    state.customScores = { ...baseMetaScores(), ...scores };
+    renderMetaStatus(null);
+    renderSuggestions();
+  });
 
   document.getElementById("meta-save").addEventListener("click", () => {
     const text = textarea.value;
     const { scores, unrecognized } = parseMetaText(text);
-    state.customScores = { ...DEFAULT_META_SCORES, ...scores };
+    state.customScores = { ...baseMetaScores(), ...scores };
     saveMetaRaw(text);
     renderMetaStatus(unrecognized);
     renderSuggestions();
@@ -439,7 +467,7 @@ function initMetaPanel() {
 
   document.getElementById("meta-clear").addEventListener("click", () => {
     textarea.value = "";
-    state.customScores = { ...DEFAULT_META_SCORES };
+    state.customScores = { ...baseMetaScores() };
     saveMetaRaw("");
     renderMetaStatus(null);
     renderSuggestions();
