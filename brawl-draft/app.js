@@ -487,6 +487,99 @@ function renderGrid() {
   }
 }
 
+// ---- ANALISI CONTRO LA SQUADRA AVVERSARIA -------------------------------
+// Non basta sapere chi batte un singolo avversario: in Classificata affronti
+// due o tre brawler insieme, e il pick giusto è quello che regge contro
+// TUTTI. Un brawler che demolisce Rosa ma viene demolito da Wendy, a somma
+// sembra ottimo mentre in partita salta. Per questo qui si guardano tre cose
+// diverse: il totale (valore complessivo), il PEGGIORE dei suoi matchup (il
+// rischio che ti prendi) e la copertura (se sta sopra zero contro tutti).
+function enemyBreakdown(candidateName, candidateClass, enemyNames) {
+  return enemyNames.map((en) => {
+    const measured = matchupEdge(candidateName, en);
+    if (measured !== null) return { enemy: en, edge: measured, measured: true };
+    return { enemy: en, edge: classEdge(candidateClass, classOf(en)), measured: false };
+  });
+}
+
+function analyzeAgainstTeam(enemyNames) {
+  const used = usedNames();
+  const rows = [];
+  for (const b of BRAWLERS) {
+    if (used.has(b.name)) continue;
+    const parts = enemyBreakdown(b.name, b.class, enemyNames);
+    const total = parts.reduce((s, p) => s + p.edge, 0);
+    const worst = Math.min(...parts.map((p) => p.edge));
+    const measuredCount = parts.filter((p) => p.measured).length;
+    rows.push({ name: b.name, class: b.class, parts, total, worst, measuredCount });
+  }
+  return rows;
+}
+
+// I pick che stanno sopra zero contro OGNI avversario schierato: sono le
+// risposte senza controindicazioni, quelle che non ti lasciano un buco.
+function coversAll(rows) {
+  return rows.filter((r) => r.worst > 0).sort((a, b) => b.total - a.total);
+}
+
+// Per ogni COPPIA di avversari, chi risponde meglio a entrambi. Serve quando
+// nessuno copre tutti e tre e devi decidere quale coppia di minacce spegnere.
+function bestPerPair(rows, enemyNames) {
+  const out = [];
+  for (let i = 0; i < enemyNames.length; i++) {
+    for (let j = i + 1; j < enemyNames.length; j++) {
+      const scored = rows
+        .map((r) => ({ r, sum: r.parts[i].edge + r.parts[j].edge, min: Math.min(r.parts[i].edge, r.parts[j].edge) }))
+        .filter((x) => x.min > 0)
+        .sort((a, b) => b.sum - a.sum);
+      out.push({ pair: [enemyNames[i], enemyNames[j]], best: scored.slice(0, 3) });
+    }
+  }
+  return out;
+}
+
+function renderTeamCounter() {
+  const el = document.getElementById("team-counter");
+  const turn = currentTurn();
+  if (!turn || turn.phase !== "pick") { el.hidden = true; return; }
+  const enemy = turn.team === "A" ? "B" : "A";
+  const enemyNames = state.picks[enemy];
+  if (enemyNames.length === 0) { el.hidden = true; return; }
+
+  const rows = analyzeAgainstTeam(enemyNames);
+  const covering = coversAll(rows);
+  const fmt = (n) => (n > 0 ? "+" : "") + (Math.round(n * 10) / 10);
+  const chip = (p) =>
+    `<span class="echip ${p.measured ? "meas" : "est"} ${p.edge > 0 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato" : "stima dalla classe"}">${p.enemy} ${fmt(p.edge)}</span>`;
+
+  let html = `<p class="panel-title">Contro ${enemyNames.length === 1 ? "l'avversario" : "la squadra avversaria"}: ${enemyNames.join(" + ")}</p>`;
+
+  if (covering.length > 0) {
+    html += `<p class="hint">Reggono contro <strong>tutti</strong> gli avversari schierati — nessun matchup in perdita:</p>`;
+    for (const r of covering.slice(0, 5)) {
+      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${r.parts.map(chip).join("")}</span><span class="tr-total">${fmt(r.total)}</span></div>`;
+    }
+  } else {
+    html += `<p class="hint">Nessun brawler disponibile sta sopra zero contro tutti: qualunque scelta lascia un buco. Sotto, chi copre almeno una coppia di minacce.</p>`;
+  }
+
+  // Le coppie servono solo da tre avversari in su: con due, l'unica coppia
+  // è la squadra intera e ripeterebbe il blocco qui sopra.
+  if (enemyNames.length >= 3) {
+    const pairs = bestPerPair(rows, enemyNames);
+    html += `<p class="hint pair-title">Se nessuno copre tutti e tre, chi spegne almeno due minacce insieme:</p>`;
+    for (const p of pairs) {
+      const names = p.best.length
+        ? p.best.map((x) => `<span class="pair-pick">${x.r.name} <em>${fmt(x.sum)}</em></span>`).join("")
+        : `<span class="pair-none">nessuno copre entrambi</span>`;
+      html += `<div class="pair-row"><span class="pair-vs">${p.pair.join(" + ")}</span>${names}</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+  el.hidden = false;
+}
+
 function renderSuggestions() {
   const el = document.getElementById("suggestions");
   const titleEl = document.getElementById("suggestions-title");
@@ -539,13 +632,12 @@ function renderSuggestions() {
     const badge = flag
       ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
       : "";
-    const best = (s.counters || []).filter((c) => c.edge > 0).sort((a, b) => b.edge - a.edge)[0];
-    const worst = (s.counters || []).filter((c) => c.edge < 0).sort((a, b) => a.edge - b.edge)[0];
+    // Mostra il matchup contro OGNI avversario schierato, non solo il migliore:
+    // il senso è vedere il mix, cioè dove quel pick guadagna e dove paga.
     let counterNote = "";
-    if (best) {
-      counterNote = `<span class="counter good" title="matchup misurato, al netto della differenza di forza">counter di ${best.enemy}</span>`;
-    } else if (worst) {
-      counterNote = `<span class="counter bad" title="matchup misurato, al netto della differenza di forza">soffre ${worst.enemy}</span>`;
+    for (const c of (s.counters || []).slice(0, 3)) {
+      const cls = c.edge > 0 ? "good" : "bad";
+      counterNote += `<span class="counter ${cls}" title="matchup misurato contro ${c.enemy}, al netto della differenza di forza">${c.edge > 0 ? "batte" : "soffre"} ${c.enemy} ${c.edge > 0 ? "+" : ""}${c.edge}</span>`;
     }
     row.innerHTML = `
       <span class="sugg-name">${s.name}${badge}${counterNote}</span>
@@ -559,6 +651,7 @@ function renderSuggestions() {
 
 function render() {
   renderTurnBanner();
+  renderTeamCounter();
   renderSlots("A");
   renderSlots("B");
   renderGrid();

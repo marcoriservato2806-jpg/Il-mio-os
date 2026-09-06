@@ -450,3 +450,66 @@ footer details summary {
   padding: 8px 0;
 }
 footer details[open] summary { margin-bottom: 8px; }
+
+/* ---- Riquadro "contro la squadra avversaria" -------------------------- */
+/* Serve a rispondere alla domanda vera del draft: non "chi batte Rosa" ma
+   "chi regge contro Rosa E Wendy insieme". Quindi ogni riga mostra il
+   bilancio spezzato per avversario, non un unico numero che nasconde dove
+   quel pick sta perdendo. */
+.team-counter {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.team-row {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(56, 50, 70, 0.5);
+  font-size: 0.8rem;
+}
+.team-row:last-of-type { border-bottom: none; }
+.tr-name { font-weight: 600; }
+.tr-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tr-total { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* Pieno = misurato, contorno = stimato dalla classe. La differenza fra
+   sapere e stimare deve restare visibile a colpo d'occhio. */
+.echip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.echip.meas.pos { background: rgba(87, 217, 154, 0.16); color: var(--good); }
+.echip.meas.neg { background: rgba(255, 122, 122, 0.16); color: var(--bad); }
+.echip.est.pos { border: 1px solid rgba(87, 217, 154, 0.4); color: var(--good); }
+.echip.est.neg { border: 1px solid rgba(255, 122, 122, 0.35); color: var(--bad); }
+
+.pair-title { margin-top: 12px; }
+.pair-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 0;
+  font-size: 0.76rem;
+}
+.pair-vs {
+  color: var(--text-dim);
+  min-width: 128px;
+  font-weight: 600;
+}
+.pair-pick {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 7px;
+}
+.pair-pick em { color: var(--accent); font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pair-none { color: var(--text-dim); font-style: italic; }
