@@ -2,6 +2,8 @@ Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG
 
 Serve a due cose. La prima è ritrovare quando è entrata una cosa. La seconda conta di più: quando questo sistema lavorerà mentre tu non ci sei, questo è il posto dove vieni a vedere cosa ha combinato. **Un sistema che lavora da solo e non tiene un diario è un sistema di cui smetti di fidarti al secondo mese.**
 
+## [2026-09-06 01:30] altro | Corretto obiettivi.md: lo studio lo pagano i genitori, l'investire in borsa è un obiettivo a sé ("imparare a fare soldi"), non legato al capitale per lo studio. Numeri reali: 5k di capitale, ~0 da mettere da parte al mese. Detto a Marco chiaro (tono "dimmi le cose come stanno"): con questi numeri il trading attivo per "imparare a fare soldi" rischia di essere la memecoin travestita da metodo — il modo vero per imparare a fare soldi a 23 anni senza capitale è costruire qualcosa (competenza, servizio, side hustle), non far girare 5k in borsa.
+
 ## [2026-09-06 01:15] altro | Aggiunta a identity.md la regola di tono più importante: "dimmi le cose come stanno" — niente giri di parole, niente ottimismo di cortesia sui tempi o le probabilità.
 
 ## [2026-09-06 01:05] altro | Aggiunto a identity.md il tono (da amico) e i tempi dello studio (4-5 anni, dopo la laurea, non progetto attivo ora). Resta da capire con l'uso cosa fa dire a Marco "no non così", e resta vuoto "cosa non voglio che succeda" in context/obiettivi.md.
