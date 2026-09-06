@@ -6,8 +6,8 @@
 - Rifarsi del capitale perso in borsa (10k dimezzato per una memecoin, "Emme coin") senza ripetere lo stesso errore.
 - **Imparare a fare soldi, metodo indifferente** — obiettivo a sé, **non** legato al capitale per lo studio (a quello pensano i genitori). Confermato il 2026-09-06: "non mi importa come". La borsa era l'idea di partenza ma non è vincolante. Numeri di partenza: 5k di capitale, quasi zero da mettere da parte al mese come studente — con questi numeri il trading attivo rischia di ripetere l'errore della memecoin sotto un'altra forma (vedi `memoria/wiki/log.md`). La leva vera a 23 anni senza capitale è la competenza (fisioterapia, sport, contenuti) o un side hustle, non far girare 5k in borsa.
   - Risorse disponibili: 10 ore a settimana libere. Skill dichiarate oltre alla fisioterapia: "non so fare granché" (autovalutazione di Marco, non verificata — probabilmente più basso del vero, da non prendere come dato fisso).
-  - Vincolo esplicito: niente esposizione pubblica. Ha escluso i contenuti social/farsi un pubblico — vuole qualcosa online, sotto traccia. Vedi anche `identity.md`.
-  - Aggiornamento 2026-09-06: ha alzato il target — non vuole più un lavoretto/side hustle, vuole "costruire qualcosa di scalabile che può fare milioni", dice di essere "disposto a tutto". Non ancora chiarito se questo supera il vincolo "niente esposizione" di sopra — segnalata la contraddizione, in attesa di risposta.
+  - Vincolo esplicito, precisato il 2026-09-06: niente faccia sui social, niente brand personale pubblico. Ma nessun problema a esporsi di persona — vendere, trattare, parlare con clienti va bene. Vedi anche `identity.md`.
+  - Aggiornamento 2026-09-06: ha alzato il target — non vuole più un lavoretto/side hustle, vuole "costruire qualcosa di scalabile che può fare milioni", dice di essere "disposto a tutto" (nei limiti del vincolo social sopra).
 
 ## Cosa non voglio che succeda
 

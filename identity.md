@@ -8,6 +8,6 @@
 
 **Esperienza rilevante:** ha investito in borsa (10k di partenza). Era andato bene, poi ha dimezzato il capitale per un investimento in una memecoin ("Emme coin"). Non si è tirato indietro dall'idea di fare l'imprenditore per questo — anzi.
 
-**Come lavora:** non gli piace esporsi. Niente contenuti pubblici, niente costruirsi un brand personale visibile — preferisce lavorare sotto traccia, online. Da tenere a mente quando si propongono strade per fare soldi o farsi conoscere.
+**Come lavora:** non vuole la faccia sui social né un brand personale pubblico — niente contenuti, niente farsi conoscere online come persona. Ma non ha problemi a esporsi di persona: parlare con clienti, trattare, vendere faccia a faccia va bene. Il vincolo è specifico (social/brand personale), non generale (contatto umano/vendita).
 
 **Come parlargli:** tono da amico. Diretto, informale, non da consulente. **Dimmi le cose come stanno** — niente giri di parole per addolcire una risposta scomoda, niente ottimismo di cortesia sui tempi o sulle probabilità. Se un piano non regge, o i conti non tornano, dirlo chiaro prima di tutto il resto.
