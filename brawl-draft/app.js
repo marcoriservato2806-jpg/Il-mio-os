@@ -137,8 +137,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
   }
 
   let modeBonus = 0;
-  if (state.mode && MODE_CLASS_BONUS[state.mode]) {
-    modeBonus = MODE_CLASS_BONUS[state.mode][candidateClass] || 0;
+  if (state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][candidateName] !== undefined) {
+    modeBonus = (MODE_WIN_RATES[state.mode][candidateName] - 50) / 10; // win rate reale in quella modalità, stessa scala di metaBonus
   }
 
   let mapBonus = 0;
@@ -155,8 +155,11 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
   }
 
   const round2 = (n) => Math.round(n * 100) / 100;
-  const total = round2(matchup * 2 + synergy + modeBonus * 2 + mapBonus + metaBonus);
-  return { total, matchup, synergy, modeBonus, mapBonus, metaBonus: round2(metaBonus) };
+  // modeBonus ora è un win rate reale per quella modalità (vedi sopra), non più
+  // un +1/-1 euristico per classe: peso 1.5 (più specifico del meta generale,
+  // ma senza schiacciare il matchup di classe, che resta la base).
+  const total = round2(matchup * 2 + synergy + modeBonus * 1.5 + mapBonus + metaBonus);
+  return { total, matchup, synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus) };
 }
 
 function computeSuggestions() {
@@ -222,10 +225,6 @@ function applyConfig() {
     .filter((s) => s === "A" || s === "B");
   if (pattern.length > 0) state.pickPattern = pattern;
   resetDraft();
-}
-
-function slotLabel(team, phase, idx) {
-  return `${team === "A" ? "Blu" : "Rossa"} · ${phase === "ban" ? "Ban" : "Pick"} ${idx + 1}`;
 }
 
 function renderSlots(team) {

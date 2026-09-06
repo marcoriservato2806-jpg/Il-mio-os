@@ -191,19 +191,150 @@ const CLASS_COLORS = {
 // davanti (vedi MAP_TRAITS) — funzionano indipendentemente da come si
 // chiama la mappa e da quando cambia la rotazione.
 //
-// MODE_CLASS_BONUS[modalità][classe] = bonus/malessere legato a "cosa
-// serve per vincere quella modalità" (es. Gem Grab premia chi tiene la
-// posizione vicino alla miniera, Bounty punisce chi muore spesso perché
-// regala stelle). Euristica di ruolo, non tier-list.
 const MODES = ["Gem Grab", "Brawl Ball", "Bounty", "Heist", "Hot Zone", "Knockout"];
 
-const MODE_CLASS_BONUS = {
-  "Gem Grab": { "Tank": 1, "Damage Dealer": 0, "Assassin": -1, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 1 },
-  "Brawl Ball": { "Tank": 1, "Damage Dealer": 1, "Assassin": 0, "Marksman": -1, "Controller": 1, "Artillery": -1, "Support": 0 },
-  "Bounty": { "Tank": 0, "Damage Dealer": 0, "Assassin": -1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": 0 },
-  "Heist": { "Tank": 0, "Damage Dealer": 0, "Assassin": 1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": -1 },
-  "Hot Zone": { "Tank": 1, "Damage Dealer": 0, "Assassin": -1, "Marksman": -1, "Controller": 1, "Artillery": 0, "Support": 0 },
-  "Knockout": { "Tank": 0, "Damage Dealer": 1, "Assassin": -1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": 0 },
+// MODE_WIN_RATES[modalità][brawler] = win rate % REALE in quella modalità
+// specifica, letto il 6 settembre 2026 direttamente dalle 6 tabelle
+// per-modalità di brawlmetrics.gg (stessa fonte del meta generale, stesso
+// giorno). Sostituisce la vecchia euristica "per classe" (Gem Grab premia
+// i tank, ecc.): con un numero vero per ogni brawler non serve più
+// indovinare per categoria, e i numeri mostrano perché la scorciatoia
+// per classe era imprecisa — es. Rosa (Tank) è S+ 72% in Brawl Ball ma
+// D 39% in Bounty; Edgar (Assassin) è S+ 54% in Heist ma D 35% in
+// Knockout. Copertura: tutti i 106 brawler del roster, tutte e 6 le
+// modalità (tabelle complete, non troncate).
+//
+// LIMITE onesto: questi numeri NON sono specifici di Classificata come
+// DEFAULT_META_SCORES — la pagina di BrawlMetrics per modalità copre
+// "tutti i livelli di trofei" in quella modalità, non solo il ranked. Non
+// è stato possibile trovare un secondo sito con lo stesso spacchettamento
+// per modalità per un riscontro incrociato numerico (brawlify/noff.gg/
+// brawltime.ninja bloccano ancora il fetch diretto), quindi qui il
+// riscontro è a fonte singola. Trattalo come "come si comporta questo
+// brawler nelle meccaniche di questa modalità", non come "quanto vale in
+// Classificata in questa modalità" — le due cose sono probabilmente
+// vicine ma non è stato verificato quanto.
+const MODE_WIN_RATES = {
+  "Gem Grab": {
+    "Wendy": 69.2, "Gus": 64.2, "Nori": 62.2, "Bolt": 65.3, "Shade": 65.5, "Starr Nova": 65.3,
+    "Edgar": 53.3, "Amber": 63.8, "Bo": 59.6, "Trunk": 65.9, "Lola": 64.8, "El Primo": 54.7,
+    "Mortis": 56.5, "Gigi": 63.4, "Lumi": 63.3, "Damian": 62.7, "Frank": 55.8, "Shelly": 52.2,
+    "Jae-Yong": 63.7, "Colt": 52.0, "Doug": 61.6, "8-Bit": 51.7, "Pierce": 60.3, "Finx": 62.2,
+    "Janet": 61.4, "Chester": 59.9, "Mina": 60.2, "Stu": 59.2, "Rico": 51.3, "Hank": 61.7,
+    "Draco": 61.7, "Glowy": 60.8, "Poco": 51.4, "Meeple": 60.7, "Mandy": 57.3, "Rosa": 55.0,
+    "Sirius": 58.2, "Alli": 58.9, "Moe": 59.7, "Kit": 57.3, "Bull": 52.1, "Chuck": 56.8,
+    "Ruffs": 58.8, "Nita": 47.5, "Tara": 53.5, "Sprout": 58.1, "Jessie": 50.5, "Sam": 58.0,
+    "Nani": 57.0, "Emz": 45.9, "Gray": 57.0, "Carl": 52.3, "Brock": 46.8, "Griff": 49.0,
+    "R-T": 57.9, "Najia": 56.1, "Mico": 56.9, "Angelo": 56.5, "Kaze": 55.2, "Ziggy": 56.5,
+    "Juju": 56.7, "Willow": 55.8, "Penny": 48.4, "Darryl": 48.4, "Surge": 47.3, "Spike": 46.1,
+    "Barley": 44.2, "Crow": 42.8, "Fang": 44.4, "Bibi": 42.9, "Tick": 40.0, "Leon": 43.3,
+    "Colette": 41.5, "Piper": 42.0, "Dynamike": 39.7, "Squeak": 39.6, "Max": 40.0, "Ash": 41.8,
+    "Meg": 39.6, "Kenji": 39.8, "Pam": 39.2, "Larry & Lawrie": 39.9, "Jacky": 38.1, "Bea": 38.4,
+    "Lou": 40.1, "Charlie": 39.6, "Byron": 36.9, "Buzz": 37.4, "Sandy": 36.1, "Clancy": 37.5,
+    "Gale": 36.9, "Gene": 37.8, "Otis": 37.5, "Lily": 35.6, "Berry": 35.6, "Pearl": 34.0,
+    "Belle": 33.5, "Maisie": 32.2, "Mr. P": 32.9, "Cordelius": 31.9, "Melodie": 30.7, "Eve": 29.8,
+    "Ollie": 31.1, "Buster": 30.4, "Grom": 29.6, "Bonnie": 29.2,
+  },
+  "Brawl Ball": {
+    "Rosa": 72.0, "Shade": 65.6, "Wendy": 68.2, "Gus": 67.4, "Amber": 67.8, "Bolt": 69.0,
+    "Nori": 62.8, "Trunk": 67.5, "Starr Nova": 64.8, "Ash": 66.7, "Damian": 65.7, "Pearl": 65.2,
+    "Gigi": 64.3, "Lumi": 63.3, "Bull": 58.1, "Doug": 63.1, "Lola": 64.0, "Sam": 63.5,
+    "Larry & Lawrie": 63.3, "El Primo": 51.3, "Maisie": 62.1, "Meeple": 62.5, "Jae-Yong": 63.6,
+    "Stu": 58.9, "R-T": 62.7, "Hank": 61.7, "Finx": 62.3, "Alli": 61.9, "Draco": 61.7,
+    "Pam": 61.5, "Mico": 61.6, "Mortis": 52.4, "Pierce": 59.4, "Chester": 58.4, "Glowy": 60.8,
+    "Buster": 60.9, "Lou": 59.9, "Mina": 57.6, "Tara": 58.0, "Gale": 58.9, "Ruffs": 60.2,
+    "Sandy": 59.6, "Squeak": 59.3, "Poco": 53.8, "Willow": 59.8, "Moe": 59.4, "Melodie": 58.4,
+    "Berry": 59.5, "Sprout": 59.4, "Ollie": 60.0, "Charlie": 59.9, "Kit": 58.3, "Sirius": 58.9,
+    "Clancy": 58.0, "Otis": 57.9, "Mandy": 57.4, "Griff": 51.6, "Kaze": 57.4, "Chuck": 58.2,
+    "Ziggy": 58.9, "Eve": 59.1, "Buzz": 55.6, "Bo": 55.2, "Gray": 57.6, "Janet": 58.6,
+    "Cordelius": 56.4, "Bonnie": 58.2, "Nani": 57.5, "Najia": 58.0, "Max": 54.3, "Lily": 57.2,
+    "Belle": 58.0, "Gene": 57.8, "Bea": 56.1, "Colette": 54.2, "Mr. P": 57.7, "Juju": 56.8,
+    "Carl": 51.9, "Grom": 55.5, "Fang": 51.5, "Leon": 51.9, "Meg": 51.2, "Bibi": 46.1,
+    "Frank": 46.6, "Colt": 43.5, "Angelo": 54.9, "Byron": 53.2, "Kenji": 48.8, "Spike": 48.7,
+    "Barley": 48.4, "Shelly": 38.1, "Surge": 43.3, "Edgar": 35.2, "Jacky": 46.8, "Darryl": 45.7,
+    "Brock": 41.9, "Penny": 47.3, "Emz": 41.4, "Piper": 47.1, "Rico": 36.5, "Dynamike": 40.8,
+    "Tick": 44.2, "Crow": 43.0, "Nita": 36.2, "8-Bit": 40.2, "Jessie": 39.3,
+  },
+  "Bounty": {
+    "Wendy": 68.1, "Gus": 59.6, "Piper": 49.8, "Nori": 58.7, "Bolt": 61.7, "Pierce": 59.0,
+    "Amber": 63.3, "Bo": 62.4, "Brock": 50.6, "Mandy": 54.1, "Starr Nova": 59.4, "Najia": 58.7,
+    "Sprout": 60.2, "Shade": 58.7, "Edgar": 48.5, "Nani": 54.5, "Colt": 48.6, "Mortis": 52.1,
+    "Mina": 56.5, "Jae-Yong": 60.1, "8-Bit": 51.0, "Glowy": 59.2, "Trunk": 59.7, "Lola": 58.4,
+    "Gray": 55.4, "Angelo": 55.1, "Meeple": 56.8, "Gigi": 56.9, "Janet": 57.3, "Damian": 58.3,
+    "Byron": 47.0, "Emz": 50.0, "Juju": 57.1, "Chester": 54.8, "Stu": 53.6, "Carl": 51.6,
+    "R-T": 55.9, "Rico": 46.9, "Alli": 54.6, "Sam": 55.9, "Lumi": 55.2, "Finx": 55.3,
+    "El Primo": 49.7, "Doug": 54.9, "Kaze": 52.7, "Sirius": 53.6, "Kit": 51.4, "Moe": 54.3,
+    "Ruffs": 53.8, "Frank": 48.6, "Chuck": 51.9, "Bea": 45.3, "Max": 46.7, "Ziggy": 52.7,
+    "Mico": 52.1, "Penny": 48.3, "Jessie": 47.3, "Belle": 45.2, "Hank": 51.9, "Leon": 44.9,
+    "Tick": 42.8, "Spike": 45.6, "Fang": 45.3, "Willow": 50.7, "Draco": 50.8, "Nita": 45.6,
+    "Gene": 45.7, "Bibi": 46.2, "Griff": 43.6, "Colette": 43.5, "Maisie": 46.1, "Poco": 42.9,
+    "Crow": 42.4, "Dynamike": 41.8, "Shelly": 42.0, "Squeak": 42.5, "Pearl": 43.6, "Eve": 44.8,
+    "Meg": 42.6, "Bull": 41.7, "Grom": 40.8, "Surge": 40.0, "Darryl": 39.5, "Tara": 38.8,
+    "Rosa": 39.1, "Kenji": 37.9, "Bonnie": 37.8, "Barley": 36.0, "Mr. P": 37.3, "Lily": 36.4,
+    "Buzz": 35.1, "Charlie": 36.1, "Sandy": 35.2, "Larry & Lawrie": 34.1, "Gale": 33.7,
+    "Melodie": 33.1, "Pam": 33.7, "Lou": 33.1, "Jacky": 32.7, "Berry": 32.9, "Otis": 31.1,
+    "Cordelius": 31.9, "Ash": 31.5, "Buster": 31.5, "Clancy": 30.9, "Ollie": 19.8,
+  },
+  "Heist": {
+    "Nori": 66.1, "Edgar": 54.3, "Shade": 63.8, "Nita": 54.6, "8-Bit": 53.3, "Chuck": 55.9,
+    "Bo": 62.9, "Amber": 60.4, "Colt": 50.1, "Trunk": 65.8, "Jessie": 49.6, "El Primo": 54.0,
+    "Kaze": 59.4, "Gigi": 62.6, "Mico": 57.5, "Starr Nova": 61.5, "Gus": 61.1, "Mandy": 57.0,
+    "Doug": 62.2, "Lola": 61.3, "Emz": 51.5, "Lumi": 60.5, "Bolt": 59.9, "Stu": 60.6,
+    "Mortis": 58.7, "Griff": 51.2, "Wendy": 60.3, "Frank": 50.5, "Rico": 47.3, "Sam": 60.2,
+    "Sirius": 57.6, "Bibi": 51.7, "Glowy": 58.7, "Nani": 56.7, "Sprout": 58.0, "Bull": 47.5,
+    "Brock": 44.4, "R-T": 58.2, "Juju": 58.7, "Penny": 49.0, "Hank": 57.7, "Chester": 56.4,
+    "Pierce": 57.0, "Meeple": 58.2, "Barley": 48.2, "Finx": 58.3, "Damian": 57.5, "Draco": 56.9,
+    "Kit": 55.6, "Colette": 46.9, "Janet": 57.0, "Dynamike": 44.5, "Melodie": 46.8, "Angelo": 55.2,
+    "Carl": 47.6, "Ruffs": 55.5, "Jae-Yong": 56.0, "Ziggy": 54.5, "Shelly": 43.9, "Gray": 54.7,
+    "Willow": 53.0, "Rosa": 48.3, "Najia": 53.2, "Alli": 53.3, "Mina": 51.6, "Berry": 43.6,
+    "Moe": 51.2, "Darryl": 44.3, "Poco": 43.7, "Tara": 45.6, "Jacky": 44.4, "Larry & Lawrie": 43.5,
+    "Squeak": 42.1, "Spike": 40.2, "Crow": 37.6, "Pam": 42.8, "Pearl": 41.4, "Maisie": 41.4,
+    "Buzz": 39.4, "Piper": 38.5, "Surge": 38.6, "Kenji": 38.2, "Leon": 36.0, "Tick": 34.4,
+    "Lily": 38.4, "Max": 36.6, "Meg": 33.6, "Gale": 33.6, "Ash": 33.6, "Bea": 31.2,
+    "Cordelius": 29.9, "Grom": 31.2, "Clancy": 30.0, "Fang": 28.9, "Eve": 30.2, "Byron": 28.5,
+    "Charlie": 26.9, "Otis": 25.3, "Bonnie": 25.8, "Lou": 25.9, "Belle": 25.4, "Buster": 25.4,
+    "Mr. P": 24.2, "Sandy": 23.8, "Gene": 23.3, "Ollie": 15.5,
+  },
+  "Hot Zone": {
+    "Wendy": 68.5, "Nori": 62.9, "Shade": 62.8, "Gus": 63.8, "Amber": 62.9, "Edgar": 52.7,
+    "Bo": 59.9, "Trunk": 66.1, "Starr Nova": 64.2, "El Primo": 53.1, "Doug": 62.9, "Emz": 51.6,
+    "Chuck": 58.4, "Damian": 63.1, "Hank": 61.8, "Tick": 45.9, "Poco": 48.7, "Sirius": 60.1,
+    "Mortis": 55.8, "Nita": 50.7, "Lola": 61.4, "Gigi": 60.8, "Bolt": 60.1, "Frank": 50.2,
+    "Griff": 50.3, "8-Bit": 49.1, "Finx": 60.9, "R-T": 61.0, "Draco": 60.4, "Juju": 59.2,
+    "Chester": 58.6, "Jessie": 48.6, "Shelly": 49.2, "Colt": 49.2, "Mandy": 57.7, "Bibi": 49.2,
+    "Lumi": 58.3, "Sprout": 59.2, "Jae-Yong": 60.9, "Pierce": 57.1, "Mina": 57.3, "Stu": 56.2,
+    "Rico": 48.4, "Meeple": 57.4, "Kaze": 56.8, "Bull": 50.5, "Barley": 46.7, "Sam": 58.2,
+    "Glowy": 56.8, "Kit": 55.1, "Nani": 56.3, "Ruffs": 58.0, "Brock": 46.2, "Willow": 55.6,
+    "Kenji": 48.1, "Tara": 51.1, "Ziggy": 55.6, "Gray": 55.2, "Dynamike": 43.7, "Janet": 56.2,
+    "Najia": 55.7, "Rosa": 49.2, "Alli": 55.3, "Pam": 50.5, "Larry & Lawrie": 49.8, "Meg": 47.3,
+    "Moe": 54.5, "Mico": 52.6, "Penny": 43.1, "Colette": 46.0, "Surge": 43.7, "Angelo": 53.1,
+    "Spike": 43.3, "Berry": 41.7, "Buzz": 46.8, "Carl": 42.0, "Squeak": 40.5, "Lou": 43.4,
+    "Fang": 41.8, "Crow": 37.8, "Gale": 40.4, "Darryl": 37.1, "Jacky": 36.3, "Pearl": 40.5,
+    "Leon": 38.3, "Melodie": 39.9, "Ash": 37.4, "Maisie": 38.3, "Sandy": 36.2, "Max": 36.5,
+    "Piper": 35.4, "Cordelius": 34.5, "Grom": 34.2, "Clancy": 31.7, "Lily": 32.2, "Bea": 30.5,
+    "Belle": 32.6, "Byron": 29.9, "Otis": 31.4, "Bonnie": 30.0, "Buster": 28.1, "Eve": 28.2,
+    "Mr. P": 27.2, "Ollie": 27.1, "Charlie": 25.5, "Gene": 20.6,
+  },
+  "Knockout": {
+    "Wendy": 69.6, "Gus": 63.3, "Nori": 61.0, "Pearl": 65.2, "Shade": 63.5, "Bo": 62.9,
+    "Pierce": 62.0, "Starr Nova": 62.4, "Amber": 62.5, "Meeple": 62.6, "Mortis": 59.8,
+    "Mandy": 58.5, "Bolt": 62.4, "Lola": 62.3, "Trunk": 62.8, "Chester": 61.2, "Maisie": 61.5,
+    "Gigi": 61.7, "Griff": 59.3, "Tara": 60.2, "Najia": 60.3, "Jae-Yong": 62.1, "Gray": 59.4,
+    "Stu": 59.7, "Sprout": 60.5, "Finx": 61.1, "Mina": 59.8, "Ash": 61.4, "Squeak": 58.4,
+    "Doug": 60.9, "Gale": 60.6, "Bull": 59.1, "Glowy": 60.8, "Lumi": 60.8, "Larry & Lawrie": 60.4,
+    "Nani": 58.4, "Sandy": 60.3, "Damian": 60.6, "Otis": 60.0, "Janet": 59.9, "Draco": 60.5,
+    "Kit": 57.5, "Ruffs": 59.7, "Alli": 59.4, "Buzz": 58.7, "Bonnie": 58.8, "Gene": 58.2,
+    "Charlie": 58.7, "Cordelius": 58.5, "Berry": 58.8, "Lou": 58.4, "Moe": 58.5, "R-T": 58.5,
+    "Mico": 57.9, "Surge": 55.8, "Angelo": 56.9, "Rosa": 56.8, "Bibi": 55.3, "Hank": 57.9,
+    "Fang": 55.7, "Melodie": 57.5, "Belle": 55.8, "Sirius": 57.4, "Sam": 57.6, "Colette": 54.1,
+    "Buster": 57.6, "Mr. P": 57.1, "Kenji": 55.3, "Lily": 55.8, "Max": 54.1, "Ziggy": 56.9,
+    "Willow": 56.6, "Pam": 56.2, "Eve": 56.7, "Kaze": 55.4, "Spike": 51.8, "Frank": 51.7,
+    "Bea": 52.3, "Ollie": 55.5, "Grom": 54.0, "Juju": 54.9, "Tick": 51.3, "Chuck": 54.2,
+    "Piper": 43.2, "Meg": 51.1, "Penny": 51.0, "Clancy": 53.7, "Leon": 47.9, "Poco": 49.3,
+    "Dynamike": 48.3, "Darryl": 49.2, "Carl": 48.1, "Byron": 46.7, "Barley": 49.1, "Edgar": 36.4,
+    "Jessie": 45.6, "Emz": 41.9, "Nita": 43.8, "Colt": 37.1, "Brock": 35.9, "Crow": 41.9,
+    "Jacky": 44.5, "8-Bit": 37.9, "Rico": 36.0, "Shelly": 38.1, "El Primo": 37.8,
+  },
 };
 
 // Caratteristiche della mappa: selezionabili a mano guardando la mappa
