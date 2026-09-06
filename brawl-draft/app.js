@@ -17,6 +17,10 @@ const state = {
 
 const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
 
+// I valori di DEFAULT_META_SCORES (data.js) si applicano sempre, senza che
+// l'utente debba incollare nulla. Quello che l'utente eventualmente incolla
+// e salva (persistito in localStorage) si somma sopra, sovrascrivendo il
+// default nome per nome dove i due coincidono.
 function loadCustomScores() {
   let raw = "";
   try {
@@ -25,7 +29,7 @@ function loadCustomScores() {
     raw = "";
   }
   const { scores } = parseMetaText(raw);
-  state.customScores = scores;
+  state.customScores = { ...DEFAULT_META_SCORES, ...scores };
   return raw;
 }
 
@@ -405,14 +409,15 @@ function initModeAndMap() {
 
 function renderMetaStatus(unrecognized) {
   const el = document.getElementById("meta-status");
-  const count = Object.keys(state.customScores).length;
-  if (count === 0 && (!unrecognized || unrecognized.length === 0)) {
-    el.textContent = "Nessun dato incollato: i suggerimenti usano solo classi/modalità/mappa.";
-    return;
+  const defaultCount = Object.keys(DEFAULT_META_SCORES).length;
+  const totalCount = Object.keys(state.customScores).length;
+  const pastedText = (document.getElementById("meta-input").value || "").trim();
+  let msg = `${defaultCount} brawler già inclusi di base (nessuna azione richiesta).`;
+  if (pastedText.length > 0) {
+    msg += ` ${totalCount} in totale contando quelli che hai incollato/corretto tu.`;
   }
-  let msg = `${count} brawler riconosciuti.`;
   if (unrecognized && unrecognized.length > 0) {
-    msg += ` ${unrecognized.length} riga/e non capite (nome o numero mancante): ${unrecognized.slice(0, 3).join(" | ")}${unrecognized.length > 3 ? "…" : ""}`;
+    msg += ` ${unrecognized.length} riga/e non capite: ${unrecognized.slice(0, 3).join(" | ")}${unrecognized.length > 3 ? "…" : ""}`;
   }
   el.textContent = msg;
 }
@@ -426,7 +431,7 @@ function initMetaPanel() {
   document.getElementById("meta-save").addEventListener("click", () => {
     const text = textarea.value;
     const { scores, unrecognized } = parseMetaText(text);
-    state.customScores = scores;
+    state.customScores = { ...DEFAULT_META_SCORES, ...scores };
     saveMetaRaw(text);
     renderMetaStatus(unrecognized);
     renderSuggestions();
@@ -434,7 +439,7 @@ function initMetaPanel() {
 
   document.getElementById("meta-clear").addEventListener("click", () => {
     textarea.value = "";
-    state.customScores = {};
+    state.customScores = { ...DEFAULT_META_SCORES };
     saveMetaRaw("");
     renderMetaStatus(null);
     renderSuggestions();

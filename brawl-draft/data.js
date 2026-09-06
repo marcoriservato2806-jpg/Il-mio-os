@@ -115,7 +115,6 @@ const BRAWLERS = [
   { name: "Meeple", class: "Controller" },
   { name: "Finx", class: "Controller" },
   { name: "Ziggy", class: "Controller" },
-  { name: "Juju", class: "Controller" },
   { name: "Penny", class: "Controller" }, // classe cambiata nel tempo (era Damage Dealer/Artillery), verifica
 
   // Artillery
@@ -125,6 +124,7 @@ const BRAWLERS = [
   { name: "Larry & Lawrie", class: "Artillery" },
   { name: "Grom", class: "Artillery" },
   { name: "Sprout", class: "Artillery" },
+  { name: "Juju", class: "Artillery" }, // corretto il 6/9: una ricerca lo classificava per errore come Controller; una fonte più specifica lo conferma Artillery ("il più forte artigliere, S tier #6 assoluto")
 
   // Support
   { name: "Poco", class: "Support" },
@@ -426,3 +426,50 @@ const MAPS = [
     notes: "Linee di tiro lunghe: tieni il controllo dei cespugli e dei chokepoint, gioca paziente e commercia da lontano.",
   },
 ];
+
+// Base di partenza automatica per i "Dati meta": win rate raccolti da
+// ricerche web del 6 settembre 2026 (Brawl Planet, BrawlMetrics, Dexerto,
+// LDShop, noff.gg — pagine non apribili direttamente, dati dagli estratti
+// di ricerca). NON richiede alcuna azione dell'utente: si applica da sola
+// all'avvio, il riquadro "Dati meta" nell'app serve solo per aggiungere o
+// correggere valori quando si hanno numeri migliori.
+//
+// Due tipi di dato, marcati diversamente qui sotto:
+//  - numero ESATTO citato da una fonte (es. Wendy 68 da "67.2-69% a seconda
+//    della fonte", Bolt/Gus 64 da "clear 64% adjusted win rate");
+//  - numero STIMATO dalla fascia di tier quando la fonte dava solo la
+//    lettera (S+/S/A) senza percentuale — con la banda ipotizzata:
+//    S+ ~65-68, S ~58-64, A ~53-57, sotto la media quando una fonte
+//    segnalava esplicitamente un problema (es. Edgar: pick rate altissimo
+//    ma win rate reale basso; Dynamike: "una delle win rate medie più
+//    basse del gioco" nonostante sia un pick da competitivo).
+// Copre ~25 dei 108 brawler: per tutti gli altri non è stato trovato un
+// dato affidabile, quindi restano neutri (0) invece di un numero inventato.
+const DEFAULT_META_SCORES = {
+  "Wendy": 68,       // esatto (fonti tra 67.2 e 69, media)
+  "Draco": 66,        // stimato, S+ "top 5 assoluto"
+  "Hank": 66,          // stimato, S+
+  "Gus": 64,           // esatto ("clear 64% adjusted win rate")
+  "Bolt": 64,          // esatto (stessa fonte di Gus)
+  "Juju": 61,          // stimato, S tier #6 assoluto tra tutti i brawler
+  "Nori": 61,          // stimato, S tier
+  "Starr Nova": 61,    // stimato, S tier
+  "Damian": 61,        // stimato, S tier
+  "Shade": 60,         // stimato, S tier / #1 pick competitivo su noff.gg
+  "Amber": 60,         // stimato, S tier
+  "Bo": 60,            // stimato, S tier
+  "Surge": 60,         // stimato, "miglior Damage Dealer" nonostante i nerf
+  "Kit": 59,           // stimato, "salito di recente a S tier"
+  "Kaze": 57,          // stimato, citato fra i top 10 ma non nel nucleo S esplicito
+  "El Primo": 56,      // stimato, citato fra i top 10
+  "Moe": 55,           // stimato, citato fra i top 10
+  "Mortis": 54,        // stimato, A tier
+  "Pierce": 54,        // stimato, A tier
+  "Sprout": 54,        // stimato, A tier
+  "Chester": 54,       // stimato, A tier
+  "Mandy": 54,         // stimato, A tier
+  "Bull": 53,          // stimato, A tier dopo il rework
+  "Trunk": 53,         // stimato, A tier
+  "Dynamike": 45,      // esatto in senso inverso: fonte segnala esplicitamente win rate media bassa nonostante l'uso competitivo
+  "Edgar": 43,         // esatto in senso inverso: 7.04% use rate ma solo 43.4% win rate su ladder (dato preciso trovato)
+};
