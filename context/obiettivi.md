@@ -9,8 +9,10 @@
   - Vincolo esplicito, precisato il 2026-09-06: niente faccia sui social, niente brand personale pubblico. Ma nessun problema a esporsi di persona — vendere, trattare, parlare con clienti va bene. Vedi anche `identity.md`.
   - Aggiornamento 2026-09-06: ha alzato il target — non vuole più un lavoretto/side hustle, vuole "costruire qualcosa di scalabile che può fare milioni", dice di essere "disposto a tutto" (nei limiti del vincolo social sopra).
   - **Epicondilite: in pausa (2026-09-06).** Marco ha deciso di rimandarla a dopo la laurea (4-5 anni) — richiede credibilità clinica che non ha ancora. Ricerca e bozza restano in `progetti/epicondilite-italia/` e `memoria/wiki/nicchia-riabilitazione-guidata.md`, si riprendono quando ha senso.
-  - **Ora cerca qualcosa di più semplice, che non richieda formazione/credenziali specifiche.** Ancora da definire quale niche/prodotto — in corso.
+  - **Direzione definitiva (2026-09-06): correttore di postura + programma guidato, mercato italiano.** Vedi `progetti/postura-italia/`. Marco ha chiesto esplicitamente di smettere di valutare alternative — questa è la via, si esegue e basta finché i fatti (non un'altra idea più bella) non dicono di cambiare. Primo passo in corso: 8 conversazioni di validazione entro l'11/09/2026.
 
 ## Cosa non voglio che succeda
 
-Non ancora definito. Da chiedere a Marco: questa è la metà del file che serve di più (vedi `rot.md`), e finché è vuota Claude non può dirgli che una cosa non vale la pena — può solo aiutarlo a farla bene.
+- **Ricominciare a cambiare idea sulla nicchia prima di aver eseguito questa fino in fondo** — vincolo posto da Marco stesso il 2026-09-06 dopo diversi cambi di direzione in poche ore. Se emergono dati reali (dalle 8 conversazioni o dopo) che dicono di cambiare, va bene; un'idea "più bella" senza dati dietro non è un motivo valido per abbandonare questa.
+
+Per il resto, non ancora definito. Da chiedere a Marco.
