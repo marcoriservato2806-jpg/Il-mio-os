@@ -1,6 +1,6 @@
 # Obiettivi
 
-- Aprire un proprio studio di fisioterapia.
+- Aprire un proprio studio di fisioterapia, tra 4-5 anni (dopo la laurea) — non un progetto attivo ora.
 - Diventare un fisioterapista d'élite.
 - Diventare imprenditore, sul modello del nonno — l'ambizione di fondo, di cui lo studio è il primo passo.
 - Rifarsi del capitale perso in borsa (10k dimezzato per una memecoin, "Emme coin") senza ripetere lo stesso errore.
