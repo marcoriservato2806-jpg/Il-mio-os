@@ -18,6 +18,9 @@ Elenco tenuto perché ognuno di questi è costato una verifica incrociata: ritro
 | Punteggi con rumore in virgola mobile (`+1.7600000000000002`) | test in browser | Arrotondamento. |
 | Cache dei ranking non invalidata incollando dati propri | test in browser | Un unico setter che invalida. |
 | Un brawler valutato come minaccia **contro se stesso** | screenshot dell'utente: "Wendy — peggio: Wendy 48%" | In Classificata non può stare in entrambe le squadre: escluso dalla propria lista minacce. |
+| Bonus composizione applicato a **squadra vuota** | dubbio dell'utente su Parallel Plays: l'app dava Damian e Trunk al 70% mentre la fonte diceva 67,5 e 68,4 | Al primo pick "manca la frontline" è vero per definizione: dava +2 a ogni Tank e Controller, spingendoli sopra il dato misurato. Ora i bonus scattano solo da un pick in poi. |
+| Ordine della lista **non monotono** nel numero mostrato | stesso screenshot: 68, 69, 70, 70, 67, 66… | Ordinava per una miscela di media e caso peggiore: la lista sembrava casuale e non era più confrontabile con la fonte. Ora si ordina per il numero mostrato; il rischio resta visibile nel riquadrino, che cambia colore quando il divario è grande. |
+| Etichetta "trappola" su un pick **consigliato in cima** | stesso screenshot (Trunk) | L'etichetta parla del meta generale, il consiglio della mappa. Se il dato specifico dice che è forte lì, l'etichetta tace invece di contraddire il consiglio a fianco. |
 
 ## Regola generale che ne esce
 

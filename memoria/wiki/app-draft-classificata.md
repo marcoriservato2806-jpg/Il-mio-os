@@ -31,6 +31,8 @@ La Classificata usa **1-2-2-1**. Chi sceglie per primo vede 0, poi 2, poi 2 avve
 
 **Un numero grande = sempre una percentuale di vittorie**, in ogni fase. Un punteggio astratto in una schermata e una percentuale in un'altra rende illeggibili entrambe. E le impostazioni attive vanno mostrate accanto ai risultati: scorrendo, i menu finiscono fuori schermo e non si capisce più su quali dati stia rispondendo l'app.
 
+**La classifica deve restare verificabile contro la fonte.** Se sulla mappa il migliore è Gus, l'app deve mostrare Gus in cima: è così che l'utente capisce se fidarsi. Ne discendono due vincoli — l'ordine segue il numero mostrato (mai una miscela di due numeri, che rende la lista non monotona e incontrollabile), e nessun bonus euristico può spingere un brawler sopra la sua win rate misurata.
+
 Attenzione: i gestori dei menu devono chiamare `render()`, non solo `renderSuggestions()`, altrimenti pezzi di interfaccia restano indietro e mostrano il falso.
 
 ## Trappola di progettazione già incontrata

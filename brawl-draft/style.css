@@ -594,3 +594,5 @@ footer details[open] summary { margin-bottom: 8px; }
   line-height: 1.4;
 }
 .context-line.weak span { border-style: dashed; }
+
+.floor-chip.mid { border-color: rgba(255, 194, 61, 0.45); color: var(--accent); }

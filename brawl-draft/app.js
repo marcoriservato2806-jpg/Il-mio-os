@@ -197,7 +197,14 @@ function pickFlag(name) {
   if (!r) return null;
   const gap = r.useRank - r.wrRank;
   if (gap >= 18 && r.wr >= 52) return { kind: "sleeper", use: r.use, wr: r.wr, gap };
-  if (gap <= -30 && r.wr < 50) return { kind: "trap", use: r.use, wr: r.wr, gap };
+  if (gap <= -30 && r.wr < 50) {
+    // "Trappola" parla del meta generale. Se su QUESTA mappa il dato misurato
+    // dice che è forte, l'etichetta contraddirebbe il consiglio a fianco
+    // (Trunk è debole in generale a Masters ma vince il 68,4% qui). Fra un
+    // dato specifico e uno generale vince il primo, quindi si tace.
+    if (contextualWinRate(name).base >= 55) return null;
+    return { kind: "trap", use: r.use, wr: r.wr, gap };
+  }
   return null;
 }
 
@@ -343,12 +350,19 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
 
   // Composizione: tre volte la stessa classe è fragile, e una squadra senza
   // frontline o senza cure lo paga. Valori piccoli, in punti di win rate.
-  const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
-  let synergy = -2 * sameClassCount;
-  const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
-  if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) synergy += 2;
-  const hasSupport = ownClasses.some((c) => c === "Support");
-  if (!hasSupport && candidateClass === "Support" && ownClasses.length >= 1) synergy += 1;
+  // I bonus di composizione hanno senso solo se una squadra c'è già. Al primo
+  // pick "manca la frontline" è vero per definizione, e dare +2 a ogni Tank e
+  // Controller falsava la classifica: mostrava Damian e Trunk sopra la loro
+  // win rate reale sulla mappa, cioè sopra il dato misurato.
+  let synergy = 0;
+  if (ownClasses.length > 0) {
+    const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
+    synergy = -2 * sameClassCount;
+    const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
+    if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) synergy += 2;
+    const hasSupport = ownClasses.some((c) => c === "Support");
+    if (!hasSupport && candidateClass === "Support") synergy += 1;
+  }
 
   let traits = 0;
   for (const trait of state.mapTraits) {
@@ -396,13 +410,13 @@ function computeSuggestions() {
     return { name: b.name, class: b.class, ...s, risk, floor: Math.round(floor) };
   });
 
-  // Quando l'avversario può ancora rispondere, la realtà sta fra il caso
-  // normale e quello in cui ti counterano: ordinare per la sola media
-  // sopravvaluta i pick fragili, per il solo caso peggiore sottovaluta
-  // quelli forti. Si ordina per la media dei due, e in riga si vedono
-  // entrambi i numeri, così la scelta resta tua e non nascosta.
-  const risky = threats.length > 0 || enemyNames.length > 0;
-  candidates.sort((x, y) => (risky ? (y.total + y.floor) - (x.total + x.floor) : y.total - x.total));
+  // L'ordine segue il numero mostrato, sempre. Ordinare per una miscela di
+  // due numeri rendeva la lista non monotona in nessuna delle due colonne:
+  // sembrava casuale, e soprattutto non si poteva più verificare contro la
+  // fonte ("su questa mappa il migliore è Gus" — e l'app mostrava altro).
+  // Il rischio resta visibile nel riquadrino "peggio", che diventa vistoso
+  // quando è molto più basso: informa senza dirottare la classifica.
+  candidates.sort((x, y) => y.total - x.total);
   return candidates.slice(0, 8);
 }
 
@@ -713,9 +727,13 @@ function renderSuggestions() {
     const chips = (s.perEnemy || [])
       .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato su partite reali" : "previsione: differenza di forza + classe"}">vs ${p.enemy} ${Math.round(p.wr)}%</span>`)
       .join("");
+    // Il riquadrino diventa un avviso quando il caso peggiore è molto più
+    // basso della media: è lì che un pick apparentemente ottimo è fragile.
+    const drop = s.total - s.floor;
+    const floorClass = s.floor < 50 || drop >= 12 ? "warn" : drop >= 7 ? "mid" : "ok";
     const floorChip =
       s.risk || (s.perEnemy && s.perEnemy.length)
-        ? `<span class="floor-chip ${s.floor >= 50 ? "ok" : "warn"}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
+        ? `<span class="floor-chip ${floorClass}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
         : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
     if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
