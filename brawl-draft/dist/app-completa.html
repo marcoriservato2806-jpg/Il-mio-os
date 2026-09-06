@@ -363,6 +363,27 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .hint { color: var(--text-dim); font-size: 0.8rem; }
 
+.legend {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  line-height: 1.9;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.counter {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.counter.good { background: rgba(87, 217, 154, 0.13); color: var(--good); }
+.counter.bad { background: rgba(255, 122, 122, 0.12); color: var(--bad); }
+
 footer {
   margin-top: 18px;
   font-size: 0.75rem;
@@ -442,6 +463,12 @@ footer details[open] summary { margin-bottom: 8px; }
   </p>
 
   <div class="config-bar">
+    <label for="first-team">Chi inizia</label>
+    <select id="first-team">
+      <option value="A">Squadra Blu</option>
+      <option value="B">Squadra Rossa</option>
+    </select>
+
     <label for="bans-per-team">Ban per squadra</label>
     <input type="number" id="bans-per-team" min="0" max="3" value="3" />
 
@@ -498,6 +525,13 @@ footer details[open] summary { margin-bottom: 8px; }
     <div class="side-panel">
       <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
       <div id="suggestions"></div>
+      <p class="legend">
+        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
+        <br />
+        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
+        <br />
+        <span class="counter good">counter di X</span> matchup misurato davvero contro quel brawler, al netto della differenza di forza.
+      </p>
     </div>
   </div>
 
@@ -529,7 +563,7 @@ footer details[open] summary { margin-bottom: 8px; }
       <summary>Da dove vengono i numeri, cosa è stato controllato e cosa è stato scartato</summary>
     <strong>Come funzionano i suggerimenti:</strong> il punteggio somma quattro cose. (1) <em>Matchup</em>: vantaggio di classe contro i pick avversari già scesi in campo (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) — questa parte resta un'euristica di design, non un dato misurato. (2) <em>Sinergia</em>: penalizza tre volte la stessa classe e premia i ruoli mancanti (frontline, support). (3) <em>Mappa o modalità</em>: win rate reale, con la mappa che ha la precedenza quando esiste — non si sommano, perché la mappa è un sottoinsieme della modalità e contarle entrambe conterebbe due volte lo stesso segnale. Il peso del dato mappa scala con la sua affidabilità (campione × freschezza). (4) <em>Meta</em>: win rate generale in Classificata nella fascia di rango scelta. Passa il mouse sul punteggio per vedere quanto pesa ogni pezzo.
     <br /><br />
-    <strong>Roster:</strong> 106 brawler su 108. Mancano solo Vince (non ancora uscito, release ottobre 2026) e Cosmo (annunciato per settembre 2026, disponibilità in Classificata non confermata) — esclusi apposta finché non sono verificati, non per svista. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
+    <strong>Roster:</strong> tutti e 108. Vince e Cosmo erano esclusi perché articoli di agosto li davano per ottobre/metà settembre; l'API pubblica di Brawlify li dà entrambi <code>released: true</code> e BrawlMetrics li elenca, quindi il dato di gioco batte la previsione giornalistica e sono stati aggiunti. Non hanno ancora statistiche (troppo recenti): l'app li tratta come neutri invece di inventargli un valore. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
     <br /><br />
     <strong>Modalità:</strong> selezionando una delle 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout), i suggerimenti usano il win rate REALE di ciascun brawler in quella modalità specifica (106/106 brawler, BrawlMetrics, 6/9/2026) — non più una stima per classe. La differenza è enorme per alcuni: Rosa è S+ 72% in Brawl Ball ma D 39% in Bounty; Edgar è S+ 54% in Heist ma D 35% in Knockout. Unico limite: questi numeri coprono "tutti i livelli di trofei" in quella modalità, non solo la Classificata, e non è stato trovato un secondo sito con lo stesso dettaglio per un riscontro incrociato numerico — trattali come "come si comporta il brawler in quella modalità", non come un dato Ranked-puro al 100%.
     <br /><br />
@@ -539,9 +573,13 @@ footer details[open] summary { margin-bottom: 8px; }
     <br /><br />
     <strong>Trappole e sottovalutati:</strong> confrontando win rate e use rate (quante volte un brawler viene scelto) escono due categorie che la sola tier list nasconde. Le <span style="color:#ff9d9d">trappole</span> — molto scelte, perdono lo stesso: Griff (4,29% di scelte, 49,4% di vittorie), Max (2,50% / 47,4%), Colt (2,18% / 47,6%), Pierce (2,14% / 45,9%). E i <span style="color:#8fe3b4">sottovalutati</span> — vincono tanto ma quasi nessuno li prende, quindi quasi nessuno li banna e te li ritrovi liberi: il caso limite è Wendy, prima in assoluto per win rate (58,3%) e scelta solo dall'1,40%.
     <br /><br />
+    <strong>Counter (contro chi ha già scelto l'avversario):</strong> quando l'avversario schiera un brawler, i suggerimenti usano il matchup MISURATO su quella coppia, non un'ipotesi di classe. Ma il numero grezzo va normalizzato, altrimenti inganna: quasi tutti risultano "deboli contro Wendy" solo perché Wendy è la più forte. Si toglie quindi la parte spiegata dalla differenza di forza — atteso(A,B) = 50 + (forza A − forza B) — e resta il matchup vero. Verificato sui dati: Edgar contro Wendy fa 22,6% con atteso 23,0, residuo −0,4, cioè <em>non</em> è un counter; Jae-Yong contro Wendy fa 29,5% con atteso 43,0, residuo −13,5, cioè lo è davvero. Coperti i 46 brawler più scelti, 276 coppie misurate (552 leggendole nei due versi). Dove la coppia non è stata misurata l'app ricade sull'euristica di classe e non mostra nessuna etichetta: preferisce tacere che inventare.
+    <br /><br />
+    <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
+    <br /><br />
     <strong>Un dato che ho controllato e buttato via.</strong> BrawlMetrics pubblica per ogni brawler "forte contro / debole contro" con percentuali, e sembra la funzione più preziosa che esista per un drafter. Campionandone 17 salta fuori che è quasi tutta apparenza: "debole contro Wendy" compare in 15 casi su 17, e "forte contro Shelly/Nita" in quasi tutti — perfino Shelly, la più debole del gioco, risulta "debole contro Wendy, Gus, Bolt". Non sono matchup: è la classifica generale riscritta al contrario, e metterla nel punteggio significherebbe contare due volte la stessa informazione facendola sembrare due. Non è stata usata. Lo stesso vale per la lista di counter di Brawlio (nessun numero, terne identiche per classi diverse).
     <br /><br />
-    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → BrawlMetrics (fonte numerica principale: ranked per fascia di rango, per modalità e per mappa), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi), Brawl Planet e timesaver.gg (contesto, con l'avvertenza che il primo misura partite trofei e non Classificata). Provate e scartate → Brawlify, noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (tutte bloccano il fetch: 403/402), brawlstats.net (429), Brawl Calculator (solo indice, i dati stanno su 107 pagine separate), pinkcrow.net (solo 6 nomi, articolo di agosto), huskyboost (nessun numero, senza data). Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter per ogni brawler ma senza numeri e con triple identiche per brawler di classi diverse: non è stata usata nel punteggio per non aggiungere rumore travestito da dato.
+    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → BrawlMetrics (fonte numerica principale: ranked per fascia di rango, per modalità e per mappa), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi), Brawl Planet e timesaver.gg (contesto, con l'avvertenza che il primo misura partite trofei e non Classificata). Sbloccata → l'<strong>API pubblica ufficiale di Brawlify</strong> (<code>api.brawlapi.com</code>): il sito blocca lo scraping, ma la sua API è aperta, senza chiave né limiti. È la porta d'ingresso prevista, non un aggiramento: da lì arrivano lo stato <code>released</code> dei brawler e il campo <code>disabled</code> delle mappe, che ha confermato come ATTIVE proprio le mappe che risultavano sospette (Center Stage, Layer Cake, Safe Zone, Bridge Too Far, Pit Stop). Restano bloccati allo scraping → noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (403/402), brawlstats.net (429), Brawl Calculator (solo indice, i dati stanno su 107 pagine separate), pinkcrow.net (solo 6 nomi, articolo di agosto), huskyboost (nessun numero, senza data). Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter per ogni brawler ma senza numeri e con triple identiche per brawler di classi diverse: non è stata usata nel punteggio per non aggiungere rumore travestito da dato.
     <br /><br />
     <strong>Dati meta:</strong> 106 win rate reali su Classificata (uno per quasi ogni brawler del roster), letti il 6 settembre 2026 direttamente dalle tabelle di BrawlMetrics — non stime, non citazioni di seconda mano. Incrociati con Dexerto (tier list indipendente, senza numeri): i due concordano sulla stessa cinquina S — Wendy, Shade, Gus, Amber, Nori — che sono quindi i pick più sicuri in assoluto. Due tabelle disponibili dal menu "Fascia dati meta": <strong>tutti i ranghi</strong> (Bronze→Pro, il default) e <strong>Masters</strong>, perché la meta cambia parecchio con lo scaglione — es. El Primo è S tier a Masters (serve coordinazione di squadra) ma molto più debole in ladder media. Il riquadro applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage). Brawlify, noff.gg e Brawl Time Ninja restano bloccati (403) al fetch diretto anche oggi: non è stato possibile usarli come terza fonte numerica indipendente, solo BrawlMetrics + Dexerto.
     </details>
@@ -645,6 +683,7 @@ const BRAWLERS = [
   { name: "Alli", class: "Assassin" },
   { name: "Nori", class: "Assassin" },
   { name: "Starr Nova", class: "Assassin" },
+  { name: "Vince", class: "Assassin" }, // aggiunto il 6/9: l'API pubblica di Brawlify lo dà released:true e BrawlMetrics lo elenca, mentre articoli di agosto lo davano per ottobre. Vince il dato di gioco sulla previsione. Classe da Brawlvision, ancora a fonte singola. Nessuna statistica: troppo recente.
 
   // Marksman
   { name: "Piper", class: "Marksman" },
@@ -677,7 +716,8 @@ const BRAWLERS = [
   { name: "Meeple", class: "Controller" },
   { name: "Finx", class: "Controller" },
   { name: "Ziggy", class: "Controller" },
-  { name: "Sirius", class: "Controller" }, // aggiunto il 6/9; classe CORRETTA lo stesso giorno: era Damage Dealer (fonte Brawlvision), ma BrawlMetrics (pagina brawler + pagine mappa) e una ricerca indipendente lo danno Controller. Vince la maggioranza.
+  { name: "Sirius", class: "Controller" },
+  { name: "Cosmo", class: "Controller" }, // aggiunto il 6/9: released:true sull'API di Brawlify. Classe Controller confermata dalla descrizione ufficiale ("magnetic field that makes projectiles home in"). Nessuna statistica: troppo recente. // aggiunto il 6/9; classe CORRETTA lo stesso giorno: era Damage Dealer (fonte Brawlvision), ma BrawlMetrics (pagina brawler + pagine mappa) e una ricerca indipendente lo danno Controller. Vince la maggioranza.
   { name: "Penny", class: "Artillery" }, // CORRETTO il 6/9: era segnata Controller. Tre fonti indipendenti (BrawlMetrics, Pocket Tactics, Brawlvision) la danno Artillery.
 
   // Artillery
@@ -1244,6 +1284,95 @@ const DEFAULT_META_SCORES_MASTERS = {
   "Jessie": 35.5,
 };
 
+// COUNTER REALI — letti dalle pagine per brawler di BrawlMetrics il 6/9/2026.
+//
+// PERCHÉ SERVE UNA NORMALIZZAZIONE (e perché la versione precedente di questa
+// app aveva scartato questi dati). Presi grezzi, i "forte contro / debole
+// contro" di BrawlMetrics sono quasi inutili: praticamente ogni brawler
+// risulta "debole contro Wendy" e "forte contro Shelly", perché Wendy è la
+// più forte del gioco e Shelly la più debole. Non è un matchup, è la
+// classifica generale riscritta.
+//
+// Il rimedio è togliere dal numero la parte spiegata dalla sola differenza di
+// forza. Il valore atteso di A contro B è circa
+//     atteso(A,B) = 50 + (forzaGenerale(A) − forzaGenerale(B))
+// e quello che resta — actual − atteso — è il matchup vero. Il modello è
+// stato verificato sui dati: Edgar contro Wendy fa 22,6% con un atteso di
+// 23,0 (residuo −0,4: NON è un counter, è solo Wendy forte), mentre Jae-Yong
+// contro Wendy fa 29,5% con un atteso di 43,0 (residuo −13,5: counter vero).
+// Nita, che ha il 40,5% generale, contro Edgar fa 55,4% con atteso 49,9:
+// residuo +5,5, cioè Nita lo batte davvero nonostante sia più debole.
+//
+// COPERTURA E LIMITE ONESTO. Ogni pagina pubblica solo i 3 matchup migliori e
+// i 3 peggiori, cioè gli estremi. Qui ci sono i 46 brawler più scelti (quelli
+// che l'avversario ha davvero probabilità di prendere), per ~276 coppie
+// misurate. Le coppie si leggono anche al contrario — se A contro B fa 30%,
+// allora B contro A fa 70% — il che raddoppia la copertura. Restano comunque
+// buchi: per gli abbinamenti non misurati l'app ricade sull'euristica di
+// classe, e lo dice.
+const BRAWLER_OVERALL = {
+  "Wendy": 67.6, "Amber": 64.9, "Bolt": 64.5, "Shade": 64.4, "Gus": 63.9,
+  "Trunk": 63.8, "Starr Nova": 63.0, "Damian": 62.5, "Nori": 61.5, "Doug": 61.1,
+  "Lumi": 61.0, "Jae-Yong": 60.6, "Meeple": 60.2, "Draco": 60.0, "Pierce": 59.8,
+  "Bo": 58.6, "Hank": 58.2, "Stu": 58.2, "Mina": 57.8, "Sirius": 57.6,
+  "Kaze": 56.3, "Willow": 56.1, "Mortis": 54.4, "Ash": 54.3, "Pearl": 52.8,
+  "Griff": 51.7, "Colette": 50.7, "Max": 50.5, "El Primo": 49.7, "Carl": 49.6,
+  "Bibi": 48.2, "Meg": 47.7, "Buster": 46.4, "Byron": 45.7, "Surge": 45.7,
+  "Ollie": 44.8, "Emz": 44.7, "Piper": 44.7, "8-Bit": 44.4, "Colt": 44.2,
+  "Crow": 43.5, "Brock": 41.9, "Edgar": 40.6, "Nita": 40.5, "Shelly": 40.5,
+  "Rico": 40.1,
+};
+
+// MATCHUPS[A][B] = percentuale di vittorie di A quando affronta B.
+const MATCHUPS = {
+  "Wendy": { "Shelly": 83.6, "Nita": 81.4, "Barley": 80.3, "Shade": 52.3, "Amber": 54.4, "Ash": 56.3 },
+  "Nita": { "Edgar": 55.4, "Meg": 54.9, "Rico": 54.7, "Gus": 17.2, "Bolt": 17.9, "Wendy": 18.7 },
+  "Gus": { "Shelly": 82.8, "Nita": 82.8, "Rico": 75.9, "Wendy": 40.6, "Nori": 46.1, "Amber": 46.7 },
+  "Bolt": { "Nita": 82.1, "Shelly": 80.3, "Eve": 75.2, "Wendy": 43.2, "Shade": 46.8, "Damian": 46.9 },
+  "Nori": { "Barley": 76.4, "Shelly": 75.2, "Eve": 75.1, "Wendy": 40.8, "Bolt": 50.2, "Starr Nova": 50.2 },
+  "Edgar": { "Eve": 54.0, "Mr. P": 53.7, "Brock": 53.3, "Wendy": 22.6, "Gus": 24.5, "Bolt": 26.5 },
+  "Shade": { "Shelly": 77.7, "Nita": 75.7, "Colt": 72.5, "Amber": 45.8, "Nori": 45.8, "Wendy": 47.7 },
+  "Amber": { "Shelly": 76.1, "Nita": 72.5, "Colt": 71.8, "Wendy": 45.6, "Nori": 46.2, "Starr Nova": 49.3 },
+  "Trunk": { "Nita": 78.2, "Shelly": 77.9, "Mr. P": 74.1, "Wendy": 38.1, "Starr Nova": 42.0, "Nori": 42.8 },
+  "Damian": { "Shelly": 78.5, "Nita": 78.0, "Eve": 72.0, "Wendy": 39.3, "Amber": 45.2, "Shade": 46.0 },
+  "Starr Nova": { "Shelly": 77.3, "Nita": 75.1, "Barley": 72.5, "Wendy": 40.5, "Nori": 49.8, "Amber": 50.7 },
+  "Jae-Yong": { "Nita": 80.5, "Shelly": 79.7, "Pam": 74.3, "Wendy": 29.5, "Nori": 37.3, "Starr Nova": 38.3 },
+  "Doug": { "Shelly": 77.0, "Nita": 74.8, "Jacky": 70.9, "Wendy": 39.4, "Sirius": 46.2, "Amber": 46.3 },
+  "Lumi": { "Shelly": 77.4, "Nita": 74.4, "Colt": 70.7, "Wendy": 40.3, "Nori": 45.4, "Amber": 45.7 },
+  "Ash": { "Shelly": 67.9, "Mr. P": 64.9, "Nita": 64.0, "Jae-Yong": 38.0, "Nori": 38.6, "Amber": 40.4 },
+  "Bibi": { "Eve": 61.6, "Mr. P": 61.4, "Grom": 59.7, "Wendy": 33.4, "Amber": 34.0, "Shade": 34.9 },
+  "Draco": { "Shelly": 77.4, "Nita": 75.7, "Eve": 72.5, "Wendy": 35.7, "Nori": 41.3, "Starr Nova": 41.4 },
+  "Hank": { "Nita": 74.3, "Shelly": 74.1, "Rico": 67.2, "Wendy": 32.1, "Nori": 34.4, "Jae-Yong": 37.8 },
+  "Meg": { "Piper": 55.7, "Brock": 55.7, "Mr. P": 55.6, "Wendy": 29.4, "Bolt": 32.3, "Gus": 32.9 },
+  "Buster": { "Shelly": 60.9, "Piper": 55.6, "Nita": 55.6, "Trunk": 31.1, "Nori": 31.4, "Wendy": 31.8 },
+  "Ollie": { "Shelly": 60.6, "Nita": 56.1, "Eve": 55.5, "Wendy": 27.0, "Bolt": 27.4, "Trunk": 27.4 },
+  "Sirius": { "Shelly": 74.9, "Nita": 70.2, "Pam": 68.1, "Wendy": 36.6, "Bolt": 43.6, "Shade": 44.3 },
+  "Griff": { "Shelly": 62.0, "Eve": 59.9, "Nita": 59.9, "Wendy": 35.4, "Gus": 38.4, "Amber": 38.6 },
+  "Brock": { "Piper": 49.1, "Eve": 49.0, "Grom": 48.9, "Wendy": 27.0, "Bolt": 28.0, "Nori": 28.2 },
+  "Rico": { "Eve": 52.9, "Brock": 51.3, "Mr. P": 51.0, "Gus": 24.1, "Wendy": 24.2, "Bolt": 25.9 },
+  "Surge": { "Brock": 54.2, "Colt": 53.6, "Barley": 53.3, "Wendy": 26.4, "Shade": 31.9, "Amber": 32.2 },
+  "Max": { "Shelly": 63.7, "Nita": 62.3, "Eve": 60.3, "Wendy": 31.3, "Nori": 33.7, "Shade": 35.4 },
+  "Stu": { "Shelly": 74.0, "Nita": 72.2, "Edgar": 65.6, "Wendy": 29.6, "Gus": 36.6, "Amber": 37.8 },
+  "Emz": { "Eve": 59.8, "Mr. P": 58.7, "Pam": 57.8, "Wendy": 29.8, "Bolt": 31.7, "Gus": 31.8 },
+  "Kaze": { "Shelly": 72.3, "Barley": 67.4, "Nita": 66.5, "Wendy": 33.6, "Nori": 43.3, "Starr Nova": 43.4 },
+  "Colt": { "Shelly": 52.1, "Eve": 52.0, "Brock": 51.7, "Wendy": 20.6, "Gus": 24.7, "Bolt": 26.2 },
+  "Pierce": { "Shelly": 76.1, "Nita": 72.7, "Jacky": 70.8, "Wendy": 36.4, "Starr Nova": 46.5, "Bolt": 47.7 },
+  "Piper": { "Shelly": 52.7, "Colt": 52.6, "Nita": 51.8, "Wendy": 26.4, "Nori": 32.0, "Bolt": 32.6 },
+  "El Primo": { "Eve": 56.7, "Brock": 56.2, "Edgar": 54.9, "Bolt": 25.6, "Jae-Yong": 26.3, "Wendy": 29.0 },
+  "Meeple": { "Shelly": 76.9, "Nita": 76.4, "Rico": 70.1, "Wendy": 29.1, "Bolt": 40.8, "Damian": 41.1 },
+  "8-Bit": { "Eve": 59.5, "Clancy": 57.5, "Mr. P": 57.4, "Wendy": 27.5, "Gus": 27.8, "Jae-Yong": 28.9 },
+  "Mortis": { "Nita": 75.5, "Shelly": 74.8, "Barley": 69.8, "Wendy": 26.2, "Shade": 33.3, "Amber": 34.0 },
+  "Bo": { "Gene": 73.2, "Ollie": 72.2, "Pam": 72.1, "Wendy": 31.5, "Bolt": 39.7, "Nori": 40.5 },
+  "Colette": { "Shelly": 62.9, "Mr. P": 58.9, "Nita": 58.9, "Wendy": 27.0, "Shade": 36.3, "Nori": 36.5 },
+  "Byron": { "Shelly": 58.3, "Nita": 55.1, "Colt": 54.5, "Wendy": 26.4, "Trunk": 31.5, "Nori": 32.5 },
+  "Willow": { "Shelly": 73.3, "Nita": 71.1, "Rico": 65.4, "Wendy": 28.8, "Nori": 36.2, "Bolt": 37.6 },
+  "Crow": { "Shelly": 56.0, "Nita": 54.8, "Mr. P": 54.7, "Wendy": 21.5, "Shade": 30.6, "Gus": 31.3 },
+  "Carl": { "Shelly": 62.5, "Edgar": 61.3, "Eve": 61.3, "Wendy": 29.1, "Gus": 32.1, "Bolt": 32.3 },
+  "Mina": { "Shelly": 75.5, "Nita": 72.4, "Edgar": 68.9, "Wendy": 33.6, "Shade": 41.2, "Amber": 41.7 },
+  "Pearl": { "Shelly": 66.3, "Nita": 61.4, "Brock": 61.3, "Wendy": 33.8, "Jae-Yong": 38.1, "Nori": 38.3 },
+  "Shelly": { "Rico": 52.3, "Brock": 52.3, "Edgar": 52.1, "Wendy": 16.4, "Gus": 17.3, "Bolt": 19.6 },
+};
+
 // USE RATE (quanto spesso un brawler viene REALMENTE scelto in
 // Classificata, tutti i ranghi) — stessa tabella di DEFAULT_META_SCORES,
 // stesso giorno, colonna che prima veniva buttata via. Serve a due cose
@@ -1308,6 +1437,7 @@ const state = {
   map: null, // riferimento a un oggetto di MAPS, o null
   customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
   metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
+  firstTeam: "A", // chi muove per primo: in Classificata cambia a ogni partita, quindi si sceglie
 };
 
 const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
@@ -1381,14 +1511,19 @@ function parseMetaText(text) {
   return { scores, unrecognized };
 }
 
+// Chi inizia non è fisso: in Classificata cambia da partita a partita, e
+// sbagliare il lato fa slittare tutti i turni di una posizione, cioè rende
+// sbagliato ogni suggerimento successivo. Se tocca prima alla Rossa, si
+// specchia l'intera sequenza invece di ricostruirla a mano.
 function buildSequence() {
+  const flip = (t) => (state.firstTeam === "B" ? (t === "A" ? "B" : "A") : t);
   const seq = [];
   for (let i = 0; i < state.bansPerTeam; i++) {
-    seq.push({ phase: "ban", team: "A" });
-    seq.push({ phase: "ban", team: "B" });
+    seq.push({ phase: "ban", team: flip("A") });
+    seq.push({ phase: "ban", team: flip("B") });
   }
   for (const team of state.pickPattern) {
-    seq.push({ phase: "pick", team });
+    seq.push({ phase: "pick", team: flip(team) });
   }
   state.sequence = seq;
   state.turnIndex = 0;
@@ -1521,10 +1656,47 @@ function computeBanSuggestions() {
   return candidates.slice(0, 8);
 }
 
-function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses) {
+// Percentuale di vittorie di A contro B, se misurata. Le coppie valgono in
+// entrambi i versi: se B contro A fa 30%, allora A contro B fa 70%.
+function rawMatchup(a, b) {
+  if (MATCHUPS[a] && MATCHUPS[a][b] !== undefined) return MATCHUPS[a][b];
+  if (MATCHUPS[b] && MATCHUPS[b][a] !== undefined) return 100 - MATCHUPS[b][a];
+  return null;
+}
+
+// Il matchup VERO, tolta la parte spiegata dalla sola differenza di forza
+// (vedi il commento sopra MATCHUPS in data.js). Positivo = A se la cava
+// contro B meglio di quanto la differenza di forza farebbe prevedere.
+// Restituisce null quando la coppia non è stata misurata: in quel caso chi
+// chiama ricade sull'euristica di classe, invece di fingere di sapere.
+function matchupEdge(a, b) {
+  const actual = rawMatchup(a, b);
+  if (actual === null) return null;
+  const oa = BRAWLER_OVERALL[a];
+  const ob = BRAWLER_OVERALL[b];
+  if (oa === undefined || ob === undefined) return null;
+  return actual - (50 + (oa - ob));
+}
+
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
+  // Contro ogni avversario già schierato si usa il matchup misurato quando
+  // c'è (dato reale su quella coppia precisa), altrimenti il vantaggio di
+  // classe (euristica). Specifico batte generico, come per mappa/modalità.
   let matchup = 0;
-  for (const ec of enemyClasses) {
-    matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+  const counters = [];
+  const names = enemyNames || [];
+  for (let i = 0; i < enemyClasses.length; i++) {
+    const ec = enemyClasses[i];
+    const en = names[i];
+    const edge = en ? matchupEdge(candidateName, en) : null;
+    if (edge !== null) {
+      matchup += edge / 8;
+      if (Math.abs(edge) >= 4) {
+        counters.push({ enemy: en, edge: Math.round(edge * 10) / 10 });
+      }
+    } else {
+      matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+    }
   }
 
   const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
@@ -1571,7 +1743,7 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
   // un +1/-1 euristico per classe: peso 1.5 (più specifico del meta generale,
   // ma senza schiacciare il matchup di classe, che resta la base).
   const total = round2(matchup * 2 + synergy + modeBonus * 1.5 + mapBonus + metaBonus);
-  return { total, matchup, synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus) };
+  return { total, matchup: round2(matchup), synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus), counters };
 }
 
 function computeSuggestions() {
@@ -1582,10 +1754,11 @@ function computeSuggestions() {
   const own = turn.team;
   const enemy = own === "A" ? "B" : "A";
   const ownClasses = state.picks[own].map(classOf);
-  const enemyClasses = state.picks[enemy].map(classOf);
+  const enemyNames = state.picks[enemy];
+  const enemyClasses = enemyNames.map(classOf);
 
   const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
-    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses);
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames);
     return { name: b.name, class: b.class, ...s };
   });
 
@@ -1628,6 +1801,8 @@ function resetDraft() {
 }
 
 function applyConfig() {
+  const firstSelect = document.getElementById("first-team");
+  if (firstSelect) state.firstTeam = firstSelect.value === "B" ? "B" : "A";
   const bansInput = document.getElementById("bans-per-team");
   const patternInput = document.getElementById("pick-pattern");
   state.bansPerTeam = Math.max(0, Math.min(3, parseInt(bansInput.value, 10) || 0));
@@ -1762,10 +1937,18 @@ function renderSuggestions() {
     const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
     const flag = pickFlag(s.name);
     const badge = flag
-      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie · ${flag.use}% di scelte">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
       : "";
+    const best = (s.counters || []).filter((c) => c.edge > 0).sort((a, b) => b.edge - a.edge)[0];
+    const worst = (s.counters || []).filter((c) => c.edge < 0).sort((a, b) => a.edge - b.edge)[0];
+    let counterNote = "";
+    if (best) {
+      counterNote = `<span class="counter good" title="matchup misurato, al netto della differenza di forza">counter di ${best.enemy}</span>`;
+    } else if (worst) {
+      counterNote = `<span class="counter bad" title="matchup misurato, al netto della differenza di forza">soffre ${worst.enemy}</span>`;
+    }
     row.innerHTML = `
-      <span class="sugg-name">${s.name}${badge}</span>
+      <span class="sugg-name">${s.name}${badge}${counterNote}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
     `;
@@ -1936,6 +2119,10 @@ document.addEventListener("DOMContentLoaded", () => {
   render();
 
   document.getElementById("apply-config").addEventListener("click", applyConfig);
+  document.getElementById("first-team").addEventListener("change", (e) => {
+    state.firstTeam = e.target.value === "B" ? "B" : "A";
+    resetDraft();
+  });
   document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
 });

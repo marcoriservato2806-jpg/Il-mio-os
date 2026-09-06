@@ -94,6 +94,7 @@ const BRAWLERS = [
   { name: "Alli", class: "Assassin" },
   { name: "Nori", class: "Assassin" },
   { name: "Starr Nova", class: "Assassin" },
+  { name: "Vince", class: "Assassin" }, // aggiunto il 6/9: l'API pubblica di Brawlify lo dà released:true e BrawlMetrics lo elenca, mentre articoli di agosto lo davano per ottobre. Vince il dato di gioco sulla previsione. Classe da Brawlvision, ancora a fonte singola. Nessuna statistica: troppo recente.
 
   // Marksman
   { name: "Piper", class: "Marksman" },
@@ -126,7 +127,8 @@ const BRAWLERS = [
   { name: "Meeple", class: "Controller" },
   { name: "Finx", class: "Controller" },
   { name: "Ziggy", class: "Controller" },
-  { name: "Sirius", class: "Controller" }, // aggiunto il 6/9; classe CORRETTA lo stesso giorno: era Damage Dealer (fonte Brawlvision), ma BrawlMetrics (pagina brawler + pagine mappa) e una ricerca indipendente lo danno Controller. Vince la maggioranza.
+  { name: "Sirius", class: "Controller" },
+  { name: "Cosmo", class: "Controller" }, // aggiunto il 6/9: released:true sull'API di Brawlify. Classe Controller confermata dalla descrizione ufficiale ("magnetic field that makes projectiles home in"). Nessuna statistica: troppo recente. // aggiunto il 6/9; classe CORRETTA lo stesso giorno: era Damage Dealer (fonte Brawlvision), ma BrawlMetrics (pagina brawler + pagine mappa) e una ricerca indipendente lo danno Controller. Vince la maggioranza.
   { name: "Penny", class: "Artillery" }, // CORRETTO il 6/9: era segnata Controller. Tre fonti indipendenti (BrawlMetrics, Pocket Tactics, Brawlvision) la danno Artillery.
 
   // Artillery
@@ -691,6 +693,95 @@ const DEFAULT_META_SCORES_MASTERS = {
   "Berry": 45.2, "Bonnie": 45.2, "Mico": 42.1, "Clancy": 42.5, "Kit": 39.8,
   "Sandy": 41.6, "Squeak": 41.0, "Dynamike": 39.3, "Draco": 39.0, "Tick": 36.6,
   "Jessie": 35.5,
+};
+
+// COUNTER REALI — letti dalle pagine per brawler di BrawlMetrics il 6/9/2026.
+//
+// PERCHÉ SERVE UNA NORMALIZZAZIONE (e perché la versione precedente di questa
+// app aveva scartato questi dati). Presi grezzi, i "forte contro / debole
+// contro" di BrawlMetrics sono quasi inutili: praticamente ogni brawler
+// risulta "debole contro Wendy" e "forte contro Shelly", perché Wendy è la
+// più forte del gioco e Shelly la più debole. Non è un matchup, è la
+// classifica generale riscritta.
+//
+// Il rimedio è togliere dal numero la parte spiegata dalla sola differenza di
+// forza. Il valore atteso di A contro B è circa
+//     atteso(A,B) = 50 + (forzaGenerale(A) − forzaGenerale(B))
+// e quello che resta — actual − atteso — è il matchup vero. Il modello è
+// stato verificato sui dati: Edgar contro Wendy fa 22,6% con un atteso di
+// 23,0 (residuo −0,4: NON è un counter, è solo Wendy forte), mentre Jae-Yong
+// contro Wendy fa 29,5% con un atteso di 43,0 (residuo −13,5: counter vero).
+// Nita, che ha il 40,5% generale, contro Edgar fa 55,4% con atteso 49,9:
+// residuo +5,5, cioè Nita lo batte davvero nonostante sia più debole.
+//
+// COPERTURA E LIMITE ONESTO. Ogni pagina pubblica solo i 3 matchup migliori e
+// i 3 peggiori, cioè gli estremi. Qui ci sono i 46 brawler più scelti (quelli
+// che l'avversario ha davvero probabilità di prendere), per ~276 coppie
+// misurate. Le coppie si leggono anche al contrario — se A contro B fa 30%,
+// allora B contro A fa 70% — il che raddoppia la copertura. Restano comunque
+// buchi: per gli abbinamenti non misurati l'app ricade sull'euristica di
+// classe, e lo dice.
+const BRAWLER_OVERALL = {
+  "Wendy": 67.6, "Amber": 64.9, "Bolt": 64.5, "Shade": 64.4, "Gus": 63.9,
+  "Trunk": 63.8, "Starr Nova": 63.0, "Damian": 62.5, "Nori": 61.5, "Doug": 61.1,
+  "Lumi": 61.0, "Jae-Yong": 60.6, "Meeple": 60.2, "Draco": 60.0, "Pierce": 59.8,
+  "Bo": 58.6, "Hank": 58.2, "Stu": 58.2, "Mina": 57.8, "Sirius": 57.6,
+  "Kaze": 56.3, "Willow": 56.1, "Mortis": 54.4, "Ash": 54.3, "Pearl": 52.8,
+  "Griff": 51.7, "Colette": 50.7, "Max": 50.5, "El Primo": 49.7, "Carl": 49.6,
+  "Bibi": 48.2, "Meg": 47.7, "Buster": 46.4, "Byron": 45.7, "Surge": 45.7,
+  "Ollie": 44.8, "Emz": 44.7, "Piper": 44.7, "8-Bit": 44.4, "Colt": 44.2,
+  "Crow": 43.5, "Brock": 41.9, "Edgar": 40.6, "Nita": 40.5, "Shelly": 40.5,
+  "Rico": 40.1,
+};
+
+// MATCHUPS[A][B] = percentuale di vittorie di A quando affronta B.
+const MATCHUPS = {
+  "Wendy": { "Shelly": 83.6, "Nita": 81.4, "Barley": 80.3, "Shade": 52.3, "Amber": 54.4, "Ash": 56.3 },
+  "Nita": { "Edgar": 55.4, "Meg": 54.9, "Rico": 54.7, "Gus": 17.2, "Bolt": 17.9, "Wendy": 18.7 },
+  "Gus": { "Shelly": 82.8, "Nita": 82.8, "Rico": 75.9, "Wendy": 40.6, "Nori": 46.1, "Amber": 46.7 },
+  "Bolt": { "Nita": 82.1, "Shelly": 80.3, "Eve": 75.2, "Wendy": 43.2, "Shade": 46.8, "Damian": 46.9 },
+  "Nori": { "Barley": 76.4, "Shelly": 75.2, "Eve": 75.1, "Wendy": 40.8, "Bolt": 50.2, "Starr Nova": 50.2 },
+  "Edgar": { "Eve": 54.0, "Mr. P": 53.7, "Brock": 53.3, "Wendy": 22.6, "Gus": 24.5, "Bolt": 26.5 },
+  "Shade": { "Shelly": 77.7, "Nita": 75.7, "Colt": 72.5, "Amber": 45.8, "Nori": 45.8, "Wendy": 47.7 },
+  "Amber": { "Shelly": 76.1, "Nita": 72.5, "Colt": 71.8, "Wendy": 45.6, "Nori": 46.2, "Starr Nova": 49.3 },
+  "Trunk": { "Nita": 78.2, "Shelly": 77.9, "Mr. P": 74.1, "Wendy": 38.1, "Starr Nova": 42.0, "Nori": 42.8 },
+  "Damian": { "Shelly": 78.5, "Nita": 78.0, "Eve": 72.0, "Wendy": 39.3, "Amber": 45.2, "Shade": 46.0 },
+  "Starr Nova": { "Shelly": 77.3, "Nita": 75.1, "Barley": 72.5, "Wendy": 40.5, "Nori": 49.8, "Amber": 50.7 },
+  "Jae-Yong": { "Nita": 80.5, "Shelly": 79.7, "Pam": 74.3, "Wendy": 29.5, "Nori": 37.3, "Starr Nova": 38.3 },
+  "Doug": { "Shelly": 77.0, "Nita": 74.8, "Jacky": 70.9, "Wendy": 39.4, "Sirius": 46.2, "Amber": 46.3 },
+  "Lumi": { "Shelly": 77.4, "Nita": 74.4, "Colt": 70.7, "Wendy": 40.3, "Nori": 45.4, "Amber": 45.7 },
+  "Ash": { "Shelly": 67.9, "Mr. P": 64.9, "Nita": 64.0, "Jae-Yong": 38.0, "Nori": 38.6, "Amber": 40.4 },
+  "Bibi": { "Eve": 61.6, "Mr. P": 61.4, "Grom": 59.7, "Wendy": 33.4, "Amber": 34.0, "Shade": 34.9 },
+  "Draco": { "Shelly": 77.4, "Nita": 75.7, "Eve": 72.5, "Wendy": 35.7, "Nori": 41.3, "Starr Nova": 41.4 },
+  "Hank": { "Nita": 74.3, "Shelly": 74.1, "Rico": 67.2, "Wendy": 32.1, "Nori": 34.4, "Jae-Yong": 37.8 },
+  "Meg": { "Piper": 55.7, "Brock": 55.7, "Mr. P": 55.6, "Wendy": 29.4, "Bolt": 32.3, "Gus": 32.9 },
+  "Buster": { "Shelly": 60.9, "Piper": 55.6, "Nita": 55.6, "Trunk": 31.1, "Nori": 31.4, "Wendy": 31.8 },
+  "Ollie": { "Shelly": 60.6, "Nita": 56.1, "Eve": 55.5, "Wendy": 27.0, "Bolt": 27.4, "Trunk": 27.4 },
+  "Sirius": { "Shelly": 74.9, "Nita": 70.2, "Pam": 68.1, "Wendy": 36.6, "Bolt": 43.6, "Shade": 44.3 },
+  "Griff": { "Shelly": 62.0, "Eve": 59.9, "Nita": 59.9, "Wendy": 35.4, "Gus": 38.4, "Amber": 38.6 },
+  "Brock": { "Piper": 49.1, "Eve": 49.0, "Grom": 48.9, "Wendy": 27.0, "Bolt": 28.0, "Nori": 28.2 },
+  "Rico": { "Eve": 52.9, "Brock": 51.3, "Mr. P": 51.0, "Gus": 24.1, "Wendy": 24.2, "Bolt": 25.9 },
+  "Surge": { "Brock": 54.2, "Colt": 53.6, "Barley": 53.3, "Wendy": 26.4, "Shade": 31.9, "Amber": 32.2 },
+  "Max": { "Shelly": 63.7, "Nita": 62.3, "Eve": 60.3, "Wendy": 31.3, "Nori": 33.7, "Shade": 35.4 },
+  "Stu": { "Shelly": 74.0, "Nita": 72.2, "Edgar": 65.6, "Wendy": 29.6, "Gus": 36.6, "Amber": 37.8 },
+  "Emz": { "Eve": 59.8, "Mr. P": 58.7, "Pam": 57.8, "Wendy": 29.8, "Bolt": 31.7, "Gus": 31.8 },
+  "Kaze": { "Shelly": 72.3, "Barley": 67.4, "Nita": 66.5, "Wendy": 33.6, "Nori": 43.3, "Starr Nova": 43.4 },
+  "Colt": { "Shelly": 52.1, "Eve": 52.0, "Brock": 51.7, "Wendy": 20.6, "Gus": 24.7, "Bolt": 26.2 },
+  "Pierce": { "Shelly": 76.1, "Nita": 72.7, "Jacky": 70.8, "Wendy": 36.4, "Starr Nova": 46.5, "Bolt": 47.7 },
+  "Piper": { "Shelly": 52.7, "Colt": 52.6, "Nita": 51.8, "Wendy": 26.4, "Nori": 32.0, "Bolt": 32.6 },
+  "El Primo": { "Eve": 56.7, "Brock": 56.2, "Edgar": 54.9, "Bolt": 25.6, "Jae-Yong": 26.3, "Wendy": 29.0 },
+  "Meeple": { "Shelly": 76.9, "Nita": 76.4, "Rico": 70.1, "Wendy": 29.1, "Bolt": 40.8, "Damian": 41.1 },
+  "8-Bit": { "Eve": 59.5, "Clancy": 57.5, "Mr. P": 57.4, "Wendy": 27.5, "Gus": 27.8, "Jae-Yong": 28.9 },
+  "Mortis": { "Nita": 75.5, "Shelly": 74.8, "Barley": 69.8, "Wendy": 26.2, "Shade": 33.3, "Amber": 34.0 },
+  "Bo": { "Gene": 73.2, "Ollie": 72.2, "Pam": 72.1, "Wendy": 31.5, "Bolt": 39.7, "Nori": 40.5 },
+  "Colette": { "Shelly": 62.9, "Mr. P": 58.9, "Nita": 58.9, "Wendy": 27.0, "Shade": 36.3, "Nori": 36.5 },
+  "Byron": { "Shelly": 58.3, "Nita": 55.1, "Colt": 54.5, "Wendy": 26.4, "Trunk": 31.5, "Nori": 32.5 },
+  "Willow": { "Shelly": 73.3, "Nita": 71.1, "Rico": 65.4, "Wendy": 28.8, "Nori": 36.2, "Bolt": 37.6 },
+  "Crow": { "Shelly": 56.0, "Nita": 54.8, "Mr. P": 54.7, "Wendy": 21.5, "Shade": 30.6, "Gus": 31.3 },
+  "Carl": { "Shelly": 62.5, "Edgar": 61.3, "Eve": 61.3, "Wendy": 29.1, "Gus": 32.1, "Bolt": 32.3 },
+  "Mina": { "Shelly": 75.5, "Nita": 72.4, "Edgar": 68.9, "Wendy": 33.6, "Shade": 41.2, "Amber": 41.7 },
+  "Pearl": { "Shelly": 66.3, "Nita": 61.4, "Brock": 61.3, "Wendy": 33.8, "Jae-Yong": 38.1, "Nori": 38.3 },
+  "Shelly": { "Rico": 52.3, "Brock": 52.3, "Edgar": 52.1, "Wendy": 16.4, "Gus": 17.3, "Bolt": 19.6 },
 };
 
 // USE RATE (quanto spesso un brawler viene REALMENTE scelto in

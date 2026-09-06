@@ -14,6 +14,7 @@ const state = {
   map: null, // riferimento a un oggetto di MAPS, o null
   customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
   metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
+  firstTeam: "A", // chi muove per primo: in Classificata cambia a ogni partita, quindi si sceglie
 };
 
 const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
@@ -87,14 +88,19 @@ function parseMetaText(text) {
   return { scores, unrecognized };
 }
 
+// Chi inizia non è fisso: in Classificata cambia da partita a partita, e
+// sbagliare il lato fa slittare tutti i turni di una posizione, cioè rende
+// sbagliato ogni suggerimento successivo. Se tocca prima alla Rossa, si
+// specchia l'intera sequenza invece di ricostruirla a mano.
 function buildSequence() {
+  const flip = (t) => (state.firstTeam === "B" ? (t === "A" ? "B" : "A") : t);
   const seq = [];
   for (let i = 0; i < state.bansPerTeam; i++) {
-    seq.push({ phase: "ban", team: "A" });
-    seq.push({ phase: "ban", team: "B" });
+    seq.push({ phase: "ban", team: flip("A") });
+    seq.push({ phase: "ban", team: flip("B") });
   }
   for (const team of state.pickPattern) {
-    seq.push({ phase: "pick", team });
+    seq.push({ phase: "pick", team: flip(team) });
   }
   state.sequence = seq;
   state.turnIndex = 0;
@@ -227,10 +233,47 @@ function computeBanSuggestions() {
   return candidates.slice(0, 8);
 }
 
-function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses) {
+// Percentuale di vittorie di A contro B, se misurata. Le coppie valgono in
+// entrambi i versi: se B contro A fa 30%, allora A contro B fa 70%.
+function rawMatchup(a, b) {
+  if (MATCHUPS[a] && MATCHUPS[a][b] !== undefined) return MATCHUPS[a][b];
+  if (MATCHUPS[b] && MATCHUPS[b][a] !== undefined) return 100 - MATCHUPS[b][a];
+  return null;
+}
+
+// Il matchup VERO, tolta la parte spiegata dalla sola differenza di forza
+// (vedi il commento sopra MATCHUPS in data.js). Positivo = A se la cava
+// contro B meglio di quanto la differenza di forza farebbe prevedere.
+// Restituisce null quando la coppia non è stata misurata: in quel caso chi
+// chiama ricade sull'euristica di classe, invece di fingere di sapere.
+function matchupEdge(a, b) {
+  const actual = rawMatchup(a, b);
+  if (actual === null) return null;
+  const oa = BRAWLER_OVERALL[a];
+  const ob = BRAWLER_OVERALL[b];
+  if (oa === undefined || ob === undefined) return null;
+  return actual - (50 + (oa - ob));
+}
+
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
+  // Contro ogni avversario già schierato si usa il matchup misurato quando
+  // c'è (dato reale su quella coppia precisa), altrimenti il vantaggio di
+  // classe (euristica). Specifico batte generico, come per mappa/modalità.
   let matchup = 0;
-  for (const ec of enemyClasses) {
-    matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+  const counters = [];
+  const names = enemyNames || [];
+  for (let i = 0; i < enemyClasses.length; i++) {
+    const ec = enemyClasses[i];
+    const en = names[i];
+    const edge = en ? matchupEdge(candidateName, en) : null;
+    if (edge !== null) {
+      matchup += edge / 8;
+      if (Math.abs(edge) >= 4) {
+        counters.push({ enemy: en, edge: Math.round(edge * 10) / 10 });
+      }
+    } else {
+      matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+    }
   }
 
   const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
@@ -277,7 +320,7 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
   // un +1/-1 euristico per classe: peso 1.5 (più specifico del meta generale,
   // ma senza schiacciare il matchup di classe, che resta la base).
   const total = round2(matchup * 2 + synergy + modeBonus * 1.5 + mapBonus + metaBonus);
-  return { total, matchup, synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus) };
+  return { total, matchup: round2(matchup), synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus), counters };
 }
 
 function computeSuggestions() {
@@ -288,10 +331,11 @@ function computeSuggestions() {
   const own = turn.team;
   const enemy = own === "A" ? "B" : "A";
   const ownClasses = state.picks[own].map(classOf);
-  const enemyClasses = state.picks[enemy].map(classOf);
+  const enemyNames = state.picks[enemy];
+  const enemyClasses = enemyNames.map(classOf);
 
   const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
-    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses);
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames);
     return { name: b.name, class: b.class, ...s };
   });
 
@@ -334,6 +378,8 @@ function resetDraft() {
 }
 
 function applyConfig() {
+  const firstSelect = document.getElementById("first-team");
+  if (firstSelect) state.firstTeam = firstSelect.value === "B" ? "B" : "A";
   const bansInput = document.getElementById("bans-per-team");
   const patternInput = document.getElementById("pick-pattern");
   state.bansPerTeam = Math.max(0, Math.min(3, parseInt(bansInput.value, 10) || 0));
@@ -468,10 +514,18 @@ function renderSuggestions() {
     const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
     const flag = pickFlag(s.name);
     const badge = flag
-      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie · ${flag.use}% di scelte">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
       : "";
+    const best = (s.counters || []).filter((c) => c.edge > 0).sort((a, b) => b.edge - a.edge)[0];
+    const worst = (s.counters || []).filter((c) => c.edge < 0).sort((a, b) => a.edge - b.edge)[0];
+    let counterNote = "";
+    if (best) {
+      counterNote = `<span class="counter good" title="matchup misurato, al netto della differenza di forza">counter di ${best.enemy}</span>`;
+    } else if (worst) {
+      counterNote = `<span class="counter bad" title="matchup misurato, al netto della differenza di forza">soffre ${worst.enemy}</span>`;
+    }
     row.innerHTML = `
-      <span class="sugg-name">${s.name}${badge}</span>
+      <span class="sugg-name">${s.name}${badge}${counterNote}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
     `;
@@ -642,6 +696,10 @@ document.addEventListener("DOMContentLoaded", () => {
   render();
 
   document.getElementById("apply-config").addEventListener("click", applyConfig);
+  document.getElementById("first-team").addEventListener("change", (e) => {
+    state.firstTeam = e.target.value === "B" ? "B" : "A";
+    resetDraft();
+  });
   document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
 });

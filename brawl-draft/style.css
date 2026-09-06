@@ -361,6 +361,27 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .hint { color: var(--text-dim); font-size: 0.8rem; }
 
+.legend {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  line-height: 1.9;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.counter {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.counter.good { background: rgba(87, 217, 154, 0.13); color: var(--good); }
+.counter.bad { background: rgba(255, 122, 122, 0.12); color: var(--bad); }
+
 footer {
   margin-top: 18px;
   font-size: 0.75rem;

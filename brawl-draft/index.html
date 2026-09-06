@@ -15,6 +15,12 @@
   </p>
 
   <div class="config-bar">
+    <label for="first-team">Chi inizia</label>
+    <select id="first-team">
+      <option value="A">Squadra Blu</option>
+      <option value="B">Squadra Rossa</option>
+    </select>
+
     <label for="bans-per-team">Ban per squadra</label>
     <input type="number" id="bans-per-team" min="0" max="3" value="3" />
 
@@ -71,6 +77,13 @@
     <div class="side-panel">
       <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
       <div id="suggestions"></div>
+      <p class="legend">
+        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
+        <br />
+        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
+        <br />
+        <span class="counter good">counter di X</span> matchup misurato davvero contro quel brawler, al netto della differenza di forza.
+      </p>
     </div>
   </div>
 
@@ -102,7 +115,7 @@
       <summary>Da dove vengono i numeri, cosa è stato controllato e cosa è stato scartato</summary>
     <strong>Come funzionano i suggerimenti:</strong> il punteggio somma quattro cose. (1) <em>Matchup</em>: vantaggio di classe contro i pick avversari già scesi in campo (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) — questa parte resta un'euristica di design, non un dato misurato. (2) <em>Sinergia</em>: penalizza tre volte la stessa classe e premia i ruoli mancanti (frontline, support). (3) <em>Mappa o modalità</em>: win rate reale, con la mappa che ha la precedenza quando esiste — non si sommano, perché la mappa è un sottoinsieme della modalità e contarle entrambe conterebbe due volte lo stesso segnale. Il peso del dato mappa scala con la sua affidabilità (campione × freschezza). (4) <em>Meta</em>: win rate generale in Classificata nella fascia di rango scelta. Passa il mouse sul punteggio per vedere quanto pesa ogni pezzo.
     <br /><br />
-    <strong>Roster:</strong> 106 brawler su 108. Mancano solo Vince (non ancora uscito, release ottobre 2026) e Cosmo (annunciato per settembre 2026, disponibilità in Classificata non confermata) — esclusi apposta finché non sono verificati, non per svista. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
+    <strong>Roster:</strong> tutti e 108. Vince e Cosmo erano esclusi perché articoli di agosto li davano per ottobre/metà settembre; l'API pubblica di Brawlify li dà entrambi <code>released: true</code> e BrawlMetrics li elenca, quindi il dato di gioco batte la previsione giornalistica e sono stati aggiunti. Non hanno ancora statistiche (troppo recenti): l'app li tratta come neutri invece di inventargli un valore. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
     <br /><br />
     <strong>Modalità:</strong> selezionando una delle 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout), i suggerimenti usano il win rate REALE di ciascun brawler in quella modalità specifica (106/106 brawler, BrawlMetrics, 6/9/2026) — non più una stima per classe. La differenza è enorme per alcuni: Rosa è S+ 72% in Brawl Ball ma D 39% in Bounty; Edgar è S+ 54% in Heist ma D 35% in Knockout. Unico limite: questi numeri coprono "tutti i livelli di trofei" in quella modalità, non solo la Classificata, e non è stato trovato un secondo sito con lo stesso dettaglio per un riscontro incrociato numerico — trattali come "come si comporta il brawler in quella modalità", non come un dato Ranked-puro al 100%.
     <br /><br />
@@ -112,9 +125,13 @@
     <br /><br />
     <strong>Trappole e sottovalutati:</strong> confrontando win rate e use rate (quante volte un brawler viene scelto) escono due categorie che la sola tier list nasconde. Le <span style="color:#ff9d9d">trappole</span> — molto scelte, perdono lo stesso: Griff (4,29% di scelte, 49,4% di vittorie), Max (2,50% / 47,4%), Colt (2,18% / 47,6%), Pierce (2,14% / 45,9%). E i <span style="color:#8fe3b4">sottovalutati</span> — vincono tanto ma quasi nessuno li prende, quindi quasi nessuno li banna e te li ritrovi liberi: il caso limite è Wendy, prima in assoluto per win rate (58,3%) e scelta solo dall'1,40%.
     <br /><br />
+    <strong>Counter (contro chi ha già scelto l'avversario):</strong> quando l'avversario schiera un brawler, i suggerimenti usano il matchup MISURATO su quella coppia, non un'ipotesi di classe. Ma il numero grezzo va normalizzato, altrimenti inganna: quasi tutti risultano "deboli contro Wendy" solo perché Wendy è la più forte. Si toglie quindi la parte spiegata dalla differenza di forza — atteso(A,B) = 50 + (forza A − forza B) — e resta il matchup vero. Verificato sui dati: Edgar contro Wendy fa 22,6% con atteso 23,0, residuo −0,4, cioè <em>non</em> è un counter; Jae-Yong contro Wendy fa 29,5% con atteso 43,0, residuo −13,5, cioè lo è davvero. Coperti i 46 brawler più scelti, 276 coppie misurate (552 leggendole nei due versi). Dove la coppia non è stata misurata l'app ricade sull'euristica di classe e non mostra nessuna etichetta: preferisce tacere che inventare.
+    <br /><br />
+    <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
+    <br /><br />
     <strong>Un dato che ho controllato e buttato via.</strong> BrawlMetrics pubblica per ogni brawler "forte contro / debole contro" con percentuali, e sembra la funzione più preziosa che esista per un drafter. Campionandone 17 salta fuori che è quasi tutta apparenza: "debole contro Wendy" compare in 15 casi su 17, e "forte contro Shelly/Nita" in quasi tutti — perfino Shelly, la più debole del gioco, risulta "debole contro Wendy, Gus, Bolt". Non sono matchup: è la classifica generale riscritta al contrario, e metterla nel punteggio significherebbe contare due volte la stessa informazione facendola sembrare due. Non è stata usata. Lo stesso vale per la lista di counter di Brawlio (nessun numero, terne identiche per classi diverse).
     <br /><br />
-    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → BrawlMetrics (fonte numerica principale: ranked per fascia di rango, per modalità e per mappa), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi), Brawl Planet e timesaver.gg (contesto, con l'avvertenza che il primo misura partite trofei e non Classificata). Provate e scartate → Brawlify, noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (tutte bloccano il fetch: 403/402), brawlstats.net (429), Brawl Calculator (solo indice, i dati stanno su 107 pagine separate), pinkcrow.net (solo 6 nomi, articolo di agosto), huskyboost (nessun numero, senza data). Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter per ogni brawler ma senza numeri e con triple identiche per brawler di classi diverse: non è stata usata nel punteggio per non aggiungere rumore travestito da dato.
+    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → BrawlMetrics (fonte numerica principale: ranked per fascia di rango, per modalità e per mappa), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi), Brawl Planet e timesaver.gg (contesto, con l'avvertenza che il primo misura partite trofei e non Classificata). Sbloccata → l'<strong>API pubblica ufficiale di Brawlify</strong> (<code>api.brawlapi.com</code>): il sito blocca lo scraping, ma la sua API è aperta, senza chiave né limiti. È la porta d'ingresso prevista, non un aggiramento: da lì arrivano lo stato <code>released</code> dei brawler e il campo <code>disabled</code> delle mappe, che ha confermato come ATTIVE proprio le mappe che risultavano sospette (Center Stage, Layer Cake, Safe Zone, Bridge Too Far, Pit Stop). Restano bloccati allo scraping → noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (403/402), brawlstats.net (429), Brawl Calculator (solo indice, i dati stanno su 107 pagine separate), pinkcrow.net (solo 6 nomi, articolo di agosto), huskyboost (nessun numero, senza data). Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter per ogni brawler ma senza numeri e con triple identiche per brawler di classi diverse: non è stata usata nel punteggio per non aggiungere rumore travestito da dato.
     <br /><br />
     <strong>Dati meta:</strong> 106 win rate reali su Classificata (uno per quasi ogni brawler del roster), letti il 6 settembre 2026 direttamente dalle tabelle di BrawlMetrics — non stime, non citazioni di seconda mano. Incrociati con Dexerto (tier list indipendente, senza numeri): i due concordano sulla stessa cinquina S — Wendy, Shade, Gus, Amber, Nori — che sono quindi i pick più sicuri in assoluto. Due tabelle disponibili dal menu "Fascia dati meta": <strong>tutti i ranghi</strong> (Bronze→Pro, il default) e <strong>Masters</strong>, perché la meta cambia parecchio con lo scaglione — es. El Primo è S tier a Masters (serve coordinazione di squadra) ma molto più debole in ladder media. Il riquadro applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage). Brawlify, noff.gg e Brawl Time Ninja restano bloccati (403) al fetch diretto anche oggi: non è stato possibile usarli come terza fonte numerica indipendente, solo BrawlMetrics + Dexerto.
     </details>
