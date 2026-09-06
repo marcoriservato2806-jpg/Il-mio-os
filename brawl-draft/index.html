@@ -16,7 +16,7 @@
 
   <div class="config-bar">
     <label for="bans-per-team">Ban per squadra</label>
-    <input type="number" id="bans-per-team" min="0" max="3" value="1" />
+    <input type="number" id="bans-per-team" min="0" max="3" value="3" />
 
     <label for="pick-pattern">Ordine pick (A/B)</label>
     <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
@@ -30,9 +30,14 @@
     <label for="mode-select">Modalità</label>
     <select id="mode-select"></select>
 
-    <label>Caratteristiche mappa</label>
+    <label for="map-select">Mappa</label>
+    <select id="map-select"></select>
+
+    <label>Caratteristiche mappa (se non è in elenco)</label>
     <div class="trait-list" id="map-traits"></div>
   </div>
+
+  <p id="map-notes" class="map-notes" hidden></p>
 
   <div id="turn-banner" class="turn-banner"></div>
 
@@ -74,7 +79,9 @@
     <br /><br />
     <strong>Roster:</strong> compilato a settembre 2026 da ricerche web; potrebbero mancare i brawler usciti più di recente e alcune classificazioni sono incerte (vedi commento in <code>data.js</code>). Aggiungi o correggi una riga in <code>data.js</code> quando serve.
     <br /><br />
-    <strong>Modalità e mappa:</strong> le 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout) danno un bonus/malus di ruolo legato a cosa serve per vincere quella modalità (es. Gem Grab premia chi tiene la posizione, Bounty punisce chi muore spesso). Le mappe cambiano ogni stagione e non è stato possibile leggerne l'elenco aggiornato dai siti-database (rete bloccata in questa sessione): invece di un elenco di nomi mappa che rischia di essere superato, seleziona a mano le caratteristiche della mappa che hai davanti (boscaglia, corridoi stretti, mappa aperta, muri distruttibili, zona centrale ristretta) — funziona con qualunque mappa, anche dopo un cambio di rotazione.
+    <strong>Modalità:</strong> le 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout) danno un bonus/malus di ruolo legato a cosa serve per vincere quella modalità (es. Gem Grab premia chi tiene la posizione, Bounty punisce chi muore spesso).
+    <br /><br />
+    <strong>Mappe:</strong> l'elenco in <code>data.js</code> (14 mappe, con pick consigliati e note) è stato raccolto da ricerche web del 6 settembre 2026 — non da un fetch diretto ai siti-database (bloccato in questa sessione), ma dagli estratti di ricerca di Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl e TheriaGames. Il pool reale della stagione è di 3-4 mappe per modalità e cambia ogni stagione: quelle elencate sono le mappe "di riferimento" citate più spesso per luglio-settembre 2026, <em>non</em> garantite come l'elenco esatto e completo della stagione in corso. Se in game vedi una mappa che non c'è in elenco, seleziona "Nessuna / non elencata" e usa i tratti (boscaglia, corridoi stretti, mappa aperta, muri distruttibili, zona centrale ristretta) — funzionano con qualunque mappa.
   </footer>
 </div>
 

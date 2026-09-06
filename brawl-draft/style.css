@@ -66,13 +66,29 @@ h1 {
   width: 160px;
 }
 
-#mode-select {
+#mode-select,
+#map-select {
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 0.85rem;
+}
+
+#map-select:disabled {
+  opacity: 0.4;
+}
+
+.map-notes {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--team-a);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 0 0 14px;
 }
 
 .trait-list {

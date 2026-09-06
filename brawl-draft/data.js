@@ -116,6 +116,7 @@ const BRAWLERS = [
   { name: "Finx", class: "Controller" },
   { name: "Ziggy", class: "Controller" },
   { name: "Juju", class: "Controller" },
+  { name: "Penny", class: "Controller" }, // classe cambiata nel tempo (era Damage Dealer/Artillery), verifica
 
   // Artillery
   { name: "Barley", class: "Artillery" },
@@ -210,3 +211,102 @@ const MAP_TRAIT_CLASS_BONUS = {
   "Muri distruttibili ovunque": { "Tank": 0, "Damage Dealer": 1, "Assassin": 0, "Marksman": 0, "Controller": 0, "Artillery": 1, "Support": 0 },
   "Zona centrale ristretta": { "Tank": 1, "Damage Dealer": 0, "Assassin": 0, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 0 },
 };
+
+// Mappe reali del pool Classificata/competitivo, raccolte da ricerche web
+// del 6 settembre 2026 (fonti: Brawlify, Brawl Time Ninja, TrophyCoach,
+// TopBrawl, TheriaGames — pagine non apribili direttamente in questa
+// sessione, dati presi dagli estratti di ricerca). Il pool stagionale
+// reale è di 3-4 mappe per modalità (18-24 totali) e cambia ogni
+// stagione: quelle elencate qui sono le mappe "stabili"/di riferimento
+// citate più spesso per luglio-settembre 2026, NON garantite come
+// l'elenco esatto e completo della stagione in corso. Se in game vedi
+// una mappa che non c'è qui, usa i tratti (MAP_TRAITS) sopra invece.
+// bestPicks = nomi citati esplicitamente dalle fonti come forti su quella
+// mappa (non un tier-list completo); ricevono un bonus diretto nei
+// suggerimenti, in aggiunta al punteggio di classe/modalità.
+const MAPS = [
+  {
+    mode: "Gem Grab",
+    name: "Hard Rock Mine",
+    bestPicks: ["Rico", "Surge", "Stu", "Mortis", "Griff", "Trunk", "Jacky", "Sam", "Dynamike", "Mico"],
+    notes: "Centro aperto con due strisce di boscaglia a \"H\" ai lati. I Controller tengono gli avversari inchiodati vicino al loro spawn; tank e mischia si infiltrano dai lati.",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Undermine",
+    bestPicks: ["Emz", "Barley", "Bo"],
+    notes: "Favorisce chi tira da lunga distanza (throwers/artiglieria).",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Crystal Arcade",
+    bestPicks: ["Gene"],
+    notes: "Interno molto cespuglioso: ottimo per le imboscate. Gli angoli di aggancio di Gene migliorano parecchio.",
+  },
+  {
+    mode: "Brawl Ball",
+    name: "Center Stage",
+    bestPicks: ["Charlie", "Max", "Cordelius", "Sandy", "Melodie", "Colt", "Brock", "El Primo", "Rosa", "Dynamike", "Piper", "Frank", "Nita", "Shelly"],
+    notes: "Simmetrica, copertura moderata: la mappa \"di skill\" per eccellenza. Sfonda i muri davanti al goal con Colt/Brock/Shelly; Rosa domina i cespugli laterali.",
+  },
+  {
+    mode: "Brawl Ball",
+    name: "Pinball Dreams",
+    bestPicks: ["Frank", "El Primo", "Mortis", "Max", "Buzz", "Cordelius", "Rico"],
+    notes: "Vinci prima il centrocampo, poi rompi i muri per aprire linee di tiro. Tieni sempre un brawler dietro per il contrattacco.",
+  },
+  {
+    mode: "Brawl Ball",
+    name: "Sneaky Fields",
+    bestPicks: [],
+    notes: "Caos pieno di cespugli: qui gli Assassin e i brawler da imboscata dominano (nessun nome specifico confermato dalle fonti).",
+  },
+  {
+    mode: "Bounty",
+    name: "Snake Prairie",
+    bestPicks: ["8-Bit", "Amber", "Ash", "Brock", "Rosa"],
+    notes: "Mappa piena di boscaglia (13 gruppi di muri). Ai ranghi bassi funzionano imboscate con pesanti/assassini nei cespugli; ai ranghi alti meglio i tiratori che distruggono i cespugli (super di Brock). La star power Plant Life di Rosa è molto utile.",
+  },
+  {
+    mode: "Bounty",
+    name: "Shooting Star",
+    bestPicks: ["Piper", "Brock", "8-Bit", "Nani"],
+    notes: "Mappa aperta con lunghe linee di tiro: i cecchini dominano.",
+  },
+  {
+    mode: "Heist",
+    name: "Safe Zone",
+    bestPicks: ["El Primo", "Shelly", "Rosa", "Darryl", "Frank", "Fang", "Bull", "Doug", "Bibi", "Buzz"],
+    notes: "Danno alto sulla cassaforte: preferisci mischia/danno pesante piuttosto che poke leggero.",
+  },
+  {
+    mode: "Heist",
+    name: "Hot Potato",
+    bestPicks: ["Jessie", "Bull", "El Primo", "Rosa", "Darryl", "Penny", "Chuck"],
+    notes: "Striscia diagonale di cespugli al centro. Jessie piazza la torretta nei cespugli centrali; i tank si nascondono appena dietro; Penny piazza il lanciatore nei gruppetti di cespugli intorno al centro.",
+  },
+  {
+    mode: "Heist",
+    name: "Kaboom Canyon",
+    bestPicks: ["Alli", "Colt", "Bull", "Darryl", "Edgar", "Carl", "Bo", "El Primo"],
+    notes: "Mappa molto aperta, simmetria diagonale: ottima per cecchini a medio/lungo raggio. I tank controllano il centro e i chokepoint.",
+  },
+  {
+    mode: "Hot Zone",
+    name: "Dueling Beetles",
+    bestPicks: ["Bolt", "Tick", "Nita", "Starr Nova", "Bo", "Squeak", "Grom", "Spike", "Griff", "Tara"],
+    notes: "Poco spazio per chi tira da lunghissima gittata: dominano i brawler ad area (AoE) e a medio raggio. Cespugli a sinistra, muri a destra.",
+  },
+  {
+    mode: "Knockout",
+    name: "Belle's Rock",
+    bestPicks: [],
+    notes: "Corsie laterali speculari con muri a L: buona per throwers (usano la copertura), cecchini (linee di tiro) e brawler mobili (superano i lenti). Nessun nome specifico confermato dalle fonti.",
+  },
+  {
+    mode: "Knockout",
+    name: "Out in the Open",
+    bestPicks: ["Wendy", "Piper", "Brock", "Mandy", "Gene", "Byron", "Emz", "Lou"],
+    notes: "Linee di tiro lunghe: tieni il controllo dei cespugli e dei chokepoint, gioca paziente e commercia da lontano.",
+  },
+];

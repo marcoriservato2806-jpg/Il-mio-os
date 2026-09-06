@@ -1,7 +1,7 @@
 // Logica del draft: stato, sequenza turni, punteggio suggerimenti, rendering.
 
 const state = {
-  bansPerTeam: 1,
+  bansPerTeam: 3, // Diamante+: ogni giocatore banna 1 brawler, 3 a squadra in 3v3
   pickPattern: ["A", "B", "B", "A", "A", "B"], // 3v3 standard "1-2-2-1"
   sequence: [], // array di {phase:'ban'|'pick', team:'A'|'B'}
   turnIndex: 0,
@@ -11,6 +11,7 @@ const state = {
   search: "",
   mode: null, // una di MODES, o null = nessuna modalità selezionata
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
+  map: null, // riferimento a un oggetto di MAPS, o null
 };
 
 function buildSequence() {
@@ -44,7 +45,7 @@ function classOf(name) {
   return b ? b.class : null;
 }
 
-function scoreCandidate(candidateClass, ownClasses, enemyClasses) {
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses) {
   let matchup = 0;
   for (const ec of enemyClasses) {
     matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
@@ -71,6 +72,9 @@ function scoreCandidate(candidateClass, ownClasses, enemyClasses) {
   for (const trait of state.mapTraits) {
     mapBonus += (MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0;
   }
+  if (state.map && state.map.bestPicks.includes(candidateName)) {
+    mapBonus += 3; // pick esplicitamente segnalato come forte su questa mappa dalle fonti
+  }
 
   const total = matchup * 2 + synergy + modeBonus * 2 + mapBonus;
   return { total, matchup, synergy, modeBonus, mapBonus };
@@ -87,7 +91,7 @@ function computeSuggestions() {
   const enemyClasses = state.picks[enemy].map(classOf);
 
   const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
-    const s = scoreCandidate(b.class, ownClasses, enemyClasses);
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses);
     return { name: b.name, class: b.class, ...s };
   });
 
@@ -276,6 +280,32 @@ function initFilters() {
   });
 }
 
+function populateMapSelect() {
+  const mapSelect = document.getElementById("map-select");
+  const mapsForMode = state.mode ? MAPS.filter((m) => m.mode === state.mode) : [];
+  mapSelect.innerHTML = `<option value="">Nessuna / non elencata (usa i tratti)</option>`;
+  for (const m of mapsForMode) {
+    const opt = document.createElement("option");
+    opt.value = m.name;
+    opt.textContent = m.name;
+    mapSelect.appendChild(opt);
+  }
+  mapSelect.disabled = mapsForMode.length === 0;
+  state.map = null;
+  renderMapNotes();
+}
+
+function renderMapNotes() {
+  const el = document.getElementById("map-notes");
+  if (!state.map) {
+    el.textContent = "";
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.textContent = state.map.notes;
+}
+
 function initModeAndMap() {
   const modeSelect = document.getElementById("mode-select");
   modeSelect.innerHTML = `<option value="">Nessuna / generica</option>`;
@@ -287,8 +317,18 @@ function initModeAndMap() {
   }
   modeSelect.addEventListener("change", (e) => {
     state.mode = e.target.value || null;
+    populateMapSelect();
     renderSuggestions();
   });
+
+  const mapSelect = document.getElementById("map-select");
+  mapSelect.addEventListener("change", (e) => {
+    const found = MAPS.find((m) => m.mode === state.mode && m.name === e.target.value);
+    state.map = found || null;
+    renderMapNotes();
+    renderSuggestions();
+  });
+  populateMapSelect();
 
   const traitsEl = document.getElementById("map-traits");
   traitsEl.innerHTML = "";
