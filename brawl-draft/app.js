@@ -621,6 +621,29 @@ function renderTeamCounter() {
   el.hidden = false;
 }
 
+// Scorrendo per arrivare ai suggerimenti, le impostazioni finiscono fuori
+// schermo e non si capisce più su quali dati stia rispondendo l'app. Questa
+// riga se le porta dietro: se dice "meta generale" vuol dire che mappa e
+// modalità non sono selezionate, ed è il motivo più comune per cui i numeri
+// sembrano strani.
+function renderContextLine() {
+  const el = document.getElementById("context-line");
+  if (!el) return;
+  const parts = [];
+  parts.push(state.mode || "nessuna modalità");
+  if (state.map) {
+    parts.push(state.map.winRates ? state.map.name : state.map.name + " (senza dati)");
+  } else {
+    parts.push(state.mode ? "nessuna mappa" : "—");
+  }
+  parts.push(state.metaSource === "MASTERS" ? "Masters" : "tutti i ranghi");
+  const weak = !state.mode && !state.map;
+  el.className = "context-line" + (weak ? " weak" : "");
+  el.innerHTML =
+    parts.map((p) => `<span>${p}</span>`).join("") +
+    (weak ? `<em>i numeri sono il meta generale: scegli modalità e mappa per averli su misura</em>` : "");
+}
+
 function renderSuggestions() {
   const el = document.getElementById("suggestions");
   const titleEl = document.getElementById("suggestions-title");
@@ -652,10 +675,15 @@ function renderSuggestions() {
       const row = document.createElement("div");
       row.className = "suggestion-row" + (i === 0 ? " top" : "");
       row.style.borderColor = CLASS_COLORS[s.class] || "#666";
+      // Il numero grande è SEMPRE una percentuale di vittorie, in tutte le
+      // fasi. Prima qui c'era un punteggio astratto (12.8) sotto una legenda
+      // che parlava di percentuali: due unità diverse nella stessa schermata.
+      // L'ordine resta forza × quanto viene scelto davvero, ed è scritto
+      // sopra; il numero mostrato è la cosa che si capisce senza spiegazioni.
       row.innerHTML = `
-        <span class="sugg-name">${s.name}</span>
-        <span class="sugg-class">${s.wr}% · ${s.use}% scelte</span>
-        <span class="sugg-score" title="priorità = (win rate su ${s.source} − 50) pesata per quanto viene scelto">${s.priority}</span>
+        <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span></span></span>
+        <span class="sugg-class">${s.class}</span>
+        <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
       `;
       row.addEventListener("click", () => pickOrBan(s.name));
       el.appendChild(row);
@@ -704,6 +732,7 @@ function renderSuggestions() {
 }
 
 function render() {
+  renderContextLine();
   renderTurnBanner();
   renderTeamCounter();
   renderSlots("A");
@@ -781,7 +810,7 @@ function initModeAndMap() {
   modeSelect.addEventListener("change", (e) => {
     state.mode = e.target.value || null;
     populateMapSelect();
-    renderSuggestions();
+    render(); // non solo i suggerimenti: cambia anche il contesto mostrato
   });
 
   const mapSelect = document.getElementById("map-select");
@@ -789,7 +818,7 @@ function initModeAndMap() {
     const found = MAPS.find((m) => m.mode === state.mode && m.name === e.target.value);
     state.map = found || null;
     renderMapNotes();
-    renderSuggestions();
+    render();
   });
   populateMapSelect();
 
@@ -837,7 +866,7 @@ function initMetaPanel() {
     const { scores } = parseMetaText(textarea.value);
     setCustomScores({ ...baseMetaScores(), ...scores });
     renderMetaStatus(null);
-    renderSuggestions();
+    render();
   });
 
   document.getElementById("meta-save").addEventListener("click", () => {

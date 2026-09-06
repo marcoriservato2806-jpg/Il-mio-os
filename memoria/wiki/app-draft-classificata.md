@@ -27,6 +27,12 @@ Assistente per il draft della Classificata di Brawl Stars. Codice in `brawl-draf
 
 La Classificata usa **1-2-2-1**. Chi sceglie per primo vede 0, poi 2, poi 2 avversari; chi sceglie per secondo ne vede 1, 1, poi 3. **Solo l'ultimo pick vede la squadra avversaria al completo**, quindi un'analisi che presuppone tre avversari a schermo serve in un caso su sei. L'app guarda invece a quello che è visibile *adesso* e aggiunge il **rischio residuo**: quanto sei esposto a ciò che l'avversario può ancora prendere.
 
+## Regola sull'interfaccia
+
+**Un numero grande = sempre una percentuale di vittorie**, in ogni fase. Un punteggio astratto in una schermata e una percentuale in un'altra rende illeggibili entrambe. E le impostazioni attive vanno mostrate accanto ai risultati: scorrendo, i menu finiscono fuori schermo e non si capisce più su quali dati stia rispondendo l'app.
+
+Attenzione: i gestori dei menu devono chiamare `render()`, non solo `renderSuggestions()`, altrimenti pezzi di interfaccia restano indietro e mostrano il falso.
+
 ## Trappola di progettazione già incontrata
 
 Ordinando i pick per "peggior matchup" nudo, in cima finivano i brawler **senza dati** (Vince, Cosmo, Bonnie): tutte le loro previsioni stanno vicino al 50%, quindi sembravano i più solidi. **L'ignoranza veniva premiata.** Il caso peggiore va calcolato come win rate *nel contesto* (base sulla mappa + matchup peggiore), non come matchup isolato.

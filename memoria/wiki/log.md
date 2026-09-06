@@ -1,5 +1,8 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-06 14:20] app | Unità coerente in tutte le fasi e riga di contesto sempre visibile
+Nella fase ban il numero era ancora un punteggio astratto (12.8) mentre la legenda parlava di percentuali: due unità nella stessa schermata. Ora è sempre una percentuale di vittorie. Aggiunta una riga che mostra modalità, mappa e fascia attive accanto ai risultati, perché scorrendo i menu finiscono fuori schermo. Corretto un bug: quella riga non si aggiornava cambiando mappa, perché i menu chiamavano solo renderSuggestions.
+
 ## [2026-09-06 13:45] app | Una sola classifica invece di due, e bug del brawler contro se stesso
 Media e caso peggiore erano in due tabelle separate che si ordinavano diversamente: l'utente non sapeva quale seguire, ed era una domanda legittima. Ora stanno nella stessa riga e l'ordine tiene conto di entrambi. Corretto anche un bug per cui un brawler veniva valutato come minaccia contro se stesso ("Wendy — peggio: Wendy 48%").
 

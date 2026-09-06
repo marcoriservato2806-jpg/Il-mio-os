@@ -76,10 +76,13 @@
 
     <div class="side-panel">
       <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
+      <div id="context-line" class="context-line"></div>
       <div id="suggestions"></div>
       <div id="team-counter" class="team-counter" hidden></div>
       <p class="legend">
-        <strong>Il numero grande è la percentuale di vittorie stimata</strong> per quel brawler, su questa mappa, contro questi avversari: è il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
         <br />
         <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
         <br />

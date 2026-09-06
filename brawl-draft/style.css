@@ -566,3 +566,31 @@ footer details[open] summary { margin-bottom: 8px; }
 }
 .floor-chip.ok { border-color: rgba(87, 217, 154, 0.4); color: var(--good); }
 .floor-chip.warn { border-color: rgba(255, 122, 122, 0.45); color: var(--bad); }
+
+/* Le impostazioni attive restano visibili accanto ai risultati: scorrendo,
+   i menu finiscono fuori schermo e non si capisce più su quali dati stia
+   rispondendo l'app. Se il contesto è vuoto la riga lo dice, invece di
+   lasciare che i numeri sembrino sbagliati. */
+.context-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: -4px 0 10px;
+  font-size: 0.7rem;
+}
+.context-line span {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--text-dim);
+}
+.context-line em {
+  flex-basis: 100%;
+  font-style: normal;
+  color: var(--accent);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+.context-line.weak span { border-style: dashed; }
