@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brawl Stars – Assistente Draft Classificata</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+  <h1>Assistente Draft — Brawl Stars Classificata</h1>
+  <p class="subtitle">
+    Gestisci ban e pick della partita e ricevi suggerimenti basati sulle classi già scelte dalle due squadre.
+    Formato di ban/pick regolabile qui sotto: i rank più bassi non hanno ban, da Diamante in su sì — controlla il tuo rank attuale e imposta di conseguenza.
+  </p>
+
+  <div class="config-bar">
+    <label for="bans-per-team">Ban per squadra</label>
+    <input type="number" id="bans-per-team" min="0" max="3" value="1" />
+
+    <label for="pick-pattern">Ordine pick (A/B)</label>
+    <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
+
+    <button id="apply-config">Applica e ricomincia</button>
+    <button id="undo-btn">Annulla ultima mossa</button>
+    <button id="reset-btn">Reset draft</button>
+  </div>
+
+  <div id="turn-banner" class="turn-banner"></div>
+
+  <div class="boards">
+    <div class="team-panel a">
+      <h2>Squadra Blu</h2>
+      <div class="panel-title">Ban</div>
+      <div class="slot-row" id="bans-A"></div>
+      <div class="panel-title">Pick</div>
+      <div class="slot-row" id="picks-A"></div>
+    </div>
+    <div class="team-panel b">
+      <h2>Squadra Rossa</h2>
+      <div class="panel-title">Ban</div>
+      <div class="slot-row" id="bans-B"></div>
+      <div class="panel-title">Pick</div>
+      <div class="slot-row" id="picks-B"></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div>
+      <p class="panel-title">Roster</p>
+      <div class="filters">
+        <select id="class-filter"></select>
+        <input type="text" id="search-box" placeholder="Cerca brawler..." />
+      </div>
+      <div class="brawler-grid" id="brawler-grid"></div>
+    </div>
+
+    <div class="side-panel">
+      <p class="panel-title">Suggerimenti per la squadra di turno</p>
+      <div id="suggestions"></div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>Come funzionano i suggerimenti:</strong> punteggio = vantaggio di classe contro i pick avversari (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) più un bonus di sinergia per non ripetere troppo la stessa classe e coprire ruoli mancanti (frontline, support). È un'euristica di design generale, <em>non</em> una tier-list della meta attuale: i numeri non tengono conto di mappa, modalità, livello dei power/gadget o dei dati di win-rate della stagione in corso.
+    <br /><br />
+    <strong>Roster:</strong> compilato a settembre 2026 da ricerche web; potrebbero mancare i brawler usciti più di recente e alcune classificazioni sono incerte (vedi commento in <code>data.js</code>). Aggiungi o correggi una riga in <code>data.js</code> quando serve.
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
