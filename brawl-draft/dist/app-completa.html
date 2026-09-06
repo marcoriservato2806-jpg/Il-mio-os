@@ -516,6 +516,30 @@ footer details[open] summary { margin-bottom: 8px; }
 .pair-pick em { color: var(--accent); font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pair-none { color: var(--text-dim); font-style: italic; }
 
+/* Le percentuali per avversario vanno sotto il nome, non in fila con esso:
+   su telefono in linea traboccavano. */
+.chip-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.sugg-name { display: block; }
+
+.panel-title.spaced { margin-top: 14px; }
+.hint.situation { line-height: 1.55; }
+.hint.foot { margin-top: 8px; line-height: 1.5; }
+
+/* Il rischio residuo è un avviso, non un dato allo stesso livello degli
+   altri: colore proprio, così non si confonde con i matchup in campo. */
+.risk-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.risk-chip.warn { border-color: rgba(255, 122, 122, 0.5); color: var(--bad); }
+.risk-chip.ok { border-color: rgba(87, 217, 154, 0.35); color: var(--good); }
+
 </style>
 
 <div class="container">
@@ -590,13 +614,13 @@ footer details[open] summary { margin-bottom: 8px; }
       <div id="suggestions"></div>
       <div id="team-counter" class="team-counter" hidden></div>
       <p class="legend">
+        <strong>Il numero grande è una percentuale di vittorie stimata</strong> per quel brawler, su questa mappa, contro questi avversari. 55% è buono, 65% è ottimo, sotto il 50% stai partendo in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
+        <br />
         <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
         <br />
         <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
-        <br />
-        <span class="counter good">batte X +5</span> matchup misurato contro quel preciso avversario, al netto della differenza di forza. Ogni suggerimento mostra il proprio bilancio contro <em>tutti</em> gli avversari schierati, non solo il migliore.
-        <br />
-        Nel riquadro "Contro la squadra avversaria" i riquadrini pieni sono matchup misurati, quelli vuoti stime dalla classe. Il numero a destra è il totale: ma guarda anche il pezzo peggiore, perché un pick che ne demolisce uno e viene demolito da un altro a somma sembra ottimo e in partita salta.
       </p>
     </div>
   </div>
@@ -1866,75 +1890,97 @@ function classEdge(ca, cb) {
   return (atk + def) * CLASS_EDGE_SHRINK;
 }
 
-function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
-  // Contro ogni avversario già schierato si usa il matchup misurato quando
-  // c'è (dato reale su quella coppia precisa), altrimenti il vantaggio di
-  // classe (euristica). Specifico batte generico, come per mappa/modalità.
-  let matchup = 0;
-  const counters = [];
-  const names = enemyNames || [];
-  for (let i = 0; i < enemyClasses.length; i++) {
-    const ec = enemyClasses[i];
-    const en = names[i];
-    const edge = en ? matchupEdge(candidateName, en) : null;
-    if (edge !== null) {
-      // coppia misurata davvero: peso pieno, ed è quella che merita l'etichetta
-      matchup += edge / 8;
-      if (Math.abs(edge) >= 4) {
-        counters.push({ enemy: en, edge: Math.round(edge * 10) / 10, measured: true });
-      }
-    } else {
-      // coppia mai misurata: stima calibrata sulla classe, senza etichetta,
-      // perché non è un dato su QUESTI due brawler ma sulla loro categoria
-      matchup += classEdge(candidateClass, ec) / 8;
-    }
-  }
+// Percentuale di vittorie prevista di A contro B, sempre disponibile.
+// Quando la coppia è stata misurata è il numero vero; altrimenti è la
+// previsione: differenza di forza generale più il vantaggio di classe
+// calibrato. Torna anche `measured` perché la differenza fra un dato e una
+// previsione deve restare visibile, non sparire dentro una percentuale.
+function predictedWinRate(a, b) {
+  const measured = rawMatchup(a, b);
+  if (measured !== null) return { wr: measured, measured: true };
+  const oa = BRAWLER_OVERALL[a];
+  const ob = BRAWLER_OVERALL[b];
+  const gap = oa !== undefined && ob !== undefined ? oa - ob : 0;
+  const wr = 50 + gap + classEdge(classOf(a), classOf(b));
+  return { wr: Math.max(5, Math.min(95, wr)), measured: false };
+}
 
-  const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
-  let synergy = -sameClassCount; // scoraggia 3x la stessa classe
+// Il punteggio è espresso in PERCENTUALE DI VITTORIE STIMATA, non in punti
+// astratti. Tutti i pezzi che lo compongono erano già in punti percentuali
+// di win rate: sommarli direttamente, invece di dividerli per dieci e
+// pesarli a mano, dà un numero che si legge senza spiegazioni — "questo
+// pick, qui, contro di loro, vince circa il 64% delle volte".
+//
+// La base è il contesto più specifico che conosciamo. Quando la mappa ha
+// dati ma poco affidabili (campione piccolo o vecchi), non si scarta né si
+// prende per buona: si MISCELA con il dato più generale in proporzione
+// all'affidabilità, che è il modo corretto di usare una misura incerta.
+// Quanto vale un brawler QUI, prima di guardare gli avversari: la win rate
+// del contesto più specifico disponibile. Estratta a parte perché serve sia
+// al punteggio sia all'analisi del rischio, e le due devono usare la stessa
+// base — altrimenti un brawler senza dati sembrerebbe solido in un posto e
+// mediocre nell'altro.
+function contextualWinRate(name) {
+  const metaWr = state.customScores[name];
+  const modeWr = state.mode && MODE_WIN_RATES[state.mode] ? MODE_WIN_RATES[state.mode][name] : undefined;
+  const mapWr = state.map && state.map.winRates ? state.map.winRates[name] : undefined;
 
-  const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
-  if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) {
-    synergy += 1;
-  }
-  const hasSupport = ownClasses.some((c) => c === "Support");
-  if (!hasSupport && candidateClass === "Support" && ownClasses.length >= 1) {
-    synergy += 0.5;
-  }
-
-  // Mappa e modalità NON si sommano: la mappa è il dato più specifico
-  // che esiste, quindi quando c'è una win rate misurata su quella mappa
-  // sostituisce quella di modalità invece di sommarcisi (altrimenti lo
-  // stesso segnale verrebbe contato due volte, visto che la mappa è un
-  // sottoinsieme della modalità).
-  const mapWr = state.map && state.map.winRates ? state.map.winRates[candidateName] : undefined;
-
-  let mapBonus = 0;
-  for (const trait of state.mapTraits) {
-    mapBonus += (MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0;
-  }
+  const fallback = modeWr !== undefined ? modeWr : metaWr !== undefined ? metaWr : 50;
+  let base = fallback;
+  let source = modeWr !== undefined ? "modalità" : metaWr !== undefined ? "meta" : "nessun dato";
   if (mapWr !== undefined) {
-    mapBonus += ((mapWr - 50) / 10) * mapConfidence(state.map) * 2;
-  } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(candidateName)) {
-    mapBonus += 1.5; // solo un nome citato dalle fonti, senza numero: peso ridotto apposta
+    const conf = mapConfidence(state.map);
+    base = mapWr * conf + fallback * (1 - conf);
+    source = "mappa";
+  } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(name)) {
+    base += 2; // citato dalle fonti come forte qui, ma senza numero: spinta piccola
+  }
+  return { base, source };
+}
+
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
+  const ctx = contextualWinRate(candidateName);
+  const base = ctx.base;
+  const baseSource = ctx.source;
+
+  // Contro chi è già schierato: media dei matchup, in punti di win rate.
+  const names = enemyNames || [];
+  const perEnemy = names.map((en) => {
+    const p = predictedWinRate(candidateName, en);
+    const oa = BRAWLER_OVERALL[candidateName];
+    const ob = BRAWLER_OVERALL[en];
+    const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
+    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: p.wr - expected, measured: p.measured };
+  });
+  const matchupAvg = perEnemy.length
+    ? perEnemy.reduce((s, p) => s + p.edge, 0) / perEnemy.length
+    : 0;
+
+  // Composizione: tre volte la stessa classe è fragile, e una squadra senza
+  // frontline o senza cure lo paga. Valori piccoli, in punti di win rate.
+  const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
+  let synergy = -2 * sameClassCount;
+  const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
+  if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) synergy += 2;
+  const hasSupport = ownClasses.some((c) => c === "Support");
+  if (!hasSupport && candidateClass === "Support" && ownClasses.length >= 1) synergy += 1;
+
+  let traits = 0;
+  for (const trait of state.mapTraits) {
+    traits += ((MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0) * 2;
   }
 
-  let modeBonus = 0;
-  if (mapWr === undefined && state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][candidateName] !== undefined) {
-    modeBonus = (MODE_WIN_RATES[state.mode][candidateName] - 50) / 10;
-  }
-
-  let metaBonus = 0;
-  if (state.customScores[candidateName] !== undefined) {
-    metaBonus = (state.customScores[candidateName] - 50) / 10; // 60% -> +1, 70% -> +2, 40% -> -1...
-  }
-
-  const round2 = (n) => Math.round(n * 100) / 100;
-  // modeBonus ora è un win rate reale per quella modalità (vedi sopra), non più
-  // un +1/-1 euristico per classe: peso 1.5 (più specifico del meta generale,
-  // ma senza schiacciare il matchup di classe, che resta la base).
-  const total = round2(matchup * 2 + synergy + modeBonus * 1.5 + mapBonus + metaBonus);
-  return { total, matchup: round2(matchup), synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus), counters };
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const estimated = Math.max(5, Math.min(95, base + matchupAvg + synergy + traits));
+  return {
+    total: r1(estimated),
+    base: r1(base),
+    baseSource,
+    matchupAvg: r1(matchupAvg),
+    synergy: r1(synergy),
+    traits: r1(traits),
+    perEnemy,
+  };
 }
 
 function computeSuggestions() {
@@ -2078,93 +2124,127 @@ function renderGrid() {
   }
 }
 
-// ---- ANALISI CONTRO LA SQUADRA AVVERSARIA -------------------------------
-// Non basta sapere chi batte un singolo avversario: in Classificata affronti
-// due o tre brawler insieme, e il pick giusto è quello che regge contro
-// TUTTI. Un brawler che demolisce Rosa ma viene demolito da Wendy, a somma
-// sembra ottimo mentre in partita salta. Per questo qui si guardano tre cose
-// diverse: il totale (valore complessivo), il PEGGIORE dei suoi matchup (il
-// rischio che ti prendi) e la copertura (se sta sopra zero contro tutti).
-function enemyBreakdown(candidateName, candidateClass, enemyNames) {
-  return enemyNames.map((en) => {
-    const measured = matchupEdge(candidateName, en);
-    if (measured !== null) return { enemy: en, edge: measured, measured: true };
-    return { enemy: en, edge: classEdge(candidateClass, classOf(en)), measured: false };
-  });
-}
+// ---- ANALISI DEL MOMENTO DEL DRAFT --------------------------------------
+// L'ordine dei pick in Classificata è 1-2-2-1. Chi sceglie per primo vede
+// 0, poi 2, poi 2 pick avversari; chi sceglie per secondo ne vede 1, 1 e
+// infine 3. Conseguenza pratica: SOLO l'ultimo pick della seconda squadra
+// vede la squadra avversaria al completo. Un'analisi che presuppone tre
+// avversari sullo schermo sarebbe quindi inutile in cinque casi su sei.
+// Per questo qui si guarda a quello che è davvero visibile adesso, e si
+// aggiunge la cosa che conta quando l'avversario deve ancora scegliere:
+// quanto sei ESPOSTO a ciò che può ancora prendere.
 
-function analyzeAgainstTeam(enemyNames) {
+// I brawler che l'avversario ha più probabilità di prendere adesso: forti
+// nel contesto (mappa/modalità) e realmente scelti dalla gente.
+function likelyEnemyPicks(limit) {
   const used = usedNames();
   const rows = [];
   for (const b of BRAWLERS) {
     if (used.has(b.name)) continue;
-    const parts = enemyBreakdown(b.name, b.class, enemyNames);
-    const total = parts.reduce((s, p) => s + p.edge, 0);
-    const worst = Math.min(...parts.map((p) => p.edge));
-    const measuredCount = parts.filter((p) => p.measured).length;
-    rows.push({ name: b.name, class: b.class, parts, total, worst, measuredCount });
+    const t = threatOf(b.name);
+    if (!t) continue;
+    const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
+    rows.push({ name: b.name, score: (t.value - 50) * (1 + Math.min(use, 4.5) / 3) });
   }
-  return rows;
+  rows.sort((a, b) => b.score - a.score);
+  return rows.slice(0, limit).map((r) => r.name);
 }
 
-// I pick che stanno sopra zero contro OGNI avversario schierato: sono le
-// risposte senza controindicazioni, quelle che non ti lasciano un buco.
-function coversAll(rows) {
-  return rows.filter((r) => r.worst > 0).sort((a, b) => b.total - a.total);
-}
-
-// Per ogni COPPIA di avversari, chi risponde meglio a entrambi. Serve quando
-// nessuno copre tutti e tre e devi decidere quale coppia di minacce spegnere.
-function bestPerPair(rows, enemyNames) {
-  const out = [];
-  for (let i = 0; i < enemyNames.length; i++) {
-    for (let j = i + 1; j < enemyNames.length; j++) {
-      const scored = rows
-        .map((r) => ({ r, sum: r.parts[i].edge + r.parts[j].edge, min: Math.min(r.parts[i].edge, r.parts[j].edge) }))
-        .filter((x) => x.min > 0)
-        .sort((a, b) => b.sum - a.sum);
-      out.push({ pair: [enemyNames[i], enemyNames[j]], best: scored.slice(0, 3) });
+// Il rischio residuo di un pick: la peggiore percentuale di vittorie che
+// avrebbe contro le minacce che l'avversario può ancora schierare. Un pick
+// che sta bene contro chi è già in campo ma crolla contro la risposta
+// ovvia non è un buon pick: è un pick che stai regalando.
+function residualRisk(candidateName, threats) {
+  let worst = null;
+  for (const t of threats) {
+    const p = predictedWinRate(candidateName, t);
+    const oa = BRAWLER_OVERALL[candidateName];
+    const ob = BRAWLER_OVERALL[t];
+    const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
+    if (worst === null || p.wr < worst.wr) {
+      worst = { enemy: t, wr: p.wr, edge: p.wr - expected, measured: p.measured };
     }
   }
-  return out;
+  return worst;
 }
 
 function renderTeamCounter() {
   const el = document.getElementById("team-counter");
   const turn = currentTurn();
   if (!turn || turn.phase !== "pick") { el.hidden = true; return; }
-  const enemy = turn.team === "A" ? "B" : "A";
+
+  const own = turn.team;
+  const enemy = own === "A" ? "B" : "A";
   const enemyNames = state.picks[enemy];
-  if (enemyNames.length === 0) { el.hidden = true; return; }
+  const enemyLeft = state.sequence.filter((sq, i) => i >= state.turnIndex && sq.phase === "pick" && sq.team === enemy).length;
 
-  const rows = analyzeAgainstTeam(enemyNames);
-  const covering = coversAll(rows);
-  const fmt = (n) => (n > 0 ? "+" : "") + (Math.round(n * 10) / 10);
-  const chip = (p) =>
-    `<span class="echip ${p.measured ? "meas" : "est"} ${p.edge > 0 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato" : "stima dalla classe"}">${p.enemy} ${fmt(p.edge)}</span>`;
+  const fmt = (n) => Math.round(n) + "%";
+  let html = "";
 
-  let html = `<p class="panel-title">Contro ${enemyNames.length === 1 ? "l'avversario" : "la squadra avversaria"}: ${enemyNames.join(" + ")}</p>`;
+  // Quanti avversari vedi ADESSO, e quanti ne possono ancora arrivare.
+  html += `<p class="panel-title">Situazione</p>`;
+  html += `<p class="hint situation">${
+    enemyNames.length === 0
+      ? "Scegli per primo: nessun avversario da counterare. Conviene un pick forte sulla mappa e difficile da punire, non una risposta a qualcosa che non c'è ancora."
+      : `Vedi <strong>${enemyNames.length}</strong> ${enemyNames.length > 1 ? "avversari" : "avversario"} (${enemyNames.join(", ")})` +
+        (enemyLeft > 0
+          ? `, e ne ${enemyLeft > 1 ? "mancano" : "manca"} ancora <strong>${enemyLeft}</strong> da schierare: guarda anche il rischio.`
+          : ". È il loro ultimo schieramento: quello che vedi è tutto.")
+    }</p>`;
 
-  if (covering.length > 0) {
-    html += `<p class="hint">Reggono contro <strong>tutti</strong> gli avversari schierati — nessun matchup in perdita:</p>`;
-    for (const r of covering.slice(0, 5)) {
-      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${r.parts.map(chip).join("")}</span><span class="tr-total">${fmt(r.total)}</span></div>`;
-    }
-  } else {
-    html += `<p class="hint">Nessun brawler disponibile sta sopra zero contro tutti: qualunque scelta lascia un buco. Sotto, chi copre almeno una coppia di minacce.</p>`;
+  if (enemyNames.length === 0 && enemyLeft === 0) { el.innerHTML = html; el.hidden = false; return; }
+
+  const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
+  const used = usedNames();
+  const rows = [];
+  for (const b of BRAWLERS) {
+    if (used.has(b.name)) continue;
+    const ctx = contextualWinRate(b.name);
+    const per = enemyNames.map((en) => {
+      const p = predictedWinRate(b.name, en);
+      const oa = BRAWLER_OVERALL[b.name];
+      const ob = BRAWLER_OVERALL[en];
+      const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
+      return { enemy: en, wr: p.wr, edge: p.wr - expected, measured: p.measured };
+    });
+    const risk = threats.length ? residualRisk(b.name, threats) : null;
+
+    // Il caso peggiore va misurato in percentuale di vittorie NEL CONTESTO,
+    // non come matchup nudo. Senza questo, un brawler di cui non sappiamo
+    // nulla avrebbe tutte le previsioni vicine al 50% e sembrerebbe il più
+    // solido di tutti: l'ignoranza verrebbe premiata. Partendo dalla win
+    // rate su questa mappa e sottraendo il matchup peggiore, un brawler
+    // debole resta debole anche se nessuno lo punisce in particolare.
+    const worstEdge = Math.min(
+      per.length ? Math.min(...per.map((p) => p.edge)) : 0,
+      risk ? risk.edge : 0
+    );
+    const floor = Math.max(5, Math.min(95, ctx.base + worstEdge));
+    rows.push({ name: b.name, per, risk, floor, base: ctx.base });
   }
+  const scored = rows.sort((a, b) => b.floor - a.floor);
 
-  // Le coppie servono solo da tre avversari in su: con due, l'unica coppia
-  // è la squadra intera e ripeterebbe il blocco qui sopra.
-  if (enemyNames.length >= 3) {
-    const pairs = bestPerPair(rows, enemyNames);
-    html += `<p class="hint pair-title">Se nessuno copre tutti e tre, chi spegne almeno due minacce insieme:</p>`;
-    for (const p of pairs) {
-      const names = p.best.length
-        ? p.best.map((x) => `<span class="pair-pick">${x.r.name} <em>${fmt(x.sum)}</em></span>`).join("")
-        : `<span class="pair-none">nessuno copre entrambi</span>`;
-      html += `<div class="pair-row"><span class="pair-vs">${p.pair.join(" + ")}</span>${names}</div>`;
+  if (enemyNames.length > 0) {
+    html += `<p class="panel-title spaced">I più solidi contro chi è già in campo</p>`;
+    for (const r of scored.slice(0, 5)) {
+      const chips = r.per
+        .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato" : "previsione dal modello"}">vs ${p.enemy} ${fmt(p.wr)}</span>`)
+        .join("");
+      const riskChip = r.risk
+        ? `<span class="risk-chip ${r.risk.wr >= 45 ? "ok" : "warn"}" title="la peggiore fra le minacce che possono ancora prendere">rischio: ${r.risk.enemy} ${fmt(r.risk.wr)}</span>`
+        : "";
+      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${chips}${riskChip}</span><span class="tr-total">${fmt(r.floor)}</span></div>`;
     }
+    html += `<p class="hint foot">La percentuale a destra è <strong>il tuo caso peggiore</strong>: quanto vinci contro l'avversario che ti va peggio, fra quelli in campo e quelli che possono ancora arrivare. Più è alta, meno rischi.</p>`;
+  } else if (threats.length) {
+    html += `<p class="panel-title spaced">Pick difficili da punire</p>`;
+    for (const r of scored.slice(0, 5)) {
+      const riskChip = r.risk
+        ? `<span class="risk-chip ${r.risk.wr >= 45 ? "ok" : "warn"}">peggio: ${r.risk.enemy} ${fmt(r.risk.wr)}</span>`
+        : "";
+      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${riskChip}</span><span class="tr-total">${fmt(r.floor)}</span></div>`;
+    }
+    html += `<p class="hint foot">Scegliendo per primo la domanda non è "chi batte chi", ma "cosa non mi possono punire". Questi sono i pick con il caso peggiore più alto contro le risposte più probabili.</p>`;
   }
 
   el.innerHTML = html;
@@ -2218,22 +2298,23 @@ function renderSuggestions() {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
-    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
     const flag = pickFlag(s.name);
     const badge = flag
-      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      ? `<span class="badge ${flag.kind}" title="${flag.wr}% di vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
       : "";
-    // Mostra il matchup contro OGNI avversario schierato, non solo il migliore:
-    // il senso è vedere il mix, cioè dove quel pick guadagna e dove paga.
-    let counterNote = "";
-    for (const c of (s.counters || []).slice(0, 3)) {
-      const cls = c.edge > 0 ? "good" : "bad";
-      counterNote += `<span class="counter ${cls}" title="matchup misurato contro ${c.enemy}, al netto della differenza di forza">${c.edge > 0 ? "batte" : "soffre"} ${c.enemy} ${c.edge > 0 ? "+" : ""}${c.edge}</span>`;
-    }
+    // Contro ciascun avversario si mostra la percentuale, non il residuo:
+    // "vs Rosa 72%" si capisce, "+13.5" no.
+    const chips = (s.perEnemy || [])
+      .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato su partite reali" : "previsione: differenza di forza + classe"}">vs ${p.enemy} ${Math.round(p.wr)}%</span>`)
+      .join("");
+    const parts = [`base ${s.base}% (${s.baseSource})`];
+    if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
+    if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
+    if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     row.innerHTML = `
-      <span class="sugg-name">${s.name}${badge}${counterNote}</span>
+      <span class="sugg-name">${s.name}${badge}${chips ? `<span class="chip-row">${chips}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
-      <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
+      <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
     row.addEventListener("click", () => pickOrBan(s.name));
     el.appendChild(row);

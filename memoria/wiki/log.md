@@ -1,0 +1,13 @@
+Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
+
+## [2026-09-06 12:40] app | Punteggio riscritto in percentuali di vittoria, analisi adattata all'ordine 1-2-2-1, memoria wiki creata
+Il punteggio era in punti astratti e non si capiva: ora è una percentuale di vittorie stimata. Aggiunto il rischio residuo (esposizione a ciò che l'avversario può ancora prendere), perché con l'ordine 1-2-2-1 solo l'ultimo pick vede tre avversari. Corretto un bug per cui i brawler senza dati risultavano i più solidi.
+
+## [2026-09-06 11:30] dati | Counter misurati su 104 brawler, modello esteso a tutte le 11.556 combinazioni
+623 coppie misurate una per una, normalizzate per differenza di forza (residuo medio −0,01: modello senza distorsione). Matrice per classe calibrata sui dati al posto dell'euristica scritta a mano.
+
+## [2026-09-06 10:15] dati | Win rate per mappa da quasi 16 milioni di partite, ban pesati, trappole e sottovalutati
+29 mappe con dati reali, ciascuna con campione e data per pesarne l'affidabilità. Trovato che Ring of Fire era rimossa dal 2021.
+
+## [2026-09-06 09:00] dati | Roster e meta verificati per fascia di rango; corrette due classi sbagliate
+Sirius (Controller) e Penny (Artillery). Aggiunti Vince e Cosmo dopo verifica sull'API Brawlify.

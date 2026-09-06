@@ -513,3 +513,27 @@ footer details[open] summary { margin-bottom: 8px; }
 }
 .pair-pick em { color: var(--accent); font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pair-none { color: var(--text-dim); font-style: italic; }
+
+/* Le percentuali per avversario vanno sotto il nome, non in fila con esso:
+   su telefono in linea traboccavano. */
+.chip-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.sugg-name { display: block; }
+
+.panel-title.spaced { margin-top: 14px; }
+.hint.situation { line-height: 1.55; }
+.hint.foot { margin-top: 8px; line-height: 1.5; }
+
+/* Il rischio residuo è un avviso, non un dato allo stesso livello degli
+   altri: colore proprio, così non si confonde con i matchup in campo. */
+.risk-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.risk-chip.warn { border-color: rgba(255, 122, 122, 0.5); color: var(--bad); }
+.risk-chip.ok { border-color: rgba(87, 217, 154, 0.35); color: var(--good); }
