@@ -17,6 +17,7 @@ Elenco tenuto perché ognuno di questi è costato una verifica incrociata: ritro
 | Mappa e modalità sommate | rilettura del punteggio | Doppio conteggio: la mappa è un sottoinsieme della modalità. |
 | Punteggi con rumore in virgola mobile (`+1.7600000000000002`) | test in browser | Arrotondamento. |
 | Cache dei ranking non invalidata incollando dati propri | test in browser | Un unico setter che invalida. |
+| Un brawler valutato come minaccia **contro se stesso** | screenshot dell'utente: "Wendy — peggio: Wendy 48%" | In Classificata non può stare in entrambe le squadre: escluso dalla propria lista minacce. |
 
 ## Regola generale che ne esce
 

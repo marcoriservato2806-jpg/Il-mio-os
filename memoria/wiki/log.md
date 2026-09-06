@@ -1,5 +1,8 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-06 13:45] app | Una sola classifica invece di due, e bug del brawler contro se stesso
+Media e caso peggiore erano in due tabelle separate che si ordinavano diversamente: l'utente non sapeva quale seguire, ed era una domanda legittima. Ora stanno nella stessa riga e l'ordine tiene conto di entrambi. Corretto anche un bug per cui un brawler veniva valutato come minaccia contro se stesso ("Wendy — peggio: Wendy 48%").
+
 ## [2026-09-06 13:10] app | Pulsante per saltare i ban in qualsiasi momento
 In partita la fase ban dura una ventina di secondi e non si fa in tempo a inserirne sei. Il salto accorcia la sequenza ai ban effettivamente inseriti invece di spostare solo l'indice: senza questo, "annulla" tornava su caselle mai riempite e cancellava il ban sbagliato.
 

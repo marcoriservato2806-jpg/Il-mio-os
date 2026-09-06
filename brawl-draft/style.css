@@ -550,3 +550,19 @@ footer details[open] summary { margin-bottom: 8px; }
   color: var(--text-dim);
 }
 .skip-bans:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+
+/* Il caso peggiore sta accanto alla media, nella stessa riga: separarli in
+   due classifiche costringeva a confrontarle a mano senza sapere quale
+   pesasse di più. */
+.floor-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.floor-chip.ok { border-color: rgba(87, 217, 154, 0.4); color: var(--good); }
+.floor-chip.warn { border-color: rgba(255, 122, 122, 0.45); color: var(--bad); }

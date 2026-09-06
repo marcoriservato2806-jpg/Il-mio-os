@@ -553,6 +553,22 @@ footer details[open] summary { margin-bottom: 8px; }
 }
 .skip-bans:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
 
+/* Il caso peggiore sta accanto alla media, nella stessa riga: separarli in
+   due classifiche costringeva a confrontarle a mano senza sapere quale
+   pesasse di più. */
+.floor-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.floor-chip.ok { border-color: rgba(87, 217, 154, 0.4); color: var(--good); }
+.floor-chip.warn { border-color: rgba(255, 122, 122, 0.45); color: var(--bad); }
+
 </style>
 
 <div class="container">
@@ -627,7 +643,9 @@ footer details[open] summary { margin-bottom: 8px; }
       <div id="suggestions"></div>
       <div id="team-counter" class="team-counter" hidden></div>
       <p class="legend">
-        <strong>Il numero grande è una percentuale di vittorie stimata</strong> per quel brawler, su questa mappa, contro questi avversari. 55% è buono, 65% è ottimo, sotto il 50% stai partendo in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <strong>Il numero grande è la percentuale di vittorie stimata</strong> per quel brawler, su questa mappa, contro questi avversari: è il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
         <br />
         <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
         <br />
@@ -2007,12 +2025,30 @@ function computeSuggestions() {
   const enemyNames = state.picks[enemy];
   const enemyClasses = enemyNames.map(classOf);
 
+  const enemyLeft = state.sequence.filter((sq, i) => i >= state.turnIndex && sq.phase === "pick" && sq.team === enemy).length;
+  const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
+
   const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
     const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames);
-    return { name: b.name, class: b.class, ...s };
+    // Il caso peggiore sta nella STESSA riga della media. Tenerli in due
+    // classifiche separate obbligava a confrontarle a mano e non diceva
+    // quale seguire — che è esattamente il dubbio che ha fatto sbagliare.
+    const risk = threats.length ? residualRisk(b.name, threats) : null;
+    const worstEdge = Math.min(
+      s.perEnemy.length ? Math.min(...s.perEnemy.map((p) => p.edge)) : 0,
+      risk ? risk.edge : 0
+    );
+    const floor = Math.max(5, Math.min(95, s.base + worstEdge));
+    return { name: b.name, class: b.class, ...s, risk, floor: Math.round(floor) };
   });
 
-  candidates.sort((a, b) => b.total - a.total);
+  // Quando l'avversario può ancora rispondere, la realtà sta fra il caso
+  // normale e quello in cui ti counterano: ordinare per la sola media
+  // sopravvaluta i pick fragili, per il solo caso peggiore sottovaluta
+  // quelli forti. Si ordina per la media dei due, e in riga si vedono
+  // entrambi i numeri, così la scelta resta tua e non nascosta.
+  const risky = threats.length > 0 || enemyNames.length > 0;
+  candidates.sort((x, y) => (risky ? (y.total + y.floor) - (x.total + x.floor) : y.total - x.total));
   return candidates.slice(0, 8);
 }
 
@@ -2186,6 +2222,10 @@ function likelyEnemyPicks(limit) {
 function residualRisk(candidateName, threats) {
   let worst = null;
   for (const t of threats) {
+    // In Classificata un brawler non può stare in entrambe le squadre:
+    // valutarlo contro sé stesso produceva righe assurde come
+    // "Wendy — peggio: Wendy 48%" e falsava il caso peggiore.
+    if (t === candidateName) continue;
     const p = predictedWinRate(candidateName, t);
     const oa = BRAWLER_OVERALL[candidateName];
     const ob = BRAWLER_OVERALL[t];
@@ -2222,59 +2262,6 @@ function renderTeamCounter() {
     }</p>`;
 
   if (enemyNames.length === 0 && enemyLeft === 0) { el.innerHTML = html; el.hidden = false; return; }
-
-  const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
-  const used = usedNames();
-  const rows = [];
-  for (const b of BRAWLERS) {
-    if (used.has(b.name)) continue;
-    const ctx = contextualWinRate(b.name);
-    const per = enemyNames.map((en) => {
-      const p = predictedWinRate(b.name, en);
-      const oa = BRAWLER_OVERALL[b.name];
-      const ob = BRAWLER_OVERALL[en];
-      const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
-      return { enemy: en, wr: p.wr, edge: p.wr - expected, measured: p.measured };
-    });
-    const risk = threats.length ? residualRisk(b.name, threats) : null;
-
-    // Il caso peggiore va misurato in percentuale di vittorie NEL CONTESTO,
-    // non come matchup nudo. Senza questo, un brawler di cui non sappiamo
-    // nulla avrebbe tutte le previsioni vicine al 50% e sembrerebbe il più
-    // solido di tutti: l'ignoranza verrebbe premiata. Partendo dalla win
-    // rate su questa mappa e sottraendo il matchup peggiore, un brawler
-    // debole resta debole anche se nessuno lo punisce in particolare.
-    const worstEdge = Math.min(
-      per.length ? Math.min(...per.map((p) => p.edge)) : 0,
-      risk ? risk.edge : 0
-    );
-    const floor = Math.max(5, Math.min(95, ctx.base + worstEdge));
-    rows.push({ name: b.name, per, risk, floor, base: ctx.base });
-  }
-  const scored = rows.sort((a, b) => b.floor - a.floor);
-
-  if (enemyNames.length > 0) {
-    html += `<p class="panel-title spaced">I più solidi contro chi è già in campo</p>`;
-    for (const r of scored.slice(0, 5)) {
-      const chips = r.per
-        .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato" : "previsione dal modello"}">vs ${p.enemy} ${fmt(p.wr)}</span>`)
-        .join("");
-      const riskChip = r.risk
-        ? `<span class="risk-chip ${r.risk.wr >= 45 ? "ok" : "warn"}" title="la peggiore fra le minacce che possono ancora prendere">rischio: ${r.risk.enemy} ${fmt(r.risk.wr)}</span>`
-        : "";
-      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${chips}${riskChip}</span><span class="tr-total">${fmt(r.floor)}</span></div>`;
-    }
-    html += `<p class="hint foot">La percentuale a destra è <strong>il tuo caso peggiore</strong>: quanto vinci contro l'avversario che ti va peggio, fra quelli in campo e quelli che possono ancora arrivare. Più è alta, meno rischi.</p>`;
-  } else if (threats.length) {
-    html += `<p class="panel-title spaced">Pick difficili da punire</p>`;
-    for (const r of scored.slice(0, 5)) {
-      const riskChip = r.risk
-        ? `<span class="risk-chip ${r.risk.wr >= 45 ? "ok" : "warn"}">peggio: ${r.risk.enemy} ${fmt(r.risk.wr)}</span>`
-        : "";
-      html += `<div class="team-row"><span class="tr-name">${r.name}</span><span class="tr-chips">${riskChip}</span><span class="tr-total">${fmt(r.floor)}</span></div>`;
-    }
-    html += `<p class="hint foot">Scegliendo per primo la domanda non è "chi batte chi", ma "cosa non mi possono punire". Questi sono i pick con il caso peggiore più alto contro le risposte più probabili.</p>`;
-  }
 
   el.innerHTML = html;
   el.hidden = false;
@@ -2344,12 +2331,16 @@ function renderSuggestions() {
     const chips = (s.perEnemy || [])
       .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato su partite reali" : "previsione: differenza di forza + classe"}">vs ${p.enemy} ${Math.round(p.wr)}%</span>`)
       .join("");
+    const floorChip =
+      s.risk || (s.perEnemy && s.perEnemy.length)
+        ? `<span class="floor-chip ${s.floor >= 50 ? "ok" : "warn"}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
+        : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
     if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
     if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     row.innerHTML = `
-      <span class="sugg-name">${s.name}${badge}${chips ? `<span class="chip-row">${chips}</span>` : ""}</span>
+      <span class="sugg-name">${s.name}${badge}${chips || floorChip ? `<span class="chip-row">${chips}${floorChip}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
