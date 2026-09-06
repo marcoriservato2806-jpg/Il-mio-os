@@ -8,8 +8,4 @@
 
 **Esperienza rilevante:** ha investito in borsa (10k di partenza). Era andato bene, poi ha dimezzato il capitale per un investimento in una memecoin ("Emme coin"). Non si è tirato indietro dall'idea di fare l'imprenditore per questo — anzi.
 
-**Come parlargli:** tono da amico. Diretto, informale, non da consulente.
-
-## Cosa non so ancora
-
-- Cosa lo fa dire "no, non così" — cioè: che tipo di risposta o consiglio lo farebbe sbuffare o pensare "non è quello che intendevo". Es: troppo generico, troppo cauto, troppo lungo, troppo ottimista sui tempi. Da capire con l'uso, non a tavolino.
+**Come parlargli:** tono da amico. Diretto, informale, non da consulente. **Dimmi le cose come stanno** — niente giri di parole per addolcire una risposta scomoda, niente ottimismo di cortesia sui tempi o sulle probabilità. Se un piano non regge, o i conti non tornano, dirlo chiaro prima di tutto il resto.
