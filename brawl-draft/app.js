@@ -12,7 +12,60 @@ const state = {
   mode: null, // una di MODES, o null = nessuna modalità selezionata
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
   map: null, // riferimento a un oggetto di MAPS, o null
+  customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
 };
+
+const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
+
+function loadCustomScores() {
+  let raw = "";
+  try {
+    raw = localStorage.getItem(META_STORAGE_KEY) || "";
+  } catch (e) {
+    raw = "";
+  }
+  const { scores } = parseMetaText(raw);
+  state.customScores = scores;
+  return raw;
+}
+
+function saveMetaRaw(raw) {
+  try {
+    localStorage.setItem(META_STORAGE_KEY, raw);
+  } catch (e) {
+    // localStorage non disponibile (es. modalità privata): i dati restano solo per questa sessione
+  }
+}
+
+// Parser tollerante: cerca in ogni riga un nome di brawler noto (parola intera,
+// case-insensitive, i nomi più lunghi prima per evitare match parziali tipo
+// "Bo" dentro "Bonnie") e il primo numero della riga (con o senza "%").
+// Righe senza nome riconosciuto o senza numero vengono segnalate, non ignorate in silenzio.
+function parseMetaText(text) {
+  const scores = {};
+  const unrecognized = [];
+  const namesByLengthDesc = BRAWLERS.map((b) => b.name).sort((a, b) => b.length - a.length);
+
+  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  for (const line of lines) {
+    let matchedName = null;
+    for (const name of namesByLengthDesc) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, "i");
+      if (re.test(line)) {
+        matchedName = name;
+        break;
+      }
+    }
+    const numMatch = line.match(/(\d+(?:[.,]\d+)?)\s*%?/);
+    if (matchedName && numMatch) {
+      scores[matchedName] = parseFloat(numMatch[1].replace(",", "."));
+    } else {
+      unrecognized.push(line);
+    }
+  }
+  return { scores, unrecognized };
+}
 
 function buildSequence() {
   const seq = [];
@@ -76,8 +129,13 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
     mapBonus += 3; // pick esplicitamente segnalato come forte su questa mappa dalle fonti
   }
 
-  const total = matchup * 2 + synergy + modeBonus * 2 + mapBonus;
-  return { total, matchup, synergy, modeBonus, mapBonus };
+  let metaBonus = 0;
+  if (state.customScores[candidateName] !== undefined) {
+    metaBonus = (state.customScores[candidateName] - 50) / 10; // 60% -> +1, 70% -> +2, 40% -> -1...
+  }
+
+  const total = matchup * 2 + synergy + modeBonus * 2 + mapBonus + metaBonus;
+  return { total, matchup, synergy, modeBonus, mapBonus, metaBonus };
 }
 
 function computeSuggestions() {
@@ -240,7 +298,7 @@ function renderSuggestions() {
     row.className = "suggestion-row";
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     const sign = (n) => (n > 0 ? "+" + n : String(n));
-    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)}`;
+    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · dati incollati ${sign(s.metaBonus)}`;
     row.innerHTML = `
       <span class="sugg-name">${s.name}</span>
       <span class="sugg-class">${s.class}</span>
@@ -345,9 +403,48 @@ function initModeAndMap() {
   }
 }
 
+function renderMetaStatus(unrecognized) {
+  const el = document.getElementById("meta-status");
+  const count = Object.keys(state.customScores).length;
+  if (count === 0 && (!unrecognized || unrecognized.length === 0)) {
+    el.textContent = "Nessun dato incollato: i suggerimenti usano solo classi/modalità/mappa.";
+    return;
+  }
+  let msg = `${count} brawler riconosciuti.`;
+  if (unrecognized && unrecognized.length > 0) {
+    msg += ` ${unrecognized.length} riga/e non capite (nome o numero mancante): ${unrecognized.slice(0, 3).join(" | ")}${unrecognized.length > 3 ? "…" : ""}`;
+  }
+  el.textContent = msg;
+}
+
+function initMetaPanel() {
+  const textarea = document.getElementById("meta-input");
+  const raw = loadCustomScores();
+  textarea.value = raw;
+  renderMetaStatus(null);
+
+  document.getElementById("meta-save").addEventListener("click", () => {
+    const text = textarea.value;
+    const { scores, unrecognized } = parseMetaText(text);
+    state.customScores = scores;
+    saveMetaRaw(text);
+    renderMetaStatus(unrecognized);
+    renderSuggestions();
+  });
+
+  document.getElementById("meta-clear").addEventListener("click", () => {
+    textarea.value = "";
+    state.customScores = {};
+    saveMetaRaw("");
+    renderMetaStatus(null);
+    renderSuggestions();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initFilters();
   initModeAndMap();
+  initMetaPanel();
   buildSequence();
   render();
 

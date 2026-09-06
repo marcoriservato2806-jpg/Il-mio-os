@@ -219,6 +219,45 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .filters input { flex: 1; }
 
+.meta-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.meta-hint {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+#meta-input {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.meta-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.meta-status {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin: 8px 0 0;
+}
+
 .brawler-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));

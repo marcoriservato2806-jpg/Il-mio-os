@@ -74,6 +74,21 @@
     </div>
   </div>
 
+  <div class="meta-panel">
+    <p class="panel-title">Dati meta (facoltativo)</p>
+    <p class="meta-hint">
+      Incolla qui una lista copiata da Brawlify, Brawl Time Ninja o simili (una riga per brawler,
+      nome + percentuale, in qualsiasi formato — es. "Piper 62%" o "Piper: 62.3"). Aggiorna i
+      suggerimenti con dati veri invece della sola euristica. Resta salvato solo in questo browser.
+    </p>
+    <textarea id="meta-input" rows="5" placeholder="Piper 62%&#10;Brock: 58.4&#10;Edgar 43%"></textarea>
+    <div class="meta-actions">
+      <button id="meta-save">Salva e applica</button>
+      <button id="meta-clear">Cancella</button>
+    </div>
+    <p id="meta-status" class="meta-status"></p>
+  </div>
+
   <footer>
     <strong>Come funzionano i suggerimenti:</strong> punteggio = vantaggio di classe contro i pick avversari (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) più un bonus di sinergia per non ripetere troppo la stessa classe e coprire ruoli mancanti (frontline, support). È un'euristica di design generale, <em>non</em> una tier-list della meta attuale: i numeri non tengono conto di mappa, modalità, livello dei power/gadget o dei dati di win-rate della stagione in corso.
     <br /><br />
@@ -81,7 +96,9 @@
     <br /><br />
     <strong>Modalità:</strong> le 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout) danno un bonus/malus di ruolo legato a cosa serve per vincere quella modalità (es. Gem Grab premia chi tiene la posizione, Bounty punisce chi muore spesso).
     <br /><br />
-    <strong>Mappe:</strong> l'elenco in <code>data.js</code> (14 mappe, con pick consigliati e note) è stato raccolto da ricerche web del 6 settembre 2026 — non da un fetch diretto ai siti-database (bloccato in questa sessione), ma dagli estratti di ricerca di Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl e TheriaGames. Il pool reale della stagione è di 3-4 mappe per modalità e cambia ogni stagione: quelle elencate sono le mappe "di riferimento" citate più spesso per luglio-settembre 2026, <em>non</em> garantite come l'elenco esatto e completo della stagione in corso. Se in game vedi una mappa che non c'è in elenco, seleziona "Nessuna / non elencata" e usa i tratti (boscaglia, corridoi stretti, mappa aperta, muri distruttibili, zona centrale ristretta) — funzionano con qualunque mappa.
+    <strong>Mappe:</strong> le 30 mappe in <code>data.js</code> sono il pool reale e completo della Classificata attuale (Bounty 4, Brawl Ball 7, Gem Grab 5, Heist 6, Hot Zone 4, Knockout 4), verificato il 6 settembre 2026 da screenshot del draft tool di metapick-ai.com. I pick consigliati e le note per ciascuna mappa vengono da ricerche web dello stesso giorno (Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl, TheriaGames, Brawlio, BrawlIQ) — non un fetch diretto ai siti (bloccato in questa sessione), quindi non un tier-list con percentuali esatte. Se in game vedi una mappa che non c'è in elenco, seleziona "Nessuna / non elencata" e usa i tratti sotto.
+    <br /><br />
+    <strong>Dati meta incollati:</strong> il riquadro qui sopra applica un bonus/malus proporzionale alla percentuale che incolli (60% di win rate ≈ +1 punto, 70% ≈ +2, e così via), sommato a tutto il resto. Sovrascrive l'euristica generale con numeri veri, quando li hai. Salvato solo nel tuo browser (localStorage): su un altro dispositivo o browser va incollato di nuovo.
   </footer>
 </div>
 
