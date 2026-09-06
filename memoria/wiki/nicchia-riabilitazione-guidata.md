@@ -26,6 +26,22 @@ Tendinopatie da sovraccarico comuni con evidenza per l'esercizio attivo/eccentri
 
 Fatta con ricerca web libera, non con strumenti di intelligence competitiva o registri camerali italiani — non è una prova che non esista *nessun* concorrente in Italia, solo che non è emerso nella ricerca. Prima di investire, andrebbe controllato direttamente su Amazon.it/eBay.it e con Google Trends Italia vs USA sul volume di interesse.
 
+## Verifica su Amazon.it (2026-09-06)
+
+Controllato direttamente: su Amazon.it per "epicondilite" ci sono solo fasce generiche cinesi (AGPTEK, CAMBIVO, ionocore, FREETOO...), nessuna con programma guidato incluso. Stesso quadro trovato negli USA. Incidenza in Italia confermata: ~1-3% della popolazione, picco 40-50 anni — stessa fascia di età della ricerca USA.
+
+## Decisione (2026-09-06)
+
+Scelta: la strada **geografica**, partendo dall'**epicondilite** in Italia — è la condizione su cui è partita la ricerca, ha evidenza clinica solida sul lato "cosa funziona" (protocollo eccentrico), e la verifica su Amazon.it conferma che il vuoto (tutore/tool + programma guidato) esiste anche qui, non solo ipotizzato.
+
+Motivo della scelta rispetto a "essere primi sulla tendinopatia achillea": qui la domanda è già dimostrata (Alleviate vende e ha recensioni positive negli USA per questa esatta condizione) — il rischio che resta è solo di esecuzione (saper vendere, saper localizzare bene), non anche di validare se qualcuno vuole la cosa. Sull'achillea invece nessuno l'ha ancora provato da nessuna parte: potrebbe essere un'opportunità più grande, ma anche un buco nel mercato per un motivo che non conosciamo (magari Alleviate l'ha testato e non ha funzionato). Per una prima impresa, con zero esperienza, ridurre le incognite conta più di massimizzare l'upside. L'achillea resta un'idea per dopo, a impresa numero due, con più soldi ed esperienza per permettersi la scommessa.
+
+## Prossimi passi, in ordine (fatto bene = validare prima di costruire)
+
+1. **Non partire dal prodotto fisico.** Prima costruire e vendere solo il programma/protocollo (guida scritta o video in italiano, basata sulla letteratura clinica, validata da quello che Marco sta studiando) come prodotto digitale a basso costo. Se nessuno lo compra, si è appena risparmiato l'inventario.
+2. **Validare con persone vere prima di spendere in ads**: parlarne con altri studenti/professori di fisioterapia, pazienti reali nei tirocini, forum italiani su epicondilite — cosa hanno provato, cosa li ha delusi, quanto pagherebbero per una guida seria.
+3. Solo se il programma digitale vende, aggiungere il prodotto fisico (tutore/tool) come upsell — a quel punto si sa già che la domanda c'è.
+
 ## Stato
 
-Nessuna decisione presa. In attesa che Marco scelga una direzione (geografica su una condizione già provata, o di prodotto su una condizione scoperta come l'achillea) prima di andare più in profondità.
+Direzione scelta il 2026-09-06. In attesa che Marco cominci il passo 1 (validazione) o dica come vuole procedere concretamente.
