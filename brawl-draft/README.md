@@ -18,6 +18,23 @@ qualsiasi). Nessuna installazione richiesta.
 3. Durante le fasi di pick, il pannello a destra suggerisce le scelte
    migliori in base alla classe degli avversari già scesi in campo.
 
+## Da dove vengono i numeri
+
+Tre livelli di dato, dal più specifico al più generico. L'app usa sempre il
+più specifico che ha, e **non li somma** (la mappa è un sottoinsieme della
+modalità: sommarli conterebbe due volte lo stesso segnale).
+
+| Livello | Cosa copre | Fonte |
+|---|---|---|
+| Mappa | 29 mappe con win rate per brawler, ~16M partite totali | BrawlMetrics, pagine mappa lette una per una il 6/9/2026 |
+| Modalità | 6 modalità × 106 brawler | BrawlMetrics, tabelle per modalità |
+| Meta generale | 106 brawler, due fasce (tutti i ranghi / Masters) | BrawlMetrics ranked, riscontro Dexerto sulla top-5 |
+
+Ogni mappa porta con sé **dimensione del campione e data**, e l'app pesa il
+dato di conseguenza (`mapConfidence` in `app.js`): una mappa con 3,7 milioni
+di partite ma ferma a fine luglio conta meno di una con 1,4 milioni
+aggiornate a ieri, perché nel frattempo il gioco è stato riequilibrato.
+
 ## Limiti noti (importante)
 
 - **Roster: 106 brawler su 108.** Mancano solo Vince (release ottobre

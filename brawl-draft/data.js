@@ -355,218 +355,226 @@ const MAP_TRAIT_CLASS_BONUS = {
   "Zona centrale ristretta": { "Tank": 1, "Damage Dealer": 0, "Assassin": 0, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 0 },
 };
 
-// Mappe: il 6 settembre 2026 l'utente ha condiviso screenshot del draft
-// tool di metapick-ai.com (Rank Threshold Master I+, Last Updated 28 Aug
-// 2026) che mostrano il vero pool Classificata stagionale completo: 30
-// mappe su 6 modalità (Bounty 4, Brawl Ball 7, Gem Grab 5, Heist 6, Hot
-// Zone 4, Knockout 4 — combacia con "Season 48, 30 mappe totali" trovato
-// in una ricerca precedente). Quell'elenco è la fonte di verità per QUALI
-// mappe esistono ora; ha sostituito la lista parziale/best-effort di
-// prima (che includeva Snake Prairie e Crystal Arcade, non presenti nel
-// pool attuale — probabilmente mappe di una stagione o di un pool
-// competitivo/BSC diverso, quindi rimosse).
+// MAPPE — riscritte il 6/9/2026 con win rate REALI per singola mappa,
+// lette una per una dalle pagine mappa di brawlmetrics.gg (che pubblica
+// anche la dimensione del campione e la data dell'ultimo aggiornamento
+// per ogni mappa: entrambe conservate qui sotto, perché servono a capire
+// QUANTO fidarsi di ogni riga).
 //
-// bestPicks/notes per ciascuna mappa restano raccolti da ricerche web del
-// 6 settembre 2026 (Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl,
-// TheriaGames, Brawlio, BrawlIQ — pagine non apribili direttamente in
-// questa sessione, rete bloccata: dati presi dagli estratti di ricerca).
-// Sono nomi citati esplicitamente dalle fonti come forti su quella mappa,
-// non un tier-list completo con percentuali esatte: quelle richiedono un
-// accesso live a un sito come Brawlify che questa sessione non ha. Un
-// paio di fonti citavano anche un brawler "Sirius" non presente nel
-// roster qui sopra (non risulta un brawler noto): omesso dai bestPicks
-// finché non è verificato.
+// Perché è un salto rispetto a prima: la versione precedente aveva solo
+// elenchi di nomi "forti su questa mappa" raccolti da estratti di ricerca,
+// senza numeri e senza sapere quanto fossero aggiornati. Ora ogni mappa
+// verificata ha la win rate reale dei 20 brawler migliori.
+//
+// COSE TROVATE FACENDO IL CONTROLLO INCROCIATO (non erano note prima):
+//  - "Ring of Fire" è stata RIMOSSA dal gioco il 27/01/2021: era ancora
+//    in elenco qui come mappa attuale di Hot Zone. Eliminata.
+//  - 7 mappe della vecchia lista non hanno pagina su brawlmetrics (404
+//    anche al secondo tentativo): Layer Cake, Center Stage, Bridge Too
+//    Far, Pit Stop, Safe Zone, Safe(r) Zone, Out in the Open. Non sono
+//    state cancellate (una ricerca indica che almeno Safe Zone e Center
+//    Stage esistono ancora), ma sono marcate `winRates: null` e nell'app
+//    compaiono come "dati non verificati": restano selezionabili con i
+//    vecchi bestPicks qualitativi, senza spacciarli per dati misurati.
+//  - Sono state aggiunte 6 mappe che la lista precedente non aveva e che
+//    risultano nella rotazione attuale: On A Roll, Tasty Berry, Backyard
+//    Bowl, Jedna, Hot Tubs, Photic Doom, Konnakol.
+//  - Attenzione alle date: alcune mappe con campioni enormi (Flaring
+//    Phoenix 3,7M, New Horizons 1,5M, Belle's Rock 3,0M) hanno dati di
+//    LUGLIO/AGOSTO, cioè di prima degli ultimi riequilibri. Tanti dati ma
+//    vecchi: l'app li pesa meno (vedi mapConfidence in app.js), invece di
+//    trattarli come se fossero di oggi solo perché il campione è grosso.
 const MAPS = [
-  // Bounty (4)
+  // ---------- Gem Grab ----------
   {
-    mode: "Bounty",
-    name: "Dry Season",
-    bestPicks: ["Piper", "Brock", "Bea", "Mandy", "Byron", "Poco", "Pam", "Doug", "Berry", "Ruffs"],
-    notes: "Zone aperte con muri indistruttibili al centro. Tieni la retroguardia con i tiratori a lungo raggio, fai poke sicuro e non buttare via le stelle.",
+    mode: "Gem Grab", name: "Undermine", sample: 225132, updated: "2026-09-06",
+    winRates: { "Lola": 69.4, "Jae-Yong": 69.2, "Wendy": 68.9, "Trunk": 67.6, "Starr Nova": 66.5, "Amber": 65.7, "Shade": 65.3, "R-T": 64.5, "Finx": 64.0, "Janet": 63.9, "Gus": 63.8, "Mico": 63.1, "Bolt": 63.0, "Hank": 62.9, "Ruffs": 62.6, "Lumi": 62.2, "Gigi": 62.2, "Angelo": 61.7, "Nori": 61.5, "Nani": 61.1 },
+    notes: "Favorisce chi tira da lunga distanza e chi controlla le corsie laterali.",
   },
   {
-    mode: "Bounty",
-    name: "Hideout",
-    bestPicks: ["Piper", "Brock", "Max", "Byron", "Gene", "Darryl", "Bibi", "Chuck", "Amber", "Barley", "Larry & Lawrie", "Dynamike", "Juju", "Berry"],
-    notes: "Simmetria diagonale, due gruppi di staccionate con erba. Cecchini bene sui lati aperti, throwers bene nel centro stretto. La stella blu centrale è decisiva come spareggio.",
+    mode: "Gem Grab", name: "Hard Rock Mine", sample: 43152, updated: "2026-09-06",
+    winRates: { "Wendy": 70.7, "Jae-Yong": 68.6, "Bo": 68.2, "Lumi": 66.7, "Sprout": 65.9, "Draco": 64.5, "Starr Nova": 64.5, "Sirius": 64.1, "Shade": 63.4, "Damian": 63.1, "Doug": 61.5, "Nori": 60.7, "Meeple": 60.2, "Moe": 59.9, "Gus": 59.8, "Mina": 59.8, "Lola": 59.6, "Finx": 59.5, "Rico": 58.6, "Pierce": 58.6 },
+    notes: "Centro aperto con due strisce di boscaglia a \"H\" ai lati. I Controller tengono gli avversari inchiodati vicino allo spawn; tank e mischia si infiltrano dai lati. Il più usato è Edgar (5,1%) ma vince solo il 53,1%: non seguirlo per moda.",
   },
   {
-    mode: "Bounty",
-    name: "Layer Cake",
+    mode: "Gem Grab", name: "Double Swoosh", sample: 254616, updated: "2026-08-31",
+    winRates: { "Gus": 78.4, "Wendy": 73.7, "Jae-Yong": 72.1, "Damian": 69.6, "Bolt": 68.1, "Trunk": 67.9, "Shade": 67.2, "Gigi": 67.0, "Starr Nova": 66.6, "Sam": 66.5, "Finx": 65.9, "R-T": 65.6, "Lola": 65.2, "Doug": 65.1, "Nori": 65.1, "Lumi": 65.0, "Meeple": 64.1, "Sprout": 63.5, "Mandy": 63.0, "Glowy": 62.7 },
+    notes: "Molti cespugli su entrambi i lati, vortice al centro, simmetria perfetta. Gus qui è fuori scala (78,4%).",
+  },
+  {
+    mode: "Gem Grab", name: "Gem Fort", sample: 21678, updated: "2026-09-06",
+    winRates: { "Damian": 73.4, "Amber": 73.2, "Bolt": 71.7, "Shade": 68.3, "Bo": 66.5, "Wendy": 66.1, "Doug": 62.3, "Starr Nova": 61.9, "Gigi": 61.5, "Nori": 61.2, "Pierce": 59.8, "Sirius": 59.5, "Mortis": 58.3, "Gus": 57.4, "Tara": 57.2, "Chester": 57.1, "El Primo": 57.0, "Stu": 56.3, "Frank": 55.2, "Griff": 54.1 },
+    notes: "Centro chiuso da muri ad angolo retto con 4 ingressi, due vicini a corsie cespugliose. Amber brucia i cespugli con la Super.",
+  },
+  {
+    mode: "Gem Grab", name: "On A Roll", sample: 21876, updated: "2026-09-06",
+    winRates: { "Starr Nova": 70.7, "Janet": 68.6, "Shade": 68.1, "Wendy": 66.5, "Bolt": 64.9, "Trunk": 63.4, "Amber": 63.3, "Lumi": 63.2, "Nori": 59.7, "Chuck": 58.3, "Chester": 57.8, "Gus": 57.5, "Pierce": 56.5, "Mina": 55.8, "Kit": 55.5, "8-Bit": 54.8, "El Primo": 54.5, "Otis": 54.3, "Mandy": 54.0, "Griff": 53.4 },
+    notes: "Mappa aggiunta il 6/9 (era assente dall'elenco precedente).",
+  },
+  {
+    mode: "Gem Grab", name: "Rustic Arcade", sample: 14562, updated: "2026-08-30",
+    winRates: { "Bo": 71.3, "Squeak": 66.4, "8-Bit": 65.4, "Starr Nova": 63.0, "Edgar": 62.0, "Spike": 59.0, "Bolt": 58.5, "Dynamike": 58.4, "Rico": 58.1, "Fang": 58.1, "Tick": 57.4, "Emz": 56.1, "Pearl": 55.5, "Crow": 54.9, "Darryl": 54.3, "Pierce": 54.2, "Max": 52.8, "Leon": 52.2, "El Primo": 51.7, "Shelly": 51.5 },
+    notes: "Centro esagonale con muri verso il centro e cespugli sul lato opposto. Campione piccolo (14,5k): prendi i numeri con più cautela.",
+  },
+
+  // ---------- Bounty ----------
+  {
+    mode: "Bounty", name: "Shooting Star", sample: 236922, updated: "2026-09-06",
+    winRates: { "Wendy": 68.4, "Amber": 65.9, "Lola": 65.1, "Shade": 64.5, "Jae-Yong": 63.5, "Sam": 62.1, "Glowy": 62.1, "Bolt": 62.1, "Gigi": 61.8, "Starr Nova": 61.6, "Juju": 61.4, "Bo": 61.0, "Sprout": 60.7, "Gus": 60.3, "Draco": 59.9, "Trunk": 59.8, "R-T": 59.7, "Najia": 59.5, "Damian": 59.2, "Alli": 59.0 },
+    notes: "Mappa aperta con lunghe linee di tiro.",
+  },
+  {
+    mode: "Bounty", name: "Hideout", sample: 168984, updated: "2026-08-31",
+    winRates: { "Wendy": 71.1, "Bolt": 68.3, "Draco": 66.5, "Bo": 64.2, "Lola": 64.0, "Glowy": 63.9, "Jae-Yong": 63.5, "Damian": 63.2, "Starr Nova": 61.6, "Nori": 61.2, "Trunk": 59.9, "Pierce": 59.0, "Kaze": 58.1, "Sprout": 58.0, "Gus": 58.0, "Doug": 57.9, "Mina": 57.8, "Angelo": 57.4, "Lumi": 57.2, "Alli": 57.1 },
+    notes: "Simmetria diagonale, due gruppi di staccionate con erba. La stella blu centrale è decisiva come spareggio.",
+  },
+  {
+    mode: "Bounty", name: "Tasty Berry", sample: 125400, updated: "2026-09-06",
+    winRates: { "Wendy": 71.8, "Damian": 68.2, "Sam": 67.2, "Trunk": 65.7, "Amber": 65.5, "Hank": 65.4, "Sprout": 64.8, "Jae-Yong": 64.7, "Doug": 63.4, "Bolt": 63.3, "Najia": 63.0, "Pierce": 62.6, "Juju": 62.4, "Finx": 62.1, "Moe": 61.6, "Bo": 61.5, "Stu": 61.5, "Willow": 60.8, "Janet": 60.5, "Gus": 60.5 },
+    notes: "Mappa aggiunta il 6/9: risultava nella rotazione attuale ma non era in elenco.",
+  },
+  {
+    mode: "Bounty", name: "Dry Season", sample: 9882, updated: "2026-08-30",
+    winRates: { "Wendy": 59.3, "8-Bit": 57.1, "Brock": 56.0, "Mortis": 55.3, "Nori": 55.0, "Edgar": 53.0, "Bea": 52.7, "Tick": 52.5, "Spike": 51.9, "Piper": 51.9, "Squeak": 51.1, "Bo": 50.8, "Pierce": 50.3, "Fang": 48.1, "Leon": 47.4, "Byron": 46.9, "Colt": 46.4, "Mandy": 44.6, "Rico": 43.7, "Emz": 43.4 },
+    notes: "Zone aperte con muri indistruttibili al centro. Campione molto piccolo (9,8k): è la mappa con i dati meno solidi di tutte.",
+  },
+  {
+    mode: "Bounty", name: "Layer Cake", sample: 0, updated: null, winRates: null,
     bestPicks: ["El Primo", "Bull", "Leon", "Shelly"],
-    notes: "Mappa a strati di muri, cespugli e chokepoint: gli assassini corrono per la stella blu, i throwers protetti bloccano i passaggi, gli anti-aggro decidono l'ultimo pick.",
-  },
-  {
-    mode: "Bounty",
-    name: "Shooting Star",
-    bestPicks: ["Piper", "Brock", "8-Bit", "Nani"],
-    notes: "Mappa aperta con lunghe linee di tiro: i cecchini dominano.",
+    notes: "DATI NON VERIFICATI: la pagina mappa non esiste su brawlmetrics (404 a due tentativi). Mappa a strati di muri, cespugli e chokepoint.",
   },
 
-  // Brawl Ball (7 — modalità in evidenza questa stagione)
+  // ---------- Brawl Ball ----------
   {
-    mode: "Brawl Ball",
-    name: "Beach Ball",
-    bestPicks: ["Nita", "Frank", "Carl", "El Primo", "Pam", "Emz", "Sprout"],
-    notes: "Muri stretti e lunghi più grandi gruppi di cespugli, simmetria diagonale. Pesanti a sinistra, mischia al centro, cecchini/support a destra.",
+    mode: "Brawl Ball", name: "Sneaky Fields", sample: 1507788, updated: "2026-09-06",
+    winRates: { "Rosa": 69.6, "Bolt": 69.6, "Wendy": 68.3, "Trunk": 67.6, "Jae-Yong": 67.3, "Amber": 67.1, "Gus": 66.4, "Pearl": 65.9, "Pam": 65.2, "Gigi": 65.1, "Ash": 64.9, "Shade": 64.9, "Mico": 64.8, "Damian": 64.6, "Sam": 64.3, "Starr Nova": 64.2, "Lola": 64.1, "Lumi": 64.1, "Janet": 64.0, "Finx": 63.8 },
+    notes: "Caos pieno di cespugli. Campione enorme (1,5M) e aggiornato: sono i dati più solidi di tutta l'app.",
   },
   {
-    mode: "Brawl Ball",
-    name: "Center Stage",
+    mode: "Brawl Ball", name: "Triple Dribble", sample: 1481016, updated: "2026-09-06",
+    winRates: { "Rosa": 73.4, "Amber": 69.0, "Wendy": 68.1, "Bolt": 67.5, "Trunk": 66.7, "Ash": 66.6, "Pearl": 66.3, "Damian": 66.2, "Shade": 65.7, "Gus": 65.6, "Gigi": 65.4, "Larry & Lawrie": 65.1, "R-T": 64.7, "Starr Nova": 64.3, "Lumi": 64.2, "Lou": 63.8, "Lola": 63.8, "Maisie": 63.6, "Charlie": 63.3, "Doug": 63.0 },
+    notes: "Barriere centrali, gruppi di casse, apertura del goal stretta. Rosa qui è il pick numero uno (73,4%).",
+  },
+  {
+    mode: "Brawl Ball", name: "Pinhole Punt", sample: 362256, updated: "2026-09-03",
+    winRates: { "Gus": 74.0, "Wendy": 71.4, "Bolt": 71.1, "Darryl": 67.5, "Ash": 67.3, "Finx": 66.6, "Starr Nova": 66.5, "Lumi": 65.9, "Jae-Yong": 65.6, "Damian": 65.6, "R-T": 64.8, "Nori": 64.7, "Doug": 64.4, "Shade": 63.9, "Gigi": 63.7, "Trunk": 63.3, "Gale": 62.6, "Penny": 62.4, "Draco": 62.4, "Buster": 62.3 },
+    notes: "Mix di corridoi stretti, corsie aperte e chokepoint chiave.",
+  },
+  {
+    mode: "Brawl Ball", name: "Pinball Dreams", sample: 333666, updated: "2026-09-02",
+    winRates: { "Gus": 76.0, "Wendy": 72.3, "Bolt": 69.3, "Ash": 68.3, "Trunk": 68.2, "Pearl": 67.6, "Damian": 65.5, "Lola": 65.0, "Nori": 64.7, "Rosa": 64.6, "Shade": 64.1, "Starr Nova": 64.0, "Jae-Yong": 63.9, "Penny": 63.6, "Sam": 63.6, "Doug": 63.5, "Larry & Lawrie": 63.5, "Amber": 63.3, "R-T": 62.4, "Ruffs": 62.0 },
+    notes: "Vinci prima il centrocampo, poi rompi i muri per aprire linee di tiro.",
+  },
+  {
+    mode: "Brawl Ball", name: "Spiraling Out", sample: 269544, updated: "2026-08-31",
+    winRates: { "Gus": 74.8, "Wendy": 73.1, "Damian": 68.6, "Sam": 68.2, "Trunk": 67.8, "Juju": 67.2, "Bolt": 66.8, "Nori": 66.2, "Ash": 65.8, "Meeple": 65.8, "Starr Nova": 65.7, "Shade": 65.6, "Mico": 65.3, "Jae-Yong": 65.1, "Larry & Lawrie": 64.8, "Draco": 64.4, "Gigi": 64.4, "Alli": 64.2, "Lola": 64.1, "Pearl": 63.8 },
+    notes: "",
+  },
+  {
+    mode: "Brawl Ball", name: "Backyard Bowl", sample: 125100, updated: "2026-09-06",
+    winRates: { "Bolt": 76.8, "Wendy": 73.5, "Sam": 69.0, "Trunk": 68.1, "Starr Nova": 67.1, "Doug": 66.7, "Draco": 65.8, "Damian": 65.7, "Amber": 65.5, "Gus": 65.1, "Shade": 65.0, "Otis": 64.6, "Moe": 63.9, "Ash": 63.8, "Chester": 63.7, "Jae-Yong": 63.3, "Nori": 62.8, "Sandy": 62.7, "Sirius": 62.7, "Pearl": 62.6 },
+    notes: "Mappa aggiunta il 6/9: risultava nella rotazione attuale ma non era in elenco.",
+  },
+  {
+    mode: "Brawl Ball", name: "Beach Ball", sample: 30480, updated: "2026-09-06",
+    winRates: { "Bolt": 78.7, "Wendy": 70.6, "Damian": 69.3, "Mina": 67.7, "Nori": 66.9, "Frank": 66.5, "Kenji": 65.5, "Cordelius": 65.0, "Kit": 64.8, "Pierce": 64.1, "Bibi": 63.0, "Sirius": 62.8, "Crow": 61.0, "Amber": 61.0, "Edgar": 60.8, "Lumi": 60.6, "Shade": 59.8, "Tara": 59.5, "Doug": 59.2, "Buzz": 58.6 },
+    notes: "Muri stretti e lunghi più grandi gruppi di cespugli, simmetria diagonale.",
+  },
+  {
+    mode: "Brawl Ball", name: "Center Stage", sample: 0, updated: null, winRates: null,
     bestPicks: ["Charlie", "Max", "Cordelius", "Sandy", "Melodie", "Colt", "Brock", "El Primo", "Rosa", "Dynamike", "Piper", "Frank", "Nita", "Shelly"],
-    notes: "Simmetrica, copertura moderata: la mappa \"di skill\" per eccellenza. Sfonda i muri davanti al goal con Colt/Brock/Shelly; Rosa domina i cespugli laterali.",
-  },
-  {
-    mode: "Brawl Ball",
-    name: "Pinball Dreams",
-    bestPicks: ["Frank", "El Primo", "Mortis", "Max", "Buzz", "Cordelius", "Rico"],
-    notes: "Vinci prima il centrocampo, poi rompi i muri per aprire linee di tiro. Tieni sempre un brawler dietro per il contrattacco.",
-  },
-  {
-    mode: "Brawl Ball",
-    name: "Pinhole Punt",
-    bestPicks: ["Colette", "Surge", "Edgar", "Mortis", "Lumi", "Eve", "Pam", "Angelo", "Penny", "Hank", "Bea"],
-    notes: "Mix di corridoi stretti, corsie aperte e chokepoint chiave. Mortis sfrutta cespugli e spazi stretti (Coiled Snake per entrare/uscire dai combattimenti).",
-  },
-  {
-    mode: "Brawl Ball",
-    name: "Sneaky Fields",
-    bestPicks: [],
-    notes: "Caos pieno di cespugli: qui Assassin e brawler da imboscata dominano (nessun nome specifico confermato dalle fonti).",
-  },
-  {
-    mode: "Brawl Ball",
-    name: "Spiraling Out",
-    bestPicks: ["Colette", "Colt", "Edgar", "Mortis", "Lumi", "Gray", "Grom", "Ziggy", "Gus", "Moe"],
-    notes: "Nessuna nota di layout specifica trovata nelle fonti (solo dati di win rate aggregati).",
-  },
-  {
-    mode: "Brawl Ball",
-    name: "Triple Dribble",
-    bestPicks: ["Rico", "Bibi", "Mortis", "Emz", "Byron", "Colette", "Grom", "Charlie", "Rosa", "Bull", "Frank", "El Primo", "Barley", "Meg", "Max"],
-    notes: "Barriere centrali, gruppi di casse e apertura del goal stretta. Bull/Frank/El Primo sfondano gli ostacoli con la Super puntando ai tre barili davanti al goal; Barley tiene bene le corsie medio/corte.",
+    notes: "DATI NON VERIFICATI: nessuna pagina mappa su brawlmetrics (404). Simmetrica, copertura moderata: la mappa \"di skill\" per eccellenza.",
   },
 
-  // Gem Grab (5)
+  // ---------- Heist ----------
   {
-    mode: "Gem Grab",
-    name: "Double Swoosh",
-    bestPicks: ["El Primo", "Bull", "Shelly", "Darryl", "Leon", "Gene", "Bo", "Sandy", "Poco", "Emz", "Max"],
-    notes: "Molti cespugli su entrambi i lati, vortice al centro, simmetria perfetta. Bene i tank con DPS alto nei cespugli; gli area-controller (Sandy, Poco) dominano le corsie larghe. Il portatore di gemme ha bisogno di mobilità (Max).",
+    mode: "Heist", name: "Photic Doom", sample: 230922, updated: "2026-09-05",
+    winRates: { "Trunk": 69.0, "Gus": 66.8, "Nori": 66.7, "Stu": 66.1, "Bolt": 65.9, "Lola": 65.8, "Sprout": 65.4, "Hank": 65.2, "Gigi": 64.9, "R-T": 64.8, "Sam": 64.7, "Bo": 64.1, "Glowy": 64.0, "Damian": 63.9, "Doug": 63.7, "Shade": 63.6, "Starr Nova": 63.5, "Angelo": 62.6, "Meeple": 62.4, "Finx": 62.1 },
+    notes: "Mappa aggiunta il 6/9 (non era in elenco).",
   },
   {
-    mode: "Gem Grab",
-    name: "Gem Fort",
-    bestPicks: ["Griff", "Crow", "Rico", "Meg", "Max", "Ziggy", "Draco", "Najia", "Larry & Lawrie", "Darryl", "Amber"],
-    notes: "Centro chiuso da muri ad angolo retto con 4 ingressi, due vicini a corsie cespugliose. Amber con altri due a lungo raggio brucia tutti i cespugli con la Super.",
+    mode: "Heist", name: "Hot Tubs", sample: 208050, updated: "2026-09-06",
+    winRates: { "Trunk": 69.5, "Wendy": 66.9, "Shade": 66.2, "Nori": 66.0, "Doug": 65.1, "Janet": 64.8, "Gigi": 63.7, "Sam": 63.4, "Starr Nova": 62.8, "Juju": 62.4, "Lola": 62.3, "Stu": 62.2, "Lumi": 62.2, "Ruffs": 61.1, "Gray": 60.9, "Sirius": 60.9, "Pierce": 60.8, "Amber": 60.4, "R-T": 60.1, "Glowy": 60.0 },
+    notes: "Mappa aggiunta il 6/9 (non era in elenco).",
   },
   {
-    mode: "Gem Grab",
-    name: "Hard Rock Mine",
-    bestPicks: ["Rico", "Surge", "Stu", "Mortis", "Griff", "Trunk", "Jacky", "Sam", "Dynamike", "Mico"],
-    notes: "Centro aperto con due strisce di boscaglia a \"H\" ai lati. I Controller tengono gli avversari inchiodati vicino al loro spawn; tank e mischia si infiltrano dai lati.",
+    mode: "Heist", name: "Hot Potato", sample: 191448, updated: "2026-09-02",
+    winRates: { "Gus": 68.1, "Nori": 66.8, "Trunk": 66.0, "Bo": 65.7, "Lola": 63.9, "Sprout": 63.4, "Lumi": 63.4, "Gigi": 62.7, "Starr Nova": 62.2, "Shade": 62.1, "Finx": 62.1, "Draco": 61.0, "Kaze": 61.0, "Willow": 60.4, "Pierce": 60.1, "Jae-Yong": 59.9, "Amber": 59.5, "R-T": 59.5, "Bolt": 59.3, "Nani": 59.2 },
+    notes: "Striscia diagonale di cespugli al centro; le torrette piazzate lì valgono molto.",
   },
   {
-    mode: "Gem Grab",
-    name: "Rustic Arcade",
-    bestPicks: ["Belle", "Sandy", "Byron", "Max", "Stu", "Pierce", "Crow", "Piper", "Sprout", "Darryl", "Ash", "Barley", "Janet", "Pam", "Emz", "Frank", "Poco"],
-    notes: "Centro esagonale con muri verso il centro e cespugli sul lato opposto. L'artiglieria e i tank a corto raggio soffrono lo spazio aperto; gli high-spread a medio raggio (Pam, Emz, Frank, Poco) controllano bene il centro.",
+    mode: "Heist", name: "Jedna", sample: 107970, updated: "2026-09-06",
+    winRates: { "Doug": 67.5, "Juju": 66.7, "Trunk": 66.6, "Sam": 66.0, "Starr Nova": 65.8, "Nori": 65.8, "Finx": 64.5, "Shade": 64.0, "Lumi": 63.5, "Najia": 62.5, "Stu": 61.9, "Lola": 61.8, "Amber": 61.6, "Wendy": 61.3, "Bolt": 61.2, "Kaze": 60.9, "Gigi": 60.1, "Damian": 60.1, "Mina": 59.9, "Hank": 59.7 },
+    notes: "Mappa aggiunta il 6/9: è quella live nella rotazione Heist al momento del controllo.",
   },
   {
-    mode: "Gem Grab",
-    name: "Undermine",
-    bestPicks: ["Emz", "Barley", "Bo"],
-    notes: "Favorisce chi tira da lunga distanza (throwers/artiglieria).",
-  },
-
-  // Heist (6)
-  {
-    mode: "Heist",
-    name: "Bridge Too Far",
-    bestPicks: ["Colt", "Piper", "Nani", "Mandy", "8-Bit", "Moe", "Ziggy", "Doug", "Gene", "Lumi", "Brock", "Belle", "Maisie", "Bea", "Rico", "Bull", "Darryl", "Edgar", "Carl"],
-    notes: "Terreno limitato, poca mobilità: i marksman (Brock, Piper, Belle, Mandy, Nani, Maisie, Bea) sparano lungo le corsie senza dover cambiare posizione.",
+    mode: "Heist", name: "Kaboom Canyon", sample: 1283870, updated: "2026-07-24",
+    winRates: { "Nori": 71, "Gigi": 71, "Gray": 70, "Pam": 69, "Trunk": 69, "Bolt": 68, "Jacky": 68, "Larry & Lawrie": 66, "Hank": 66, "Ash": 66, "Nita": 65, "Chuck": 64, "Jessie": 64, "Bull": 63, "Bibi": 63, "Mico": 62, "8-Bit": 62, "Edgar": 61, "Griff": 58, "Colette": 57 },
+    notes: "Mappa molto aperta, simmetria diagonale. ATTENZIONE: dati di fine luglio (campione grosso ma vecchio, prima degli ultimi riequilibri) — l'app li pesa meno.",
   },
   {
-    mode: "Heist",
-    name: "Hot Potato",
-    bestPicks: ["Jessie", "Bull", "El Primo", "Rosa", "Darryl", "Penny", "Chuck"],
-    notes: "Striscia diagonale di cespugli al centro. Jessie piazza la torretta nei cespugli centrali; i tank si nascondono appena dietro; Penny piazza il lanciatore nei gruppetti di cespugli intorno al centro.",
-  },
-  {
-    mode: "Heist",
-    name: "Kaboom Canyon",
-    bestPicks: ["Alli", "Colt", "Bull", "Darryl", "Edgar", "Carl", "Bo", "El Primo"],
-    notes: "Mappa molto aperta, simmetria diagonale: ottima per cecchini a medio/lungo raggio. I tank controllano il centro e i chokepoint.",
-  },
-  {
-    mode: "Heist",
-    name: "Pit Stop",
-    bestPicks: ["Nori", "Dynamike", "Rico", "Melodie", "Griff", "Grom", "Barley", "Colt", "8-Bit"],
-    notes: "Piena di cespugli con muri a bordo e recinzioni a L negli angoli; ogni cassaforte è protetta da un lungo muro orizzontale con cespugli. Premia la pressione disciplinata sulle corsie più della semplice aggressività.",
-  },
-  {
-    mode: "Heist",
-    name: "Safe Zone",
+    mode: "Heist", name: "Safe Zone", sample: 0, updated: null, winRates: null,
     bestPicks: ["Colt", "Pierce", "Colette", "Penny", "Crow", "Mortis", "Squeak", "Nori", "Sam", "Gus", "El Primo", "Shelly", "Rosa", "Darryl", "Frank", "Fang", "Bull", "Doug", "Bibi", "Buzz"],
-    notes: "Tre corsie ben definite; favorisce i tiratori a lungo raggio perché le casseforti sono poco protette dai proiettili che viaggiano lontano.",
+    notes: "DATI NON VERIFICATI: nessuna pagina su brawlmetrics (404), anche se una ricerca indica che la mappa esiste ancora. Tre corsie ben definite; casseforti poco protette dai tiri lunghi.",
   },
   {
-    mode: "Heist",
-    name: "Safe(r) Zone",
+    mode: "Heist", name: "Safe(r) Zone", sample: 0, updated: null, winRates: null,
     bestPicks: [],
-    notes: "Variante di Safe Zone: stessi principi (corsie lunghe, casseforti poco protette). Nessun dato specifico separato trovato dalle fonti.",
+    notes: "DATI NON VERIFICATI: nessuna pagina su brawlmetrics. Variante di Safe Zone, stessi principi.",
+  },
+  {
+    mode: "Heist", name: "Bridge Too Far", sample: 0, updated: null, winRates: null,
+    bestPicks: ["Colt", "Piper", "Nani", "Mandy", "8-Bit", "Moe", "Ziggy", "Doug", "Gene", "Lumi", "Brock", "Belle", "Maisie", "Bea", "Rico", "Bull", "Darryl", "Edgar", "Carl"],
+    notes: "DATI NON VERIFICATI: nessuna pagina su brawlmetrics (404). Terreno limitato, poca mobilità: i marksman sparano lungo le corsie senza spostarsi.",
+  },
+  {
+    mode: "Heist", name: "Pit Stop", sample: 0, updated: null, winRates: null,
+    bestPicks: ["Nori", "Dynamike", "Rico", "Melodie", "Griff", "Grom", "Barley", "Colt", "8-Bit"],
+    notes: "DATI NON VERIFICATI: nessuna pagina su brawlmetrics (404). Piena di cespugli, casseforti protette da un lungo muro orizzontale.",
   },
 
-  // Hot Zone (4)
+  // ---------- Hot Zone ----------
   {
-    mode: "Hot Zone",
-    name: "Dueling Beetles",
-    bestPicks: ["Bolt", "Tick", "Nita", "Starr Nova", "Bo", "Squeak", "Grom", "Spike", "Griff", "Tara"],
-    notes: "Poco spazio per chi tira da lunghissima gittata: dominano i brawler ad area (AoE) e a medio raggio. Cespugli a sinistra, muri a destra.",
+    mode: "Hot Zone", name: "Parallel Plays", sample: 232308, updated: "2026-09-06",
+    winRates: { "Gus": 69.4, "Trunk": 68.4, "Wendy": 67.6, "Damian": 67.5, "R-T": 65.5, "Bolt": 65.4, "Jae-Yong": 64.8, "Bo": 64.5, "Nori": 63.6, "Amber": 63.5, "Gigi": 63.5, "Doug": 62.9, "Shade": 62.6, "Sprout": 62.5, "Starr Nova": 62.3, "Lola": 62.0, "Meeple": 62.0, "Willow": 61.9, "Hank": 61.7, "Mortis": 61.4 },
+    notes: "Due zone e centro aperto, poche mura: conviene allargarsi per il controllo.",
   },
   {
-    mode: "Hot Zone",
-    name: "Open Business",
-    bestPicks: ["Hank", "Tick", "Griff", "Stu", "Meeple", "Meg", "Emz", "Charlie", "Angelo", "Jae-Yong", "R-T", "Ollie", "Barley", "Sprout", "Dynamike", "Grom", "Larry & Lawrie", "Edgar", "Mico", "Buzz", "Kenji", "Alli"],
-    notes: "I throwers fanno negazione d'area da dietro i muri; gli assassini che bucano i throwers (Edgar, Mico, Buzz, Kenji, Alli) sono un buon contropick a chi difende la zona da lontano.",
+    mode: "Hot Zone", name: "Dueling Beetles", sample: 13986, updated: "2026-09-06",
+    winRates: { "Larry & Lawrie": 70.8, "Wendy": 68.0, "Frank": 67.9, "Nori": 64.4, "Mortis": 62.6, "Surge": 62.5, "Edgar": 61.8, "Griff": 61.1, "Tick": 59.7, "Shade": 58.1, "Rico": 57.4, "Bibi": 56.9, "Colt": 56.6, "Bull": 56.5, "8-Bit": 51.8, "Dynamike": 50.8, "Rosa": 50.0, "Carl": 47.8, "Nita": 47.7, "El Primo": 47.5 },
+    notes: "Poco spazio per le gittate lunghissime: dominano AoE e medio raggio. Campione piccolo (14k).",
   },
   {
-    mode: "Hot Zone",
-    name: "Parallel Plays",
-    bestPicks: ["Pam", "8-Bit", "Max", "Bibi", "Piper", "Brock", "Sprout"],
-    notes: "Due zone e centro aperto, poche mura: due giocatori spingono la zona nemica mentre uno tiene quella di casa. Poche mura, quindi conviene allargarsi per il controllo.",
-  },
-  {
-    mode: "Hot Zone",
-    name: "Ring of Fire",
-    bestPicks: ["Bolt", "Pierce", "Meg", "Max", "Griff", "Crow", "El Primo", "Janet", "Bonnie", "Rosa", "Kaze", "Emz", "Sandy", "Jessie", "Gene", "Pam", "Bo", "Tara"],
-    notes: "Corsia destra buona per i lunga gittata ma esposta alle imboscate; i pesanti hanno poca protezione. Tenere la zona con controllo/sustain batte cercare lo scontro diretto.",
+    mode: "Hot Zone", name: "Open Business", sample: 12432, updated: "2026-09-06",
+    winRates: { "Starr Nova": 70.9, "Wendy": 64.6, "Nori": 64.0, "Griff": 63.5, "Frank": 61.8, "8-Bit": 59.2, "Tick": 58.5, "Bibi": 56.7, "Edgar": 55.5, "Squeak": 53.8, "Mortis": 53.7, "Penny": 53.4, "Rico": 52.8, "Nita": 52.5, "Shade": 51.7, "Colt": 51.2, "Bull": 50.9, "Rosa": 50.3, "Emz": 49.5, "Spike": 47.5 },
+    notes: "I throwers fanno negazione d'area da dietro i muri. Campione piccolo (12k).",
   },
 
-  // Knockout (4)
+  // ---------- Knockout ----------
   {
-    mode: "Knockout",
-    name: "Belle's Rock",
-    bestPicks: [],
-    notes: "Corsie laterali speculari con muri a L: buona per throwers (usano la copertura), cecchini (linee di tiro) e brawler mobili (superano i lenti). Nessun nome specifico confermato dalle fonti.",
+    mode: "Knockout", name: "Konnakol", sample: 157728, updated: "2026-09-06",
+    winRates: { "Wendy": 69.3, "Trunk": 66.9, "Ash": 66.7, "Gigi": 65.5, "Pam": 65.1, "Bolt": 64.4, "Pearl": 63.8, "Draco": 63.5, "Lumi": 63.1, "Berry": 63.0, "Larry & Lawrie": 62.9, "Sprout": 62.6, "Otis": 62.6, "Charlie": 62.5, "Eve": 62.0, "Alli": 62.0, "Ollie": 61.9, "Lola": 61.5, "Meeple": 61.5, "Amber": 61.4 },
+    notes: "Mappa aggiunta il 6/9: è quella live nella rotazione Knockout al momento del controllo.",
   },
   {
-    mode: "Knockout",
-    name: "Flaring Phoenix",
-    bestPicks: ["Rosa", "Brock", "Colt", "Poco", "Frank"],
-    notes: "Acqua a scacchiera su ogni lato, cespugli e muri a strati: corsie strette che favoriscono i cecchini che sanno rompere cover.",
+    mode: "Knockout", name: "Belle's Rock", sample: 3037079, updated: "2026-08-11",
+    winRates: { "Bolt": 71, "Ash": 69, "Clancy": 67, "Eve": 67, "R-T": 67, "Moe": 67, "Sam": 67, "Nori": 66, "Hank": 66, "Jae-Yong": 66, "Ziggy": 66, "Sirius": 64, "Sprout": 64, "Grom": 64, "Tick": 63, "Gray": 62, "Brock": 60, "Mandy": 58, "Rico": 58, "Dynamike": 58 },
+    notes: "Corsie laterali speculari con muri a L. Campione enorme (3,0M) ma dati dell'11 agosto: pesati meno perché precedenti agli ultimi riequilibri.",
   },
   {
-    mode: "Knockout",
-    name: "New Horizons",
-    bestPicks: ["Brock", "Byron", "Max", "Kit", "Piper", "Rosa", "Poco", "Finx", "Grom", "Bonnie", "Bolt", "Ollie", "Edgar", "Colette", "Damian"],
-    notes: "Niente respawn: la densità di cespugli/coperture conta più che in quasi ogni altra modalità. Un primo scontro sbagliato può perdere il round da solo.",
+    mode: "Knockout", name: "Flaring Phoenix", sample: 3712220, updated: "2026-07-29",
+    winRates: { "Bolt": 81, "Hank": 80, "Ash": 79, "Clancy": 79, "Sam": 76, "Starr Nova": 75, "Glowy": 75, "Eve": 75, "Ollie": 75, "Pearl": 74, "Damian": 73, "Darryl": 67, "R-T": 67, "Cordelius": 66, "Mandy": 65, "Stu": 65, "Surge": 65, "Max": 65, "Bull": 65, "Edgar": 64 },
+    notes: "Acqua a scacchiera, cespugli e muri a strati. Campione enorme (3,7M) ma dati di fine luglio: pesati meno.",
   },
   {
-    mode: "Knockout",
-    name: "Out in the Open",
+    mode: "Knockout", name: "New Horizons", sample: 1549065, updated: "2026-07-24",
+    winRates: { "Bolt": 68, "Ollie": 66, "Sirius": 64, "Hank": 64, "Sam": 64, "Pearl": 64, "Mr. P": 64, "Tick": 63, "Nori": 63, "Pam": 63, "Edgar": 62, "Brock": 61, "Kenji": 61, "Starr Nova": 61, "Griff": 60, "Piper": 59, "Mandy": 58, "Byron": 57, "Kit": 57, "Leon": 57 },
+    notes: "Niente respawn: la densità di cespugli conta più che altrove. Dati del 24 luglio: pesati meno.",
+  },
+  {
+    mode: "Knockout", name: "Out in the Open", sample: 0, updated: null, winRates: null,
     bestPicks: ["Wendy", "Piper", "Brock", "Mandy", "Gene", "Byron", "Emz", "Lou"],
-    notes: "Linee di tiro lunghe: tieni il controllo dei cespugli e dei chokepoint, gioca paziente e commercia da lontano.",
+    notes: "DATI NON VERIFICATI: nessuna pagina su brawlmetrics (404). Linee di tiro lunghe: gioca paziente e commercia da lontano.",
   },
 ];
 

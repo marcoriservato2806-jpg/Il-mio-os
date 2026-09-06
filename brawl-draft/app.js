@@ -118,6 +118,54 @@ function classOf(name) {
   return b ? b.class : null;
 }
 
+// Quanto fidarsi dei dati di una mappa: due cose diverse la rovinano.
+// Dati vecchi (la mappa non è in rotazione da settimane, quindi le sue
+// win rate sono di prima degli ultimi riequilibri) e campione piccolo.
+// Restituisce 0..1, usato per pesare il bonus mappa invece di trattare
+// allo stesso modo 1,5 milioni di partite di ieri e 10mila di un mese fa.
+function mapConfidence(map) {
+  if (!map || !map.winRates || !map.updated) return 0;
+  const days = (Date.now() - new Date(map.updated + "T00:00:00Z").getTime()) / 86400000;
+  const freshness = days <= 7 ? 1 : days <= 21 ? 0.75 : days <= 45 ? 0.5 : 0.35;
+  const size = map.sample >= 100000 ? 1 : map.sample >= 30000 ? 0.85 : 0.7;
+  return freshness * size;
+}
+
+function confidenceLabel(conf) {
+  if (conf >= 0.85) return "alta";
+  if (conf >= 0.6) return "media";
+  if (conf > 0) return "bassa";
+  return "nessun dato";
+}
+
+// Minaccia = quanto forte è un brawler sul contesto più specifico che
+// conosciamo (mappa > modalità > meta generale). Usata per suggerire i ban.
+function threatOf(name) {
+  if (state.map && state.map.winRates && state.map.winRates[name] !== undefined) {
+    return { value: state.map.winRates[name], source: "mappa" };
+  }
+  if (state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][name] !== undefined) {
+    return { value: MODE_WIN_RATES[state.mode][name], source: "modalità" };
+  }
+  if (state.customScores[name] !== undefined) {
+    return { value: state.customScores[name], source: "meta" };
+  }
+  return null;
+}
+
+function computeBanSuggestions() {
+  const used = usedNames();
+  const candidates = [];
+  for (const b of BRAWLERS) {
+    if (used.has(b.name)) continue;
+    const t = threatOf(b.name);
+    if (!t) continue;
+    candidates.push({ name: b.name, class: b.class, total: t.value, source: t.source });
+  }
+  candidates.sort((a, b) => b.total - a.total);
+  return candidates.slice(0, 8);
+}
+
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses) {
   let matchup = 0;
   for (const ec of enemyClasses) {
@@ -136,17 +184,26 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses)
     synergy += 0.5;
   }
 
-  let modeBonus = 0;
-  if (state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][candidateName] !== undefined) {
-    modeBonus = (MODE_WIN_RATES[state.mode][candidateName] - 50) / 10; // win rate reale in quella modalità, stessa scala di metaBonus
-  }
+  // Mappa e modalità NON si sommano: la mappa è il dato più specifico
+  // che esiste, quindi quando c'è una win rate misurata su quella mappa
+  // sostituisce quella di modalità invece di sommarcisi (altrimenti lo
+  // stesso segnale verrebbe contato due volte, visto che la mappa è un
+  // sottoinsieme della modalità).
+  const mapWr = state.map && state.map.winRates ? state.map.winRates[candidateName] : undefined;
 
   let mapBonus = 0;
   for (const trait of state.mapTraits) {
     mapBonus += (MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0;
   }
-  if (state.map && state.map.bestPicks.includes(candidateName)) {
-    mapBonus += 3; // pick esplicitamente segnalato come forte su questa mappa dalle fonti
+  if (mapWr !== undefined) {
+    mapBonus += ((mapWr - 50) / 10) * mapConfidence(state.map) * 2;
+  } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(candidateName)) {
+    mapBonus += 1.5; // solo un nome citato dalle fonti, senza numero: peso ridotto apposta
+  }
+
+  let modeBonus = 0;
+  if (mapWr === undefined && state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][candidateName] !== undefined) {
+    modeBonus = (MODE_WIN_RATES[state.mode][candidateName] - 50) / 10;
   }
 
   let metaBonus = 0;
@@ -302,11 +359,41 @@ function renderGrid() {
 
 function renderSuggestions() {
   const el = document.getElementById("suggestions");
+  const titleEl = document.getElementById("suggestions-title");
   const turn = currentTurn();
-  if (!turn || turn.phase !== "pick") {
-    el.innerHTML = `<p class="hint">I suggerimenti compaiono durante la fase di pick.</p>`;
+
+  if (!turn) {
+    titleEl.textContent = "Suggerimenti";
+    el.innerHTML = `<p class="hint">Draft completato.</p>`;
     return;
   }
+
+  const sign = (n) => (n > 0 ? "+" + n : String(n));
+
+  if (turn.phase === "ban") {
+    titleEl.textContent = "Chi conviene bannare";
+    const bans = computeBanSuggestions();
+    if (bans.length === 0) {
+      el.innerHTML = `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
+      return;
+    }
+    el.innerHTML = `<p class="hint">Le minacce più forti nel contesto scelto, dalla win rate reale. Clicca per bannare.</p>`;
+    for (const s of bans) {
+      const row = document.createElement("div");
+      row.className = "suggestion-row";
+      row.style.borderColor = CLASS_COLORS[s.class] || "#666";
+      row.innerHTML = `
+        <span class="sugg-name">${s.name}</span>
+        <span class="sugg-class">${s.class}</span>
+        <span class="sugg-score" title="win rate su ${s.source}">${s.total}%</span>
+      `;
+      row.addEventListener("click", () => pickOrBan(s.name));
+      el.appendChild(row);
+    }
+    return;
+  }
+
+  titleEl.textContent = "Chi conviene scegliere";
   const suggestions = computeSuggestions();
   if (suggestions.length === 0) {
     el.innerHTML = `<p class="hint">Nessun candidato disponibile.</p>`;
@@ -317,8 +404,7 @@ function renderSuggestions() {
     const row = document.createElement("div");
     row.className = "suggestion-row";
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
-    const sign = (n) => (n > 0 ? "+" + n : String(n));
-    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · dati incollati ${sign(s.metaBonus)}`;
+    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
     row.innerHTML = `
       <span class="sugg-name">${s.name}</span>
       <span class="sugg-class">${s.class}</span>
@@ -365,7 +451,9 @@ function populateMapSelect() {
   for (const m of mapsForMode) {
     const opt = document.createElement("option");
     opt.value = m.name;
-    opt.textContent = m.name;
+    opt.textContent = m.winRates
+      ? `${m.name} (${Math.round(m.sample / 1000)}k partite)`
+      : `${m.name} — dati non verificati`;
     mapSelect.appendChild(opt);
   }
   mapSelect.disabled = mapsForMode.length === 0;
@@ -381,7 +469,15 @@ function renderMapNotes() {
     return;
   }
   el.hidden = false;
-  el.textContent = state.map.notes;
+  const m = state.map;
+  let provenance;
+  if (m.winRates) {
+    const conf = mapConfidence(m);
+    provenance = `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite · aggiornati ${m.updated} · affidabilità ${confidenceLabel(conf)}`;
+  } else {
+    provenance = "Dati mappa: nessuna win rate verificata per questa mappa — sotto ci sono solo nomi citati dalle fonti, pesano poco nei suggerimenti.";
+  }
+  el.innerHTML = `<strong>${provenance}</strong>${m.notes ? "<br />" + m.notes : ""}`;
 }
 
 function initModeAndMap() {
