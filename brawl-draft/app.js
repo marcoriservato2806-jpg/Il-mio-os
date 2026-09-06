@@ -36,7 +36,7 @@ function loadCustomScores() {
     raw = "";
   }
   const { scores } = parseMetaText(raw);
-  state.customScores = { ...baseMetaScores(), ...scores };
+  setCustomScores({ ...baseMetaScores(), ...scores });
   return raw;
 }
 
@@ -153,6 +153,52 @@ function threatOf(name) {
   return null;
 }
 
+// Etichetta un brawler confrontando la sua POSIZIONE per win rate con la
+// sua POSIZIONE per quante volte viene scelto. Il confronto per posizione
+// invece che per soglie fisse evita il problema opposto: con soglie secche
+// Wendy (58,3% di vittorie ma solo 1,40% di scelte) non veniva segnalata,
+// pur essendo il sottovalutato da manuale — prima per forza, ventitreesima
+// per popolarità, quindi quasi mai bannata.
+//  - "sottovalutato": molto più in alto per vittorie che per scelte, ED è
+//    davvero forte (>=52%). Senza quest'ultima condizione finirebbero in
+//    lista brawler solo impopolari, non buoni.
+//  - "trappola": molto più scelto di quanto meriti, e sotto il 50%.
+// Entrambi usano la win rate generale in Classificata, la stessa
+// popolazione da cui viene la use rate: confrontare numeri omogenei.
+let _rankCache = null;
+
+// Unico punto in cui si riscrive customScores, così la cache dei ranking
+// non può restare indietro rispetto ai dati (succedeva incollando valori
+// propri: la fascia non cambiava e la cache non veniva invalidata).
+function setCustomScores(scores) {
+  state.customScores = scores;
+  _rankCache = null;
+}
+
+function pickRanks() {
+  if (_rankCache) return _rankCache;
+  const rows = Object.keys(state.customScores)
+    .filter((n) => USE_RATES[n] !== undefined)
+    .map((n) => ({ n, wr: state.customScores[n], use: USE_RATES[n] }));
+  [...rows].sort((a, b) => b.wr - a.wr).forEach((r, i) => (r.wrRank = i + 1));
+  [...rows].sort((a, b) => b.use - a.use).forEach((r, i) => (r.useRank = i + 1));
+  _rankCache = new Map(rows.map((r) => [r.n, r]));
+  return _rankCache;
+}
+
+function pickFlag(name) {
+  const r = pickRanks().get(name);
+  if (!r) return null;
+  const gap = r.useRank - r.wrRank;
+  if (gap >= 18 && r.wr >= 52) return { kind: "sleeper", use: r.use, wr: r.wr, gap };
+  if (gap <= -30 && r.wr < 50) return { kind: "trap", use: r.use, wr: r.wr, gap };
+  return null;
+}
+
+// Un ban serve a togliere dal tavolo qualcosa che l'avversario userebbe
+// davvero: bannare il brawler più forte in assoluto che però prende lo
+// 0,05% dei giocatori è un ban buttato. Quindi la priorità mescola forza
+// (nel contesto più specifico che abbiamo) e probabilità di essere scelto.
 function computeBanSuggestions() {
   const used = usedNames();
   const candidates = [];
@@ -160,9 +206,15 @@ function computeBanSuggestions() {
     if (used.has(b.name)) continue;
     const t = threatOf(b.name);
     if (!t) continue;
-    candidates.push({ name: b.name, class: b.class, total: t.value, source: t.source });
+    const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
+    const popularity = 1 + Math.min(use, 4.5) / 3;
+    const priority = (t.value - 50) * popularity;
+    candidates.push({
+      name: b.name, class: b.class, wr: t.value, source: t.source,
+      use, priority: Math.round(priority * 10) / 10,
+    });
   }
-  candidates.sort((a, b) => b.total - a.total);
+  candidates.sort((a, b) => b.priority - a.priority);
   return candidates.slice(0, 8);
 }
 
@@ -377,15 +429,15 @@ function renderSuggestions() {
       el.innerHTML = `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
       return;
     }
-    el.innerHTML = `<p class="hint">Le minacce più forti nel contesto scelto, dalla win rate reale. Clicca per bannare.</p>`;
+    el.innerHTML = `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare.</p>`;
     for (const s of bans) {
       const row = document.createElement("div");
       row.className = "suggestion-row";
       row.style.borderColor = CLASS_COLORS[s.class] || "#666";
       row.innerHTML = `
         <span class="sugg-name">${s.name}</span>
-        <span class="sugg-class">${s.class}</span>
-        <span class="sugg-score" title="win rate su ${s.source}">${s.total}%</span>
+        <span class="sugg-class">${s.wr}% · ${s.use}% scelte</span>
+        <span class="sugg-score" title="priorità = (win rate su ${s.source} − 50) pesata per quanto viene scelto">${s.priority}</span>
       `;
       row.addEventListener("click", () => pickOrBan(s.name));
       el.appendChild(row);
@@ -405,8 +457,12 @@ function renderSuggestions() {
     row.className = "suggestion-row";
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
+    const flag = pickFlag(s.name);
+    const badge = flag
+      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie · ${flag.use}% di scelte">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      : "";
     row.innerHTML = `
-      <span class="sugg-name">${s.name}</span>
+      <span class="sugg-name">${s.name}${badge}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
     `;
@@ -546,7 +602,7 @@ function initMetaPanel() {
   sourceSelect.addEventListener("change", (e) => {
     saveMetaSource(e.target.value);
     const { scores } = parseMetaText(textarea.value);
-    state.customScores = { ...baseMetaScores(), ...scores };
+    setCustomScores({ ...baseMetaScores(), ...scores });
     renderMetaStatus(null);
     renderSuggestions();
   });
@@ -554,7 +610,7 @@ function initMetaPanel() {
   document.getElementById("meta-save").addEventListener("click", () => {
     const text = textarea.value;
     const { scores, unrecognized } = parseMetaText(text);
-    state.customScores = { ...baseMetaScores(), ...scores };
+    setCustomScores({ ...baseMetaScores(), ...scores });
     saveMetaRaw(text);
     renderMetaStatus(unrecognized);
     renderSuggestions();
@@ -562,7 +618,7 @@ function initMetaPanel() {
 
   document.getElementById("meta-clear").addEventListener("click", () => {
     textarea.value = "";
-    state.customScores = { ...baseMetaScores() };
+    setCustomScores({ ...baseMetaScores() });
     saveMetaRaw("");
     renderMetaStatus(null);
     renderSuggestions();

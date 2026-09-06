@@ -306,6 +306,20 @@ button:disabled { opacity: 0.4; cursor: default; }
 .sugg-class { color: var(--text-dim); font-size: 0.7rem; }
 .sugg-score { font-weight: 700; }
 
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+.badge.trap { background: #4a2020; color: #ff9d9d; border: 1px solid #7a3535; }
+.badge.sleeper { background: #1e3a2c; color: #8fe3b4; border: 1px solid #2f6a4c; }
+
 .hint { color: var(--text-dim); font-size: 0.8rem; }
 
 footer {

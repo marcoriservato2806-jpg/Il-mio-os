@@ -73,7 +73,6 @@ const BRAWLERS = [
   { name: "Lumi", class: "Damage Dealer" },
   { name: "Mina", class: "Damage Dealer" },
   { name: "Najia", class: "Damage Dealer" },
-  { name: "Sirius", class: "Damage Dealer" }, // mancava dal roster (bug: appariva nelle tabelle Ranked di BrawlMetrics ma non qui); aggiunto il 6/9, classe confermata da BrawlMetrics e Brawlvision
 
   // Assassin
   { name: "Mortis", class: "Assassin" },
@@ -127,7 +126,8 @@ const BRAWLERS = [
   { name: "Meeple", class: "Controller" },
   { name: "Finx", class: "Controller" },
   { name: "Ziggy", class: "Controller" },
-  { name: "Penny", class: "Controller" }, // classe cambiata nel tempo (era Damage Dealer/Artillery), verifica
+  { name: "Sirius", class: "Controller" }, // aggiunto il 6/9; classe CORRETTA lo stesso giorno: era Damage Dealer (fonte Brawlvision), ma BrawlMetrics (pagina brawler + pagine mappa) e una ricerca indipendente lo danno Controller. Vince la maggioranza.
+  { name: "Penny", class: "Artillery" }, // CORRETTO il 6/9: era segnata Controller. Tre fonti indipendenti (BrawlMetrics, Pocket Tactics, Brawlvision) la danno Artillery.
 
   // Artillery
   { name: "Barley", class: "Artillery" },
@@ -666,6 +666,48 @@ const DEFAULT_META_SCORES_MASTERS = {
   "Berry": 45.2, "Bonnie": 45.2, "Mico": 42.1, "Clancy": 42.5, "Kit": 39.8,
   "Sandy": 41.6, "Squeak": 41.0, "Dynamike": 39.3, "Draco": 39.0, "Tick": 36.6,
   "Jessie": 35.5,
+};
+
+// USE RATE (quanto spesso un brawler viene REALMENTE scelto in
+// Classificata, tutti i ranghi) — stessa tabella di DEFAULT_META_SCORES,
+// stesso giorno, colonna che prima veniva buttata via. Serve a due cose
+// che la sola win rate non sa fare:
+//
+//  1. TRAPPOLE: chi viene scelto tantissimo e perde lo stesso. Sono gli
+//     errori più costosi in ladder, perché "lo prendono tutti" sembra una
+//     garanzia e non lo è. Es. Griff (4,29% di scelte, 49,4% di vittorie),
+//     Max (2,50% / 47,4%), Pierce (2,14% / 45,9%), Colt (2,18% / 47,6%).
+//  2. SOTTOVALUTATI: chi vince tanto ma quasi nessuno prende — quindi
+//     quasi nessuno lo banna, e resta disponibile. È il vantaggio più
+//     concreto che un drafter possa darti. Il caso limite è Wendy: prima
+//     in assoluto per win rate (58,3%) ma scelta solo dall'1,40%.
+//
+// Serve anche a rendere sensati i BAN: bannare il brawler più forte che
+// però non prende nessuno è un ban sprecato. Il punteggio di ban pesa la
+// forza per la probabilità che l'avversario lo scelga davvero.
+const USE_RATES = {
+  "Amber": 2.07, "Shade": 2.05, "Wendy": 1.40, "Gus": 3.10, "Nori": 4.41,
+  "Edgar": 3.51, "Brock": 4.28, "El Primo": 1.85, "Griff": 4.29, "Rico": 3.58,
+  "Emz": 2.40, "Kaze": 2.22, "Bo": 1.46, "Bibi": 1.08, "Surge": 2.76,
+  "Trunk": 1.05, "8-Bit": 1.77, "Stu": 2.41, "Ash": 0.76, "Jessie": 0.60,
+  "Pearl": 1.13, "Piper": 1.89, "Bull": 0.97, "Max": 2.50, "Mortis": 1.66,
+  "Doug": 0.31, "Colt": 2.18, "Nita": 0.56, "Colette": 1.39, "Carl": 1.16,
+  "Gray": 0.94, "Willow": 1.21, "Bolt": 0.49, "Sprout": 0.38, "Tick": 0.82,
+  "Meeple": 1.80, "Frank": 0.59, "Starr Nova": 1.04, "Pierce": 2.14, "Mina": 1.14,
+  "Mico": 0.59, "Leon": 0.81, "Chester": 0.86, "Otis": 1.14, "Sirius": 0.43,
+  "Melodie": 0.43, "Angelo": 0.44, "Spike": 0.99, "Mandy": 0.83, "Najia": 0.47,
+  "Meg": 1.33, "Damian": 0.41, "Penny": 0.72, "R-T": 0.16, "Gene": 1.02,
+  "Fang": 0.69, "Maisie": 0.31, "Buster": 0.14, "Shelly": 0.51, "Byron": 1.33,
+  "Kenji": 0.48, "Buzz": 0.63, "Jacky": 0.14, "Nani": 0.59, "Mr. P": 0.13,
+  "Juju": 0.13, "Crow": 1.17, "Eve": 0.18, "Cordelius": 0.56, "Poco": 0.66,
+  "Dynamike": 0.69, "Grom": 0.30, "Janet": 0.12, "Ruffs": 0.74, "Finx": 0.12,
+  "Lily": 0.34, "Lou": 0.52, "Lumi": 0.88, "Hank": 0.10, "Gigi": 0.32,
+  "Moe": 0.21, "Gale": 0.34, "Clancy": 0.28, "Larry & Lawrie": 0.12, "Alli": 0.25,
+  "Glowy": 0.10, "Draco": 0.06, "Belle": 0.43, "Barley": 0.28, "Chuck": 0.64,
+  "Rosa": 0.14, "Tara": 0.60, "Ollie": 0.05, "Sam": 0.04, "Lola": 0.14,
+  "Bea": 0.33, "Squeak": 0.50, "Kit": 0.43, "Charlie": 0.27, "Jae-Yong": 0.08,
+  "Darryl": 0.30, "Sandy": 0.17, "Ziggy": 0.08, "Bonnie": 0.09, "Pam": 0.06,
+  "Berry": 0.29,
 };
 
 const META_SOURCE_LABELS = {
