@@ -14,6 +14,8 @@ Stesso pattern (prodotto passivo debole + esercizio guidato che serve ma manca),
 
 ## Stato
 
-In validazione. Marco sta parlando con 8 persone (compagni di corso, gente che studia/lavora seduta tante ore) con 3 domande: cosa hanno provato, perché l'hanno smesso, quanto pagherebbero per il prodotto+programma insieme. Scadenza: entro il 2026-09-11 (venerdì). Vedi `domande-validazione.md`.
+**Prima validazione fatta (2026-09-06), risultato utile.** 8 conversazioni con coetanei di Marco: il problema (mal di schiena/collo da troppa sedentarietà) c'è davvero, ma nessuno pagherebbe per un tutore da indossare in pubblico — si vergognano. Non è un "no" all'idea, è un "no" alla forma del prodotto.
 
-Dopo la validazione: si costruisce il programma di esercizi (bozza, poi eventualmente da far rivedere per qualità/serietà, anche se qui non serve un titolo per venderlo) e si decide il prodotto fisico da abbinare.
+**Correzione in corso**: valutare di togliere il prodotto visibile da indossare in giro, e vendere solo il programma di esercizi da fare in privato (a casa), o un prodotto discreto invece che visibile. Prossimo passo: fare la domanda di follow-up ("lo compreresti se fosse solo un programma da fare a casa, senza niente da indossare in giro?") per capire se questo risolve davvero l'obiezione. Vedi `domande-validazione.md`.
+
+Nota sul campione: le 8 persone sono tutte coetanee di Marco (universitari), non la fascia 35-54/lavoratori d'ufficio indicata dalla ricerca come più colpita — da tenere presente, potrebbe servire validare anche su quella fascia più avanti.
