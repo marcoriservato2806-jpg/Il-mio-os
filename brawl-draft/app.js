@@ -129,12 +129,30 @@ function classOf(name) {
 // win rate sono di prima degli ultimi riequilibri) e campione piccolo.
 // Restituisce 0..1, usato per pesare il bonus mappa invece di trattare
 // allo stesso modo 1,5 milioni di partite di ieri e 10mila di un mese fa.
+// La curva della freschezza è stata resa più ripida il 6/9: prima un dato
+// di 44 giorni pesava ancora 0,5, cioè metà. Ma fra un riequilibrio e
+// l'altro passano poche settimane, e una win rate di prima di un
+// riequilibrio non è "mezza vera", è di un altro gioco. Ora un dato di più
+// di due mesi conta un ottavo, e il ripiego (modalità) prende il resto.
 function mapConfidence(map) {
   if (!map || !map.winRates || !map.updated) return 0;
   const days = (Date.now() - new Date(map.updated + "T00:00:00Z").getTime()) / 86400000;
-  const freshness = days <= 7 ? 1 : days <= 21 ? 0.75 : days <= 45 ? 0.5 : 0.35;
-  const size = map.sample >= 100000 ? 1 : map.sample >= 30000 ? 0.85 : 0.7;
+  const freshness = days <= 2 ? 1 : days <= 7 ? 0.9 : days <= 21 ? 0.7 : days <= 35 ? 0.45 : days <= 60 ? 0.25 : 0.12;
+  const size = map.sample >= 500000 ? 1 : map.sample >= 100000 ? 0.9 : map.sample >= 30000 ? 0.75 : 0.6;
   return freshness * size;
+}
+
+// Quanto spesso questo brawler viene davvero scelto QUI. La fonte delle
+// mappe dà la pick rate per mappa: somma 600% sui 106 brawler (6 pick per
+// partita), mentre USE_RATES globale somma 100% (una quota per slot).
+// Diviso 6 le due scale coincidono — verificato: media 0,944% entrambe.
+function useRateOf(name) {
+  const pr = state.map && state.map.pickRates ? state.map.pickRates[name] : undefined;
+  // Arrotondato qui e non a schermo: la divisione per 6 produce code infinite
+  // (6,783333...%) e il numero finiva così com'era nell'etichetta.
+  if (pr !== undefined) return { use: Math.round((pr / 6) * 100) / 100, source: "mappa" };
+  if (USE_RATES[name] !== undefined) return { use: USE_RATES[name], source: "meta" };
+  return { use: 0.3, source: "nessun dato" };
 }
 
 function confidenceLabel(conf) {
@@ -219,16 +237,16 @@ function computeBanSuggestions() {
     if (used.has(b.name)) continue;
     const t = threatOf(b.name);
     if (!t) continue;
-    const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
-    // La percentuale di scelte che abbiamo è GLOBALE. Pesarci sopra una win
-    // rate di mappa significherebbe mescolare due popolazioni diverse, e si
-    // vede subito quanto sbaglia: su Super Beach Rosa vince l'80,7% ma è
-    // scelta globalmente dallo 0,14%, quindi finiva dietro a brawler molto
-    // più deboli su quella mappa. Ma è ovvio che su Super Beach Rosa la
-    // prendono, ed è ovvio che vada bannata. Quindi il peso della
-    // popolarità vale pieno solo quando anche la forza è un dato globale,
-    // e quasi si annulla quando parliamo di una mappa specifica.
-    const popWeight = t.source === "mappa" ? 0.25 : t.source === "modalità" ? 0.6 : 1;
+    const u = useRateOf(b.name);
+    const use = u.use;
+    // Forza e popolarità vanno moltiplicate solo se parlano della stessa
+    // popolazione. Prima la pick rate era solo globale, quindi su una mappa
+    // specifica il suo peso andava quasi azzerato: era un ripiego, e si
+    // vedeva (un brawler fortissimo su una mappa ma raro in generale
+    // finiva dietro a brawler molto più deboli lì). Ora la pick rate è
+    // della mappa, misurata sulle stesse partite della win rate, e quando
+    // le due combaciano il peso torna pieno.
+    const popWeight = u.source === "mappa" && t.source === "mappa" ? 1 : t.source === "mappa" ? 0.25 : t.source === "modalità" ? 0.6 : 1;
     const popularity = 1 + (Math.min(use, 4.5) / 3) * popWeight;
     const priority = (t.value - 50) * popularity;
     candidates.push({
@@ -576,7 +594,7 @@ function likelyEnemyPicks(limit) {
     if (used.has(b.name)) continue;
     const t = threatOf(b.name);
     if (!t) continue;
-    const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
+    const use = useRateOf(b.name).use;
     rows.push({ name: b.name, score: (t.value - 50) * (1 + Math.min(use, 4.5) / 3) });
   }
   rows.sort((a, b) => b.score - a.score);
@@ -720,7 +738,11 @@ function renderSuggestions() {
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     const flag = pickFlag(s.name);
     const badge = flag
-      ? `<span class="badge ${flag.kind}" title="${flag.wr}% di vittorie in Classificata, ma scelto dal ${flag.use}% dei giocatori">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      ? `<span class="badge ${flag.kind}" title="${
+          flag.kind === "trap"
+            ? `Scelto dal ${flag.use}% dei giocatori ma vince solo il ${flag.wr}% delle volte: lo prendono più di quanto valga.`
+            : `Vince il ${flag.wr}% delle volte ma lo sceglie solo il ${flag.use}%: quasi nessuno lo banna, quindi resta libero. Il rovescio: quel ${flag.wr}% è misurato su chi lo gioca abitualmente, che è poca gente e allenata. Se non lo sai già usare, aspettati meno.`
+        }">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
       : "";
     // Contro ciascun avversario si mostra la percentuale, non il residuo:
     // "vs Rosa 72%" si capisce, "+13.5" no.

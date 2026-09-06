@@ -38,3 +38,16 @@ Attenzione: i gestori dei menu devono chiamare `render()`, non solo `renderSugge
 ## Trappola di progettazione già incontrata
 
 Ordinando i pick per "peggior matchup" nudo, in cima finivano i brawler **senza dati** (Vince, Cosmo, Bonnie): tutte le loro previsioni stanno vicino al 50%, quindi sembravano i più solidi. **L'ignoranza veniva premiata.** Il caso peggiore va calcolato come win rate *nel contesto* (base sulla mappa + matchup peggiore), non come matchup isolato.
+
+## Gli script (6/9 sera)
+
+Il lavoro sui dati è meccanico, quindi vive negli script e non nelle mani:
+
+| Script | Cosa fa |
+|---|---|
+| `script/fetch-brawlplanet-ranked.js` | Scarica il pool ranked e le tabelle **Classificata** delle 33 mappe. Sceglie la scheda giusta dal codice: la pagina ne ha due e quella di default è trofei. |
+| `script/build-map-data.js` | Riscrive `MAPS` e ricalcola `MODE_WIN_RATES` dalle stesse tabelle. Ripulisce le note dai dati statistici, che l'app stampa già da sé. |
+| `script/check-brawl-data.js` | Controlli di coerenza. Da far girare sempre prima di pubblicare. |
+| `script/build-brawl-draft.js` | Bundle in un file solo per l'artifact. **Si lancia dalla radice del repo, non da `brawl-draft/`.** |
+
+Aggiornare i dati sono due comandi, non un pomeriggio. Vedi [[fonti-brawl-stars]] per come si è scelta la fonte e [[errori-trovati]] per cosa non rifare.

@@ -1,5 +1,8 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-06 21:20] dati | Mappe rifatte da zero: erano quelle dei trofei, non della Classificata
+L'utente ha segnalato mappe ferme a luglio e mappe scoperte. Cercando la fonte giusta è emerso che il problema era a monte: l'elenco mappe era la **rotazione trofei**, non il pool Classificata — con dentro 11 mappe che in Classificata non escono e senza 4 che invece ci sono. Era anche la ragione delle mappe "ferme a luglio" (le mappe solo-ranked lì non si aggiornano mai) e delle 7 "senza dati" (cercate nella sezione sbagliata). Ora: **33 mappe del pool ranked, win rate e pick rate di Classificata per tutti e 106 i brawler, aggiornamento orario alla fonte.** Scelta la fonte con quattro controlli, non a intuito (coerenza di modalità, somma pick rate = 600%, correlazione win/pick +0,40, nomi coincidenti). `MODE_WIN_RATES` ora è calcolato dalle stesse tabelle per non mescolare due scale. Scritti `script/fetch-brawlplanet-ranked.js` e `script/build-map-data.js`: il lavoro è meccanico e si rifà con due comandi. Corretto un errore mio di stamattina: Ring of Fire non era stata rimossa dal gioco, è attiva. Dettagli in [[fonti-brawl-stars]] e [[errori-trovati]].
+
 ## [2026-09-06 14:55] app | Tre errori di classifica trovati da un dubbio dell'utente su Parallel Plays
 Il bonus composizione scattava a squadra vuota gonfiando Tank e Controller sopra il dato misurato; l'ordine non seguiva il numero mostrato; l'etichetta "trappola" compariva su pick consigliati. Ora la classifica del primo pick combacia riga per riga con la fonte, quindi è verificabile.
 

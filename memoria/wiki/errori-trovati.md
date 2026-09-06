@@ -6,7 +6,7 @@ Elenco tenuto perché ognuno di questi è costato una verifica incrociata: ritro
 
 | Errore | Come è emerso | Correzione |
 |---|---|---|
-| **Ring of Fire** in elenco come mappa attuale | 404 sulla pagina mappa + ricerca | Rimossa dal gioco nel **gennaio 2021**. Eliminata. |
+| ~~**Ring of Fire** rimossa dal gioco~~ **← era sbagliato, vedi sotto** | 404 sulla pagina mappa + un articolo del 2021 | **Correzione del 6/9 sera: la mappa c'è.** L'API di Brawlify la dà `disabled: false` e sta nel pool ranked di brawlplanet. Rimessa. |
 | **Angelo** citato nei consigli mappa ma assente dal roster | script di coerenza nomi | Aggiunto (Marksman). |
 | **Sirius** assente dal roster | compariva nelle tabelle Ranked ma non fra i brawler | Aggiunto. |
 | **Sirius** classificato Damage Dealer | confronto classi con l'elenco completo di BrawlMetrics | È **Controller**. |
@@ -25,3 +25,27 @@ Elenco tenuto perché ognuno di questi è costato una verifica incrociata: ritro
 ## Regola generale che ne esce
 
 Quasi tutti sono stati trovati da **uno script che confronta i nomi fra loro** o da un **test in browser vero**, non rileggendo il codice. Vale la pena rifarli a ogni aggiornamento.
+
+## Gli errori del 6/9 sera, tutti dello stesso tipo
+
+Tre errori, una causa sola: **stavo leggendo la sezione trofei del gioco e credevo fosse la Classificata.**
+
+| Errore | Come è emerso | Correzione |
+|---|---|---|
+| **L'elenco mappe era la rotazione trofei, non il pool Classificata** | il pool ranked di brawlplanet elenca 33 mappe attive e 13 archiviate; confrontandolo con il nostro | C'erano dentro mappe che in Classificata non escono mai (Super Beach, Sunny Soccer, Konnakol, Jedna, Hot Tubs, Photic Doom, Open Space, On A Roll, Tasty Berry, Backyard Bowl, Grass Knot) e ne mancavano che invece ci sono (Ring of Fire, Lilygear Lake, Flooded Mine, Deathcap Trap). Ora la lista è il pool ranked. |
+| **Una mappa cancellata sulla fede di un articolo** | vedi sopra, Ring of Fire | C'era un'API che rispondeva e diceva il contrario. **Un articolo del 2021 non batte un'API che risponde oggi.** |
+| **Le 7 mappe "404, dati non verificate" non erano un buco del dato** | avevano tutte una pagina su brawlplanet con ~1,9M di partite | Erano mappe **solo ranked** cercate nella sezione trofei. Il buco era nella ricerca, non nel dato. Ora hanno tutte win rate reali per tutti e 106 i brawler. |
+
+### E uno che ho commesso analizzando
+
+Avevo confrontato brawlmetrics (Classificata) con brawlplanet **scheda trofei**, e concluso: "concordano su chi è forte ma su scale diverse, quindi userò brawlplanet solo come lista di nomi". Confronto sbagliato, conclusione sbagliata. Con la scheda giusta i top 10 coincidono per 2-3 nomi su 10: **non è una differenza di scala, sono due misure diverse.** Da qui `script/fetch-brawlplanet-ranked.js`, che sceglie la scheda dal codice invece di lasciarlo al mio occhio.
+
+### Errori più piccoli dello stesso giro
+
+| Errore | Come è emerso | Correzione |
+|---|---|---|
+| Una nota di mappa continuava a dire "dati di fine luglio" con dati di oggi | test in browser su Flaring Phoenix | Le note in prosa ripetevano campione e data, che l'app **stampa già da sé** leggendoli dai dati. La prosa è la copia che resta indietro e mente. Ora il generatore tiene solo la descrizione del terreno. |
+| Due note affermavano win rate contraddette dai nuovi dati ("Gus qui è fuori scala (78,4%)" — è 47,4%) | controllo automatico delle percentuali nelle note | Stesso rimedio. |
+| Pick rate con code infinite a schermo (`6.783333333333334%`) | test in browser | La divisione per 6 (per portare la pick rate di mappa sulla scala di `USE_RATES`) va arrotondata alla fonte, non a schermo. |
+
+**Il solito:** tutti e tre trovati dal test in browser o da uno script di controllo. **Nessuno rileggendo il codice.**

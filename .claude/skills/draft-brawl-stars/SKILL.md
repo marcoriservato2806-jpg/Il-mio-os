@@ -16,13 +16,43 @@ description: Aggiorna o modifica l'app Assistente Draft Classificata (Brawl Star
 
 ## Fonti
 
-Principale: `brawlmetrics.gg` — `/tier-list/ranked`, `/tier-list/ranked/masters`, `/tier-list/<modalità>`, `/maps/<modalità>/<mappa>`, `/brawlers/<slug>`.
-Roster e mappe attive: `api.brawlapi.com/v1/brawlers` (campo `released`) e `/v1/maps` (campo `disabled`) — API pubblica, niente chiave. Le letture arrivano troncate: fidati dei singoli campi, non dei conteggi.
+**Mappe e modalità: `brawlplanet.com`.** `/maps/<nomesenzaspazi>_<modalitasenzaspazi>` (es. `kaboomcanyon_heist`), `/powerleague` per il pool ranked. Aggiornamento orario, 106 brawler per mappa, win rate **e** pick rate.
+
+> **La pagina ha due schede e quella aperta di default è "Trophy ladder", non "Ranked".** Leggerla a occhio significa prendere i numeri della modalità sbagliata. È già successo, e ha prodotto una conclusione falsa che è finita nella wiki. **Non leggerla a mano: usa lo script.**
+
+**Meta generale e counter: `brawlmetrics.gg`** — `/tier-list/ranked`, `/tier-list/ranked/masters`, `/brawlers/<slug>`. Non usarlo per le mappe: segue la rotazione trofei, quindi le mappe solo-ranked non si aggiornano mai e alcune non hanno pagina.
+
+**Roster e mappe attive:** `api.brawlapi.com/v1/brawlers` (campo `released`) e `/v1/maps` (campo `disabled`) — API pubblica, niente chiave. Le letture arrivano troncate: fidati dei singoli campi, non dei conteggi.
+
 Riscontro incrociato: Dexerto, Pocket Tactics, Brawlvision.
 Bloccati (non aggirare): brawlify.com come sito, noff.gg, brawltime.ninja, topbrawl, brawlytix, brawlhq, Fandom.
-Da scartare: brawl.tube (dati fasulli), brawlio counters e brawlcalculator (senza numeri).
+Da scartare: brawl.tube (dati fasulli), brawlio counters e brawlcalculator (senza numeri), brawltime.com (22-411 partite per brawler: rumore).
 
 Quando chiedi una tabella, **pretendi che sia completa**: se la risposta sembra troncata, rifai la richiesta insistendo sull'esaustività.
+
+## Aggiornare i dati delle mappe: due comandi
+
+Il lavoro è meccanico, non rifarlo a mano:
+
+```bash
+node script/fetch-brawlplanet-ranked.js > /tmp/bp.json   # scarica pool + 33 mappe
+node script/build-map-data.js /tmp/bp.json               # riscrive MAPS e MODE_WIN_RATES
+```
+
+Il secondo rigenera anche `MODE_WIN_RATES` come media delle mappe della modalità pesata sul campione. **Non prenderlo da un'altra fonte:** `app.js` *miscela* il dato mappa con quello di modalità, e miscelare due scale diverse dà un numero che non vuol dire niente.
+
+## Regola aggiuntiva: mai mescolare due fonti nello stesso numero
+
+Due fonti che misurano la stessa cosa contano popolazioni diverse. Si usa l'una **o** l'altra, o si confrontano; non si mediano, sommano o miscelano. Su mappa per mappa i top 10 di brawlmetrics e brawlplanet coincidono solo per 2-3 nomi su 10: non è una scala da riallineare, sono due misure diverse.
+
+## Come si sceglie fra due fonti che si contraddicono
+
+Non a intuito, e non "quella con più partite". Quattro controlli che hanno funzionato:
+
+1. **Coerenza fisica** — le mappe Bounty devono premiare i tiratori lunghi, quelle Brawl Ball i tank. Se una fonte dà gli stessi nomi in cima in *tutte* le modalità, sta mostrando la classifica generale travestita.
+2. **Segnale mappa/modalità, misurato** — sovrapposizione media dei top 10 fra mappe della stessa modalità *meno* quella fra modalità diverse. Vale 1,51/10 su brawlmetrics e 3,27/10 su brawlplanet.
+3. **Somma che deve tornare** — le pick rate dei 106 brawler devono fare **600%** (6 pick per partita). Prova che la tabella è completa e non troncata.
+4. **Inflazione dei rari** — correlazione fra win rate e log(pick rate). Se è negativa, la fonte premia i brawler poco giocati e non è usabile per consigliare pick. Su brawlplanet è **+0,40**: chi è scelto di più vince di più.
 
 ## Il metodo counter, in breve
 
@@ -36,10 +66,12 @@ Verifica sempre che il residuo medio sul totale delle coppie sia vicino a zero: 
 cd brawl-draft && node -e "new Function(require('fs').readFileSync('data.js','utf8'))()"   # sintassi
 ```
 
-Poi uno script node al volo che carichi `data.js` e verifichi:
+Poi `node script/check-brawl-data.js`, che carica `data.js` e verifica:
 - nessun duplicato in `BRAWLERS`;
 - ogni nome usato in `winRates`, `bestPicks`, `MODE_WIN_RATES`, `DEFAULT_META_SCORES`, `USE_RATES`, `MATCHUPS`, `BRAWLER_OVERALL` esiste nel roster;
 - ogni mappa con `winRates` ha anche `sample` e `updated`;
+- su ogni mappa la somma di `pickRates` fa 600% ± 2 (6 pick per partita: se non torna la tabella è troncata);
+- nessuna nota contiene percentuali, date o dimensioni di campione;
 - nessuna win rate fuori da 10–95.
 
 **La maggior parte degli errori trovati finora è emersa da questo script o da un test in browser vero, non rileggendo il codice.**
@@ -61,3 +93,6 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non ricercare la matrice completa dei matchup: **nessuna fonte la pubblica**, tutte danno 3 migliori e 3 peggiori per brawler. Il tetto è del dato, non della ricerca.
 - Non reintrodurre l'euristica di classe scritta a mano: è stata sostituita da `CLASS_EDGE`, calibrata sui dati, che la smentisce in più punti.
 - Non ordinare i pick per matchup nudo: premia i brawler senza dati. Usa la win rate nel contesto.
+- Non ripetere campione e data dentro `notes`: l'app li stampa già da sé leggendoli dai dati, e la copia in prosa è quella che resta indietro e mente. Le note descrivono **solo il terreno**.
+- Non cancellare una mappa sulla base di un articolo quando c'è un'API che risponde. Ring of Fire è stata tolta così, e c'era ancora.
+- Non fidarti della scheda aperta di default su una pagina che ne ha due.
