@@ -4,6 +4,7 @@
 - Diventare un fisioterapista d'élite.
 - Diventare imprenditore, sul modello del nonno — l'ambizione di fondo, di cui lo studio è il primo passo.
 - Rifarsi del capitale perso in borsa (10k dimezzato per una memecoin, "Emme coin") senza ripetere lo stesso errore.
+- Diventare investitore in borsa per accumulare il capitale che gli servirà per lo studio — obiettivo dichiarato il 2026-09-06, non ancora definito in strategia, cifre o orizzonte temporale.
 
 ## Cosa non voglio che succeda
 
