@@ -212,36 +212,60 @@ const MAP_TRAIT_CLASS_BONUS = {
   "Zona centrale ristretta": { "Tank": 1, "Damage Dealer": 0, "Assassin": 0, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 0 },
 };
 
-// Mappe reali del pool Classificata/competitivo, raccolte da ricerche web
-// del 6 settembre 2026 (fonti: Brawlify, Brawl Time Ninja, TrophyCoach,
-// TopBrawl, TheriaGames — pagine non apribili direttamente in questa
-// sessione, dati presi dagli estratti di ricerca). Il pool stagionale
-// reale è di 3-4 mappe per modalità (18-24 totali) e cambia ogni
-// stagione: quelle elencate qui sono le mappe "stabili"/di riferimento
-// citate più spesso per luglio-settembre 2026, NON garantite come
-// l'elenco esatto e completo della stagione in corso. Se in game vedi
-// una mappa che non c'è qui, usa i tratti (MAP_TRAITS) sopra invece.
-// bestPicks = nomi citati esplicitamente dalle fonti come forti su quella
-// mappa (non un tier-list completo); ricevono un bonus diretto nei
-// suggerimenti, in aggiunta al punteggio di classe/modalità.
+// Mappe: il 6 settembre 2026 l'utente ha condiviso screenshot del draft
+// tool di metapick-ai.com (Rank Threshold Master I+, Last Updated 28 Aug
+// 2026) che mostrano il vero pool Classificata stagionale completo: 30
+// mappe su 6 modalità (Bounty 4, Brawl Ball 7, Gem Grab 5, Heist 6, Hot
+// Zone 4, Knockout 4 — combacia con "Season 48, 30 mappe totali" trovato
+// in una ricerca precedente). Quell'elenco è la fonte di verità per QUALI
+// mappe esistono ora; ha sostituito la lista parziale/best-effort di
+// prima (che includeva Snake Prairie e Crystal Arcade, non presenti nel
+// pool attuale — probabilmente mappe di una stagione o di un pool
+// competitivo/BSC diverso, quindi rimosse).
+//
+// bestPicks/notes per ciascuna mappa restano raccolti da ricerche web del
+// 6 settembre 2026 (Brawlify, Brawl Time Ninja, TrophyCoach, TopBrawl,
+// TheriaGames, Brawlio, BrawlIQ — pagine non apribili direttamente in
+// questa sessione, rete bloccata: dati presi dagli estratti di ricerca).
+// Sono nomi citati esplicitamente dalle fonti come forti su quella mappa,
+// non un tier-list completo con percentuali esatte: quelle richiedono un
+// accesso live a un sito come Brawlify che questa sessione non ha. Un
+// paio di fonti citavano anche un brawler "Sirius" non presente nel
+// roster qui sopra (non risulta un brawler noto): omesso dai bestPicks
+// finché non è verificato.
 const MAPS = [
+  // Bounty (4)
   {
-    mode: "Gem Grab",
-    name: "Hard Rock Mine",
-    bestPicks: ["Rico", "Surge", "Stu", "Mortis", "Griff", "Trunk", "Jacky", "Sam", "Dynamike", "Mico"],
-    notes: "Centro aperto con due strisce di boscaglia a \"H\" ai lati. I Controller tengono gli avversari inchiodati vicino al loro spawn; tank e mischia si infiltrano dai lati.",
+    mode: "Bounty",
+    name: "Dry Season",
+    bestPicks: ["Piper", "Brock", "Bea", "Mandy", "Byron", "Poco", "Pam", "Doug", "Berry", "Ruffs"],
+    notes: "Zone aperte con muri indistruttibili al centro. Tieni la retroguardia con i tiratori a lungo raggio, fai poke sicuro e non buttare via le stelle.",
   },
   {
-    mode: "Gem Grab",
-    name: "Undermine",
-    bestPicks: ["Emz", "Barley", "Bo"],
-    notes: "Favorisce chi tira da lunga distanza (throwers/artiglieria).",
+    mode: "Bounty",
+    name: "Hideout",
+    bestPicks: ["Piper", "Brock", "Max", "Byron", "Gene", "Darryl", "Bibi", "Chuck", "Amber", "Barley", "Larry & Lawrie", "Dynamike", "Juju", "Berry"],
+    notes: "Simmetria diagonale, due gruppi di staccionate con erba. Cecchini bene sui lati aperti, throwers bene nel centro stretto. La stella blu centrale è decisiva come spareggio.",
   },
   {
-    mode: "Gem Grab",
-    name: "Crystal Arcade",
-    bestPicks: ["Gene"],
-    notes: "Interno molto cespuglioso: ottimo per le imboscate. Gli angoli di aggancio di Gene migliorano parecchio.",
+    mode: "Bounty",
+    name: "Layer Cake",
+    bestPicks: ["El Primo", "Bull", "Leon", "Shelly"],
+    notes: "Mappa a strati di muri, cespugli e chokepoint: gli assassini corrono per la stella blu, i throwers protetti bloccano i passaggi, gli anti-aggro decidono l'ultimo pick.",
+  },
+  {
+    mode: "Bounty",
+    name: "Shooting Star",
+    bestPicks: ["Piper", "Brock", "8-Bit", "Nani"],
+    notes: "Mappa aperta con lunghe linee di tiro: i cecchini dominano.",
+  },
+
+  // Brawl Ball (7 — modalità in evidenza questa stagione)
+  {
+    mode: "Brawl Ball",
+    name: "Beach Ball",
+    bestPicks: ["Nita", "Frank", "Carl", "El Primo", "Pam", "Emz", "Sprout"],
+    notes: "Muri stretti e lunghi più grandi gruppi di cespugli, simmetria diagonale. Pesanti a sinistra, mischia al centro, cecchini/support a destra.",
   },
   {
     mode: "Brawl Ball",
@@ -257,27 +281,67 @@ const MAPS = [
   },
   {
     mode: "Brawl Ball",
+    name: "Pinhole Punt",
+    bestPicks: ["Colette", "Surge", "Edgar", "Mortis", "Lumi", "Eve", "Pam", "Angelo", "Penny", "Hank", "Bea"],
+    notes: "Mix di corridoi stretti, corsie aperte e chokepoint chiave. Mortis sfrutta cespugli e spazi stretti (Coiled Snake per entrare/uscire dai combattimenti).",
+  },
+  {
+    mode: "Brawl Ball",
     name: "Sneaky Fields",
     bestPicks: [],
-    notes: "Caos pieno di cespugli: qui gli Assassin e i brawler da imboscata dominano (nessun nome specifico confermato dalle fonti).",
+    notes: "Caos pieno di cespugli: qui Assassin e brawler da imboscata dominano (nessun nome specifico confermato dalle fonti).",
   },
   {
-    mode: "Bounty",
-    name: "Snake Prairie",
-    bestPicks: ["8-Bit", "Amber", "Ash", "Brock", "Rosa"],
-    notes: "Mappa piena di boscaglia (13 gruppi di muri). Ai ranghi bassi funzionano imboscate con pesanti/assassini nei cespugli; ai ranghi alti meglio i tiratori che distruggono i cespugli (super di Brock). La star power Plant Life di Rosa è molto utile.",
+    mode: "Brawl Ball",
+    name: "Spiraling Out",
+    bestPicks: ["Colette", "Colt", "Edgar", "Mortis", "Lumi", "Gray", "Grom", "Ziggy", "Gus", "Moe"],
+    notes: "Nessuna nota di layout specifica trovata nelle fonti (solo dati di win rate aggregati).",
   },
   {
-    mode: "Bounty",
-    name: "Shooting Star",
-    bestPicks: ["Piper", "Brock", "8-Bit", "Nani"],
-    notes: "Mappa aperta con lunghe linee di tiro: i cecchini dominano.",
+    mode: "Brawl Ball",
+    name: "Triple Dribble",
+    bestPicks: ["Rico", "Bibi", "Mortis", "Emz", "Byron", "Colette", "Grom", "Charlie", "Rosa", "Bull", "Frank", "El Primo", "Barley", "Meg", "Max"],
+    notes: "Barriere centrali, gruppi di casse e apertura del goal stretta. Bull/Frank/El Primo sfondano gli ostacoli con la Super puntando ai tre barili davanti al goal; Barley tiene bene le corsie medio/corte.",
   },
+
+  // Gem Grab (5)
+  {
+    mode: "Gem Grab",
+    name: "Double Swoosh",
+    bestPicks: ["El Primo", "Bull", "Shelly", "Darryl", "Leon", "Gene", "Bo", "Sandy", "Poco", "Emz", "Max"],
+    notes: "Molti cespugli su entrambi i lati, vortice al centro, simmetria perfetta. Bene i tank con DPS alto nei cespugli; gli area-controller (Sandy, Poco) dominano le corsie larghe. Il portatore di gemme ha bisogno di mobilità (Max).",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Gem Fort",
+    bestPicks: ["Griff", "Crow", "Rico", "Meg", "Max", "Ziggy", "Draco", "Najia", "Larry & Lawrie", "Darryl", "Amber"],
+    notes: "Centro chiuso da muri ad angolo retto con 4 ingressi, due vicini a corsie cespugliose. Amber con altri due a lungo raggio brucia tutti i cespugli con la Super.",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Hard Rock Mine",
+    bestPicks: ["Rico", "Surge", "Stu", "Mortis", "Griff", "Trunk", "Jacky", "Sam", "Dynamike", "Mico"],
+    notes: "Centro aperto con due strisce di boscaglia a \"H\" ai lati. I Controller tengono gli avversari inchiodati vicino al loro spawn; tank e mischia si infiltrano dai lati.",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Rustic Arcade",
+    bestPicks: ["Belle", "Sandy", "Byron", "Max", "Stu", "Pierce", "Crow", "Piper", "Sprout", "Darryl", "Ash", "Barley", "Janet", "Pam", "Emz", "Frank", "Poco"],
+    notes: "Centro esagonale con muri verso il centro e cespugli sul lato opposto. L'artiglieria e i tank a corto raggio soffrono lo spazio aperto; gli high-spread a medio raggio (Pam, Emz, Frank, Poco) controllano bene il centro.",
+  },
+  {
+    mode: "Gem Grab",
+    name: "Undermine",
+    bestPicks: ["Emz", "Barley", "Bo"],
+    notes: "Favorisce chi tira da lunga distanza (throwers/artiglieria).",
+  },
+
+  // Heist (6)
   {
     mode: "Heist",
-    name: "Safe Zone",
-    bestPicks: ["El Primo", "Shelly", "Rosa", "Darryl", "Frank", "Fang", "Bull", "Doug", "Bibi", "Buzz"],
-    notes: "Danno alto sulla cassaforte: preferisci mischia/danno pesante piuttosto che poke leggero.",
+    name: "Bridge Too Far",
+    bestPicks: ["Colt", "Piper", "Nani", "Mandy", "8-Bit", "Moe", "Ziggy", "Doug", "Gene", "Lumi", "Brock", "Belle", "Maisie", "Bea", "Rico", "Bull", "Darryl", "Edgar", "Carl"],
+    notes: "Terreno limitato, poca mobilità: i marksman (Brock, Piper, Belle, Mandy, Nani, Maisie, Bea) sparano lungo le corsie senza dover cambiare posizione.",
   },
   {
     mode: "Heist",
@@ -292,16 +356,68 @@ const MAPS = [
     notes: "Mappa molto aperta, simmetria diagonale: ottima per cecchini a medio/lungo raggio. I tank controllano il centro e i chokepoint.",
   },
   {
+    mode: "Heist",
+    name: "Pit Stop",
+    bestPicks: ["Nori", "Dynamike", "Rico", "Melodie", "Griff", "Grom", "Barley", "Colt", "8-Bit"],
+    notes: "Piena di cespugli con muri a bordo e recinzioni a L negli angoli; ogni cassaforte è protetta da un lungo muro orizzontale con cespugli. Premia la pressione disciplinata sulle corsie più della semplice aggressività.",
+  },
+  {
+    mode: "Heist",
+    name: "Safe Zone",
+    bestPicks: ["Colt", "Pierce", "Colette", "Penny", "Crow", "Mortis", "Squeak", "Nori", "Sam", "Gus", "El Primo", "Shelly", "Rosa", "Darryl", "Frank", "Fang", "Bull", "Doug", "Bibi", "Buzz"],
+    notes: "Tre corsie ben definite; favorisce i tiratori a lungo raggio perché le casseforti sono poco protette dai proiettili che viaggiano lontano.",
+  },
+  {
+    mode: "Heist",
+    name: "Safe(r) Zone",
+    bestPicks: [],
+    notes: "Variante di Safe Zone: stessi principi (corsie lunghe, casseforti poco protette). Nessun dato specifico separato trovato dalle fonti.",
+  },
+
+  // Hot Zone (4)
+  {
     mode: "Hot Zone",
     name: "Dueling Beetles",
     bestPicks: ["Bolt", "Tick", "Nita", "Starr Nova", "Bo", "Squeak", "Grom", "Spike", "Griff", "Tara"],
     notes: "Poco spazio per chi tira da lunghissima gittata: dominano i brawler ad area (AoE) e a medio raggio. Cespugli a sinistra, muri a destra.",
   },
   {
+    mode: "Hot Zone",
+    name: "Open Business",
+    bestPicks: ["Hank", "Tick", "Griff", "Stu", "Meeple", "Meg", "Emz", "Charlie", "Angelo", "Jae-yong", "R-T", "Ollie", "Barley", "Sprout", "Dynamike", "Grom", "Larry & Lawrie", "Edgar", "Mico", "Buzz", "Kenji", "Alli"],
+    notes: "I throwers fanno negazione d'area da dietro i muri; gli assassini che bucano i throwers (Edgar, Mico, Buzz, Kenji, Alli) sono un buon contropick a chi difende la zona da lontano.",
+  },
+  {
+    mode: "Hot Zone",
+    name: "Parallel Plays",
+    bestPicks: ["Pam", "8-Bit", "Max", "Bibi", "Piper", "Brock", "Sprout"],
+    notes: "Due zone e centro aperto, poche mura: due giocatori spingono la zona nemica mentre uno tiene quella di casa. Poche mura, quindi conviene allargarsi per il controllo.",
+  },
+  {
+    mode: "Hot Zone",
+    name: "Ring of Fire",
+    bestPicks: ["Bolt", "Pierce", "Meg", "Max", "Griff", "Crow", "El Primo", "Janet", "Bonnie", "Rosa", "Kaze", "Emz", "Sandy", "Jessie", "Gene", "Pam", "Bo", "Tara"],
+    notes: "Corsia destra buona per i lunga gittata ma esposta alle imboscate; i pesanti hanno poca protezione. Tenere la zona con controllo/sustain batte cercare lo scontro diretto.",
+  },
+
+  // Knockout (4)
+  {
     mode: "Knockout",
     name: "Belle's Rock",
     bestPicks: [],
     notes: "Corsie laterali speculari con muri a L: buona per throwers (usano la copertura), cecchini (linee di tiro) e brawler mobili (superano i lenti). Nessun nome specifico confermato dalle fonti.",
+  },
+  {
+    mode: "Knockout",
+    name: "Flaring Phoenix",
+    bestPicks: ["Rosa", "Brock", "Colt", "Poco", "Frank"],
+    notes: "Acqua a scacchiera su ogni lato, cespugli e muri a strati: corsie strette che favoriscono i cecchini che sanno rompere cover.",
+  },
+  {
+    mode: "Knockout",
+    name: "New Horizons",
+    bestPicks: ["Brock", "Byron", "Max", "Kit", "Piper", "Rosa", "Poco", "Finx", "Grom", "Bonnie", "Bolt", "Ollie", "Edgar", "Colette", "Damian"],
+    notes: "Niente respawn: la densità di cespugli/coperture conta più che in quasi ogni altra modalità. Un primo scontro sbagliato può perdere il round da solo.",
   },
   {
     mode: "Knockout",
