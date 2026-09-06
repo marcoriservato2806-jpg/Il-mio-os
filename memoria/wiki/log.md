@@ -1,0 +1,5 @@
+Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto` (tipo: ingest, query, altro). La prima riga fatta così si legge con un `grep`.
+
+Serve a due cose. La prima è ritrovare quando è entrata una cosa. La seconda conta di più: quando questo sistema lavorerà mentre tu non ci sei, questo è il posto dove vieni a vedere cosa ha combinato. **Un sistema che lavora da solo e non tiene un diario è un sistema di cui smetti di fidarti al secondo mese.**
+
+## [2026-09-06 00:50] altro | Riorganizzata la struttura in `context/` e `memoria/wiki/` come da CLAUDE.md (i file del template erano rimasti in root). Compilati `identity.md` e `context/obiettivi.md` con le prime informazioni date da Marco in chat: fisioterapista al secondo anno, obiettivo studio proprio + fisioterapista d'élite, ambizione imprenditoriale sul modello del nonno, esperienza in borsa (10k dimezzato su una memecoin). Restano da chiedere: tono desiderato, cosa fa dire "no non così", cosa non deve succedere negli obiettivi.
