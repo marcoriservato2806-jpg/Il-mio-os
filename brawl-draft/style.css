@@ -66,6 +66,37 @@ h1 {
   width: 160px;
 }
 
+#mode-select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.trait-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trait-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px 3px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.trait-chip input {
+  cursor: pointer;
+}
+
 button {
   background: var(--panel-2);
   border: 1px solid var(--border);

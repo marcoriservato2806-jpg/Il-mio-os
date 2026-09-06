@@ -167,3 +167,46 @@ const CLASS_COLORS = {
   "Artillery": "#a87c3f",
   "Support": "#d4a72c",
 };
+
+// Modalità di Classificata (6, confermate da fonti web di settembre 2026:
+// Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout). Le mappe
+// ruotano ogni stagione (pool stagionale di 24-30 mappe) e non è stato
+// possibile leggerne l'elenco aggiornato dai siti-database (rete bloccata
+// in questa sessione). Per questo qui non c'è un elenco di mappe fisse:
+// invece di inventare nomi di mappe che potrebbero non essere nella
+// rotazione attuale, si usano le CARATTERISTICHE della mappa che hai
+// davanti (vedi MAP_TRAITS) — funzionano indipendentemente da come si
+// chiama la mappa e da quando cambia la rotazione.
+//
+// MODE_CLASS_BONUS[modalità][classe] = bonus/malessere legato a "cosa
+// serve per vincere quella modalità" (es. Gem Grab premia chi tiene la
+// posizione vicino alla miniera, Bounty punisce chi muore spesso perché
+// regala stelle). Euristica di ruolo, non tier-list.
+const MODES = ["Gem Grab", "Brawl Ball", "Bounty", "Heist", "Hot Zone", "Knockout"];
+
+const MODE_CLASS_BONUS = {
+  "Gem Grab": { "Tank": 1, "Damage Dealer": 0, "Assassin": -1, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 1 },
+  "Brawl Ball": { "Tank": 1, "Damage Dealer": 1, "Assassin": 0, "Marksman": -1, "Controller": 1, "Artillery": -1, "Support": 0 },
+  "Bounty": { "Tank": 0, "Damage Dealer": 0, "Assassin": -1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": 0 },
+  "Heist": { "Tank": 0, "Damage Dealer": 0, "Assassin": 1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": -1 },
+  "Hot Zone": { "Tank": 1, "Damage Dealer": 0, "Assassin": -1, "Marksman": -1, "Controller": 1, "Artillery": 0, "Support": 0 },
+  "Knockout": { "Tank": 0, "Damage Dealer": 1, "Assassin": -1, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": 0 },
+};
+
+// Caratteristiche della mappa: selezionabili a mano guardando la mappa
+// caricata in game. MAP_TRAIT_CLASS_BONUS[caratteristica][classe] = bonus.
+const MAP_TRAITS = [
+  "Boscaglia fitta",
+  "Corridoi stretti",
+  "Ampia e aperta",
+  "Muri distruttibili ovunque",
+  "Zona centrale ristretta",
+];
+
+const MAP_TRAIT_CLASS_BONUS = {
+  "Boscaglia fitta": { "Tank": 0, "Damage Dealer": 0, "Assassin": 1, "Marksman": -1, "Controller": 0, "Artillery": 0, "Support": 0 },
+  "Corridoi stretti": { "Tank": 1, "Damage Dealer": 0, "Assassin": 0, "Marksman": -1, "Controller": 0, "Artillery": 1, "Support": 0 },
+  "Ampia e aperta": { "Tank": 0, "Damage Dealer": 0, "Assassin": -1, "Marksman": 1, "Controller": 0, "Artillery": -1, "Support": 0 },
+  "Muri distruttibili ovunque": { "Tank": 0, "Damage Dealer": 1, "Assassin": 0, "Marksman": 0, "Controller": 0, "Artillery": 1, "Support": 0 },
+  "Zona centrale ristretta": { "Tank": 1, "Damage Dealer": 0, "Assassin": 0, "Marksman": 0, "Controller": 1, "Artillery": 0, "Support": 0 },
+};

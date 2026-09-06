@@ -26,6 +26,14 @@
     <button id="reset-btn">Reset draft</button>
   </div>
 
+  <div class="config-bar">
+    <label for="mode-select">Modalità</label>
+    <select id="mode-select"></select>
+
+    <label>Caratteristiche mappa</label>
+    <div class="trait-list" id="map-traits"></div>
+  </div>
+
   <div id="turn-banner" class="turn-banner"></div>
 
   <div class="boards">
@@ -65,6 +73,8 @@
     <strong>Come funzionano i suggerimenti:</strong> punteggio = vantaggio di classe contro i pick avversari (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) più un bonus di sinergia per non ripetere troppo la stessa classe e coprire ruoli mancanti (frontline, support). È un'euristica di design generale, <em>non</em> una tier-list della meta attuale: i numeri non tengono conto di mappa, modalità, livello dei power/gadget o dei dati di win-rate della stagione in corso.
     <br /><br />
     <strong>Roster:</strong> compilato a settembre 2026 da ricerche web; potrebbero mancare i brawler usciti più di recente e alcune classificazioni sono incerte (vedi commento in <code>data.js</code>). Aggiungi o correggi una riga in <code>data.js</code> quando serve.
+    <br /><br />
+    <strong>Modalità e mappa:</strong> le 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout) danno un bonus/malus di ruolo legato a cosa serve per vincere quella modalità (es. Gem Grab premia chi tiene la posizione, Bounty punisce chi muore spesso). Le mappe cambiano ogni stagione e non è stato possibile leggerne l'elenco aggiornato dai siti-database (rete bloccata in questa sessione): invece di un elenco di nomi mappa che rischia di essere superato, seleziona a mano le caratteristiche della mappa che hai davanti (boscaglia, corridoi stretti, mappa aperta, muri distruttibili, zona centrale ristretta) — funziona con qualunque mappa, anche dopo un cambio di rotazione.
   </footer>
 </div>
 

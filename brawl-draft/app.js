@@ -9,6 +9,8 @@ const state = {
   picks: { A: [], B: [] },
   filterClass: "ALL",
   search: "",
+  mode: null, // una di MODES, o null = nessuna modalità selezionata
+  mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
 };
 
 function buildSequence() {
@@ -60,7 +62,18 @@ function scoreCandidate(candidateClass, ownClasses, enemyClasses) {
     synergy += 0.5;
   }
 
-  return { total: matchup * 2 + synergy, matchup, synergy };
+  let modeBonus = 0;
+  if (state.mode && MODE_CLASS_BONUS[state.mode]) {
+    modeBonus = MODE_CLASS_BONUS[state.mode][candidateClass] || 0;
+  }
+
+  let mapBonus = 0;
+  for (const trait of state.mapTraits) {
+    mapBonus += (MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0;
+  }
+
+  const total = matchup * 2 + synergy + modeBonus * 2 + mapBonus;
+  return { total, matchup, synergy, modeBonus, mapBonus };
 }
 
 function computeSuggestions() {
@@ -223,10 +236,11 @@ function renderSuggestions() {
     row.className = "suggestion-row";
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     const sign = (n) => (n > 0 ? "+" + n : String(n));
+    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)}`;
     row.innerHTML = `
       <span class="sugg-name">${s.name}</span>
       <span class="sugg-class">${s.class}</span>
-      <span class="sugg-score" title="matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)}">${sign(s.total)}</span>
+      <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
     `;
     row.addEventListener("click", () => pickOrBan(s.name));
     el.appendChild(row);
@@ -262,8 +276,38 @@ function initFilters() {
   });
 }
 
+function initModeAndMap() {
+  const modeSelect = document.getElementById("mode-select");
+  modeSelect.innerHTML = `<option value="">Nessuna / generica</option>`;
+  for (const m of MODES) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    modeSelect.appendChild(opt);
+  }
+  modeSelect.addEventListener("change", (e) => {
+    state.mode = e.target.value || null;
+    renderSuggestions();
+  });
+
+  const traitsEl = document.getElementById("map-traits");
+  traitsEl.innerHTML = "";
+  for (const t of MAP_TRAITS) {
+    const chip = document.createElement("label");
+    chip.className = "trait-chip";
+    chip.innerHTML = `<input type="checkbox" value="${t}" /> ${t}`;
+    chip.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked) state.mapTraits.add(t);
+      else state.mapTraits.delete(t);
+      renderSuggestions();
+    });
+    traitsEl.appendChild(chip);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initFilters();
+  initModeAndMap();
   buildSequence();
   render();
 
