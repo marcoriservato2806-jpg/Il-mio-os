@@ -255,6 +255,26 @@ function matchupEdge(a, b) {
   return actual - (50 + (oa - ob));
 }
 
+// Stima per le coppie mai misurate — cioè il 95% delle combinazioni, visto
+// che nessuna fonte pubblica la matrice completa. Usa la media dei residui
+// veri osservati fra quelle due classi (vedi CLASS_EDGE in data.js).
+// Il fattore 0,5 è una correzione deliberata: le coppie misurate sono gli
+// ESTREMI di ogni brawler, quindi le medie per classe sono più marcate di
+// quanto sarebbero su un campione casuale. Dimezzarle è il modo prudente di
+// usarle — meglio sottostimare un vantaggio che inventarne uno.
+const CLASS_EDGE_SHRINK = 0.5;
+function classEdge(ca, cb) {
+  const row = CLASS_EDGE[ca];
+  const v = row ? row[cb] : undefined;
+  if (v !== null && v !== undefined) return v * CLASS_EDGE_SHRINK;
+  // Cella senza abbastanza osservazioni: invece di arrendersi a zero si usa
+  // il modello additivo sui margini (vedi data.js), che copre ogni coppia.
+  const atk = CLASS_MARGIN_ATTACK[ca];
+  const def = CLASS_MARGIN_DEFEND[cb];
+  if (atk === undefined || def === undefined) return 0;
+  return (atk + def) * CLASS_EDGE_SHRINK;
+}
+
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
   // Contro ogni avversario già schierato si usa il matchup misurato quando
   // c'è (dato reale su quella coppia precisa), altrimenti il vantaggio di
@@ -267,12 +287,15 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     const en = names[i];
     const edge = en ? matchupEdge(candidateName, en) : null;
     if (edge !== null) {
+      // coppia misurata davvero: peso pieno, ed è quella che merita l'etichetta
       matchup += edge / 8;
       if (Math.abs(edge) >= 4) {
-        counters.push({ enemy: en, edge: Math.round(edge * 10) / 10 });
+        counters.push({ enemy: en, edge: Math.round(edge * 10) / 10, measured: true });
       }
     } else {
-      matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+      // coppia mai misurata: stima calibrata sulla classe, senza etichetta,
+      // perché non è un dato su QUESTI due brawler ma sulla loro categoria
+      matchup += classEdge(candidateClass, ec) / 8;
     }
   }
 

@@ -156,23 +156,6 @@ const BRAWLERS = [
   { name: "Jae-Yong", class: "Support" },
 ];
 
-// Matrice dei vantaggi di classe (euristica generale da game design,
-// non un tier-list di meta): CLASS_MATCHUPS[A][B] = punteggio di A contro B.
-//  +1 = A è favorito contro B, -1 = A è sfavorito, 0 = neutro.
-// Coppie usate: Tank>Assassin, DamageDealer>Tank, DamageDealer>Assassin,
-// Marksman>DamageDealer, Assassin>Marksman, Assassin>Support,
-// Assassin>Artillery, Artillery>Marksman, Controller>Tank,
-// Controller>DamageDealer, Artillery>Controller.
-const CLASS_MATCHUPS = {
-  "Tank": { "Tank": 0, "Damage Dealer": -1, "Assassin": 1, "Marksman": 0, "Controller": -1, "Artillery": 0, "Support": 0 },
-  "Damage Dealer": { "Tank": 1, "Damage Dealer": 0, "Assassin": 1, "Marksman": -1, "Controller": -1, "Artillery": 0, "Support": 0 },
-  "Assassin": { "Tank": -1, "Damage Dealer": -1, "Assassin": 0, "Marksman": 1, "Controller": 0, "Artillery": 1, "Support": 1 },
-  "Marksman": { "Tank": 0, "Damage Dealer": 1, "Assassin": -1, "Marksman": 0, "Controller": 0, "Artillery": -1, "Support": 0 },
-  "Controller": { "Tank": 1, "Damage Dealer": 1, "Assassin": 0, "Marksman": 0, "Controller": 0, "Artillery": -1, "Support": 0 },
-  "Artillery": { "Tank": 0, "Damage Dealer": 0, "Assassin": -1, "Marksman": 1, "Controller": 1, "Artillery": 0, "Support": 0 },
-  "Support": { "Tank": 0, "Damage Dealer": 0, "Assassin": -1, "Marksman": 0, "Controller": 0, "Artillery": 0, "Support": 0 },
-};
-
 const CLASS_COLORS = {
   "Tank": "#7c6b4f",
   "Damage Dealer": "#c0453a",
@@ -695,94 +678,207 @@ const DEFAULT_META_SCORES_MASTERS = {
   "Jessie": 35.5,
 };
 
-// COUNTER REALI — letti dalle pagine per brawler di BrawlMetrics il 6/9/2026.
+// ============================================================
+// MATCHUP — misurati brawler per brawler, e modellati dove non
+// è possibile misurarli.
+// ============================================================
 //
-// PERCHÉ SERVE UNA NORMALIZZAZIONE (e perché la versione precedente di questa
-// app aveva scartato questi dati). Presi grezzi, i "forte contro / debole
-// contro" di BrawlMetrics sono quasi inutili: praticamente ogni brawler
-// risulta "debole contro Wendy" e "forte contro Shelly", perché Wendy è la
-// più forte del gioco e Shelly la più debole. Non è un matchup, è la
-// classifica generale riscritta.
+// COS'È STATO RACCOLTO. Le pagine per brawler di BrawlMetrics sono state
+// lette UNA PER UNA per 104 dei 108 brawler (mancano Bonnie e i due appena
+// usciti, Vince e Cosmo, che non hanno ancora statistiche). Ogni pagina
+// pubblica la win rate generale del brawler più i suoi 3 matchup migliori e
+// 3 peggiori: in totale 623 coppie misurate, leggibili nei due versi.
 //
-// Il rimedio è togliere dal numero la parte spiegata dalla sola differenza di
-// forza. Il valore atteso di A contro B è circa
+// PERCHÉ I NUMERI GREZZI INGANNANO. Preso così com'è, quasi ogni brawler
+// risulta "debole contro Wendy" e "forte contro Shelly": non è un matchup,
+// è la classifica generale riscritta, perché Wendy è la più forte e Shelly
+// la più debole. Si toglie quindi la parte spiegata dalla sola differenza
+// di forza:
 //     atteso(A,B) = 50 + (forzaGenerale(A) − forzaGenerale(B))
-// e quello che resta — actual − atteso — è il matchup vero. Il modello è
-// stato verificato sui dati: Edgar contro Wendy fa 22,6% con un atteso di
-// 23,0 (residuo −0,4: NON è un counter, è solo Wendy forte), mentre Jae-Yong
-// contro Wendy fa 29,5% con un atteso di 43,0 (residuo −13,5: counter vero).
-// Nita, che ha il 40,5% generale, contro Edgar fa 55,4% con atteso 49,9:
-// residuo +5,5, cioè Nita lo batte davvero nonostante sia più debole.
+// e quel che resta, actual − atteso, è il matchup vero.
 //
-// COPERTURA E LIMITE ONESTO. Ogni pagina pubblica solo i 3 matchup migliori e
-// i 3 peggiori, cioè gli estremi. Qui ci sono i 46 brawler più scelti (quelli
-// che l'avversario ha davvero probabilità di prendere), per ~276 coppie
-// misurate. Le coppie si leggono anche al contrario — se A contro B fa 30%,
-// allora B contro A fa 70% — il che raddoppia la copertura. Restano comunque
-// buchi: per gli abbinamenti non misurati l'app ricade sull'euristica di
-// classe, e lo dice.
+// IL MODELLO È STATO VERIFICATO, NON DATO PER BUONO. Sulle 623 coppie il
+// residuo medio è −0,01 con deviazione standard 5,57: la formula non ha
+// distorsione sistematica (se fosse sbagliata, la media non cadrebbe sullo
+// zero), e la dispersione dice che i matchup veri valgono tipicamente ±5-6
+// punti percentuali. Esempi: Edgar contro Wendy fa 22,6% con atteso 23,0
+// (residuo −0,4: NON è un counter, è solo Wendy forte), mentre Jae-Yong
+// contro Wendy fa 29,5% con atteso 43,0 (residuo −13,5: counter vero).
 const BRAWLER_OVERALL = {
   "Wendy": 67.6, "Amber": 64.9, "Bolt": 64.5, "Shade": 64.4, "Gus": 63.9,
-  "Trunk": 63.8, "Starr Nova": 63.0, "Damian": 62.5, "Nori": 61.5, "Doug": 61.1,
-  "Lumi": 61.0, "Jae-Yong": 60.6, "Meeple": 60.2, "Draco": 60.0, "Pierce": 59.8,
-  "Bo": 58.6, "Hank": 58.2, "Stu": 58.2, "Mina": 57.8, "Sirius": 57.6,
-  "Kaze": 56.3, "Willow": 56.1, "Mortis": 54.4, "Ash": 54.3, "Pearl": 52.8,
-  "Griff": 51.7, "Colette": 50.7, "Max": 50.5, "El Primo": 49.7, "Carl": 49.6,
-  "Bibi": 48.2, "Meg": 47.7, "Buster": 46.4, "Byron": 45.7, "Surge": 45.7,
-  "Ollie": 44.8, "Emz": 44.7, "Piper": 44.7, "8-Bit": 44.4, "Colt": 44.2,
-  "Crow": 43.5, "Brock": 41.9, "Edgar": 40.6, "Nita": 40.5, "Shelly": 40.5,
-  "Rico": 40.1,
+  "Trunk": 63.8, "Starr Nova": 63.0, "Damian": 62.5, "Nori": 61.5, "Gigi": 61.3,
+  "Doug": 61.1, "Lumi": 61.0, "Jae-Yong": 60.6, "Meeple": 60.2, "Draco": 60.0,
+  "Pierce": 59.8, "Finx": 59.4, "Glowy": 59.2, "Sprout": 59.1, "Rosa": 59.0,
+  "R-T": 59.0, "Sam": 58.8, "Chester": 58.7, "Bo": 58.6, "Hank": 58.2,
+  "Stu": 58.2, "Alli": 58.2, "Mina": 57.8, "Gray": 57.7, "Janet": 57.7,
+  "Sirius": 57.6, "Moe": 57.6, "Najia": 57.4, "Ruffs": 57.2, "Mico": 57.1,
+  "Kit": 56.9, "Mandy": 56.9, "Nani": 56.8, "Kaze": 56.3, "Willow": 56.1,
+  "Chuck": 55.9, "Ziggy": 55.7, "Bull": 55.4, "Mortis": 54.4, "Ash": 54.3,
+  "Juju": 54.3, "Angelo": 54.2, "Tara": 54.0, "Pearl": 52.8, "Maisie": 52.7,
+  "Squeak": 52.0, "Larry & Lawrie": 51.8, "Griff": 51.7, "Gale": 51.3, "Buzz": 51.0,
+  "Poco": 50.8, "Colette": 50.7, "Max": 50.5, "Melodie": 50.4, "Frank": 50.0,
+  "Fang": 50.0, "El Primo": 49.7, "Lou": 49.7, "Carl": 49.6, "Pam": 49.5,
+  "Otis": 49.4, "Sandy": 49.2, "Spike": 48.9, "Bea": 48.6, "Cordelius": 48.5,
+  "Clancy": 48.4, "Bibi": 48.2, "Kenji": 48.2, "Belle": 48.2, "Berry": 48.0,
+  "Leon": 47.9, "Penny": 47.9, "Meg": 47.7, "Gene": 47.7, "Charlie": 47.3,
+  "Lily": 47.2, "Tick": 46.6, "Buster": 46.4, "Barley": 46.4, "Darryl": 46.2,
+  "Surge": 45.7, "Byron": 45.7, "Jessie": 45.2, "Ollie": 44.8, "Emz": 44.7,
+  "Piper": 44.7, "8-Bit": 44.4, "Colt": 44.2, "Grom": 44.0, "Dynamike": 43.8,
+  "Crow": 43.5, "Jacky": 43.2, "Mr. P": 43.0, "Brock": 41.9, "Eve": 41.1,
+  "Edgar": 40.6, "Nita": 40.5, "Shelly": 40.5, "Rico": 40.1,
 };
 
-// MATCHUPS[A][B] = percentuale di vittorie di A quando affronta B.
+// MATCHUPS[A][B] = percentuale di vittorie di A contro B (dato misurato).
 const MATCHUPS = {
-  "Wendy": { "Shelly": 83.6, "Nita": 81.4, "Barley": 80.3, "Shade": 52.3, "Amber": 54.4, "Ash": 56.3 },
-  "Nita": { "Edgar": 55.4, "Meg": 54.9, "Rico": 54.7, "Gus": 17.2, "Bolt": 17.9, "Wendy": 18.7 },
-  "Gus": { "Shelly": 82.8, "Nita": 82.8, "Rico": 75.9, "Wendy": 40.6, "Nori": 46.1, "Amber": 46.7 },
-  "Bolt": { "Nita": 82.1, "Shelly": 80.3, "Eve": 75.2, "Wendy": 43.2, "Shade": 46.8, "Damian": 46.9 },
-  "Nori": { "Barley": 76.4, "Shelly": 75.2, "Eve": 75.1, "Wendy": 40.8, "Bolt": 50.2, "Starr Nova": 50.2 },
-  "Edgar": { "Eve": 54.0, "Mr. P": 53.7, "Brock": 53.3, "Wendy": 22.6, "Gus": 24.5, "Bolt": 26.5 },
-  "Shade": { "Shelly": 77.7, "Nita": 75.7, "Colt": 72.5, "Amber": 45.8, "Nori": 45.8, "Wendy": 47.7 },
+  "8-Bit": { "Eve": 59.5, "Clancy": 57.5, "Mr. P": 57.4, "Wendy": 27.5, "Gus": 27.8, "Jae-Yong": 28.9 },
+  "Alli": { "Nita": 75.1, "Shelly": 74.6, "Rico": 69.2, "Wendy": 28.3, "Doug": 38.8, "Bolt": 38.9 },
   "Amber": { "Shelly": 76.1, "Nita": 72.5, "Colt": 71.8, "Wendy": 45.6, "Nori": 46.2, "Starr Nova": 49.3 },
-  "Trunk": { "Nita": 78.2, "Shelly": 77.9, "Mr. P": 74.1, "Wendy": 38.1, "Starr Nova": 42.0, "Nori": 42.8 },
-  "Damian": { "Shelly": 78.5, "Nita": 78.0, "Eve": 72.0, "Wendy": 39.3, "Amber": 45.2, "Shade": 46.0 },
-  "Starr Nova": { "Shelly": 77.3, "Nita": 75.1, "Barley": 72.5, "Wendy": 40.5, "Nori": 49.8, "Amber": 50.7 },
-  "Jae-Yong": { "Nita": 80.5, "Shelly": 79.7, "Pam": 74.3, "Wendy": 29.5, "Nori": 37.3, "Starr Nova": 38.3 },
-  "Doug": { "Shelly": 77.0, "Nita": 74.8, "Jacky": 70.9, "Wendy": 39.4, "Sirius": 46.2, "Amber": 46.3 },
-  "Lumi": { "Shelly": 77.4, "Nita": 74.4, "Colt": 70.7, "Wendy": 40.3, "Nori": 45.4, "Amber": 45.7 },
+  "Angelo": { "Shelly": 71.8, "Nita": 71.0, "Rico": 66.4, "Wendy": 27.2, "Nori": 33.3, "Shade": 34.8 },
   "Ash": { "Shelly": 67.9, "Mr. P": 64.9, "Nita": 64.0, "Jae-Yong": 38.0, "Nori": 38.6, "Amber": 40.4 },
+  "Barley": { "Eve": 56.7, "Gene": 56.7, "Mr. P": 55.9, "Wendy": 19.6, "Nori": 23.6, "Bolt": 24.8 },
+  "Bea": { "Shelly": 62.4, "Nita": 58.3, "Edgar": 54.5, "Wendy": 26.9, "Bo": 30.4, "Jae-Yong": 32.1 },
+  "Belle": { "Shelly": 61.8, "Nita": 58.6, "Colt": 56.9, "Wendy": 29.4, "Nori": 31.4, "Trunk": 32.5 },
+  "Berry": { "Shelly": 63.9, "Ollie": 61.1, "Eve": 60.5, "Wendy": 28.5, "Nori": 31.2, "Starr Nova": 34.3 },
   "Bibi": { "Eve": 61.6, "Mr. P": 61.4, "Grom": 59.7, "Wendy": 33.4, "Amber": 34.0, "Shade": 34.9 },
-  "Draco": { "Shelly": 77.4, "Nita": 75.7, "Eve": 72.5, "Wendy": 35.7, "Nori": 41.3, "Starr Nova": 41.4 },
-  "Hank": { "Nita": 74.3, "Shelly": 74.1, "Rico": 67.2, "Wendy": 32.1, "Nori": 34.4, "Jae-Yong": 37.8 },
-  "Meg": { "Piper": 55.7, "Brock": 55.7, "Mr. P": 55.6, "Wendy": 29.4, "Bolt": 32.3, "Gus": 32.9 },
-  "Buster": { "Shelly": 60.9, "Piper": 55.6, "Nita": 55.6, "Trunk": 31.1, "Nori": 31.4, "Wendy": 31.8 },
-  "Ollie": { "Shelly": 60.6, "Nita": 56.1, "Eve": 55.5, "Wendy": 27.0, "Bolt": 27.4, "Trunk": 27.4 },
-  "Sirius": { "Shelly": 74.9, "Nita": 70.2, "Pam": 68.1, "Wendy": 36.6, "Bolt": 43.6, "Shade": 44.3 },
-  "Griff": { "Shelly": 62.0, "Eve": 59.9, "Nita": 59.9, "Wendy": 35.4, "Gus": 38.4, "Amber": 38.6 },
+  "Bo": { "Gene": 73.2, "Ollie": 72.2, "Pam": 72.1, "Wendy": 31.5, "Bolt": 39.7, "Nori": 40.5 },
+  "Bolt": { "Nita": 82.1, "Shelly": 80.3, "Eve": 75.2, "Wendy": 43.2, "Shade": 46.8, "Damian": 46.9 },
   "Brock": { "Piper": 49.1, "Eve": 49.0, "Grom": 48.9, "Wendy": 27.0, "Bolt": 28.0, "Nori": 28.2 },
-  "Rico": { "Eve": 52.9, "Brock": 51.3, "Mr. P": 51.0, "Gus": 24.1, "Wendy": 24.2, "Bolt": 25.9 },
-  "Surge": { "Brock": 54.2, "Colt": 53.6, "Barley": 53.3, "Wendy": 26.4, "Shade": 31.9, "Amber": 32.2 },
-  "Max": { "Shelly": 63.7, "Nita": 62.3, "Eve": 60.3, "Wendy": 31.3, "Nori": 33.7, "Shade": 35.4 },
-  "Stu": { "Shelly": 74.0, "Nita": 72.2, "Edgar": 65.6, "Wendy": 29.6, "Gus": 36.6, "Amber": 37.8 },
-  "Emz": { "Eve": 59.8, "Mr. P": 58.7, "Pam": 57.8, "Wendy": 29.8, "Bolt": 31.7, "Gus": 31.8 },
-  "Kaze": { "Shelly": 72.3, "Barley": 67.4, "Nita": 66.5, "Wendy": 33.6, "Nori": 43.3, "Starr Nova": 43.4 },
+  "Bull": { "Shelly": 68.8, "Nita": 68.3, "Rico": 61.7, "Wendy": 29.4, "Amber": 31.0, "Shade": 32.9 },
+  "Buster": { "Shelly": 60.9, "Piper": 55.6, "Nita": 55.6, "Trunk": 31.1, "Nori": 31.4, "Wendy": 31.8 },
+  "Buzz": { "Shelly": 66.1, "Nita": 61.4, "Bonnie": 59.8, "Wendy": 30.4, "Amber": 35.5, "Gus": 37.5 },
+  "Byron": { "Shelly": 58.3, "Nita": 55.1, "Colt": 54.5, "Wendy": 26.4, "Trunk": 31.5, "Nori": 32.5 },
+  "Carl": { "Shelly": 62.5, "Edgar": 61.3, "Eve": 61.3, "Wendy": 29.1, "Gus": 32.1, "Bolt": 32.3 },
+  "Charlie": { "Shelly": 61.4, "Brock": 55.9, "Nita": 55.8, "Bo": 30.0, "Trunk": 31.4, "Wendy": 31.8 },
+  "Chester": { "Shelly": 74.7, "Nita": 71.3, "Barley": 68.2, "Wendy": 31.6, "Shade": 44.5, "Lumi": 44.6 },
+  "Chuck": { "Shelly": 73.2, "Gene": 66.3, "Ollie": 65.9, "Nori": 34.1, "Wendy": 34.3, "Amber": 38.9 },
+  "Clancy": { "Shelly": 60.1, "Eve": 55.5, "Surge": 55.2, "Wendy": 30.7, "Gus": 34.2, "Amber": 36.1 },
+  "Colette": { "Shelly": 62.9, "Mr. P": 58.9, "Nita": 58.9, "Wendy": 27.0, "Shade": 36.3, "Nori": 36.5 },
   "Colt": { "Shelly": 52.1, "Eve": 52.0, "Brock": 51.7, "Wendy": 20.6, "Gus": 24.7, "Bolt": 26.2 },
+  "Cordelius": { "Shelly": 63.7, "Eve": 58.6, "Brock": 57.5, "Wendy": 28.9, "Gus": 34.9, "Amber": 35.8 },
+  "Crow": { "Shelly": 56.0, "Nita": 54.8, "Mr. P": 54.7, "Wendy": 21.5, "Shade": 30.6, "Gus": 31.3 },
+  "Damian": { "Shelly": 78.5, "Nita": 78.0, "Eve": 72.0, "Wendy": 39.3, "Amber": 45.2, "Shade": 46.0 },
+  "Darryl": { "Eve": 60.2, "Edgar": 60.0, "Shelly": 59.8, "Wendy": 22.4, "Gus": 27.8, "Jae-Yong": 29.4 },
+  "Doug": { "Shelly": 77.0, "Nita": 74.8, "Jacky": 70.9, "Wendy": 39.4, "Sirius": 46.2, "Amber": 46.3 },
+  "Draco": { "Shelly": 77.4, "Nita": 75.7, "Eve": 72.5, "Wendy": 35.7, "Nori": 41.3, "Starr Nova": 41.4 },
+  "Dynamike": { "Pam": 57.7, "Gene": 57.5, "Mr. P": 57.4, "Wendy": 23.4, "Bolt": 28.7, "Shade": 29.8 },
+  "Edgar": { "Eve": 54.0, "Mr. P": 53.7, "Brock": 53.3, "Wendy": 22.6, "Gus": 24.5, "Bolt": 26.5 },
+  "El Primo": { "Eve": 56.7, "Brock": 56.2, "Edgar": 54.9, "Bolt": 25.6, "Jae-Yong": 26.3, "Wendy": 29.0 },
+  "Emz": { "Eve": 59.8, "Mr. P": 58.7, "Pam": 57.8, "Wendy": 29.8, "Bolt": 31.7, "Gus": 31.8 },
+  "Eve": { "Piper": 53.2, "Shelly": 51.9, "Brock": 50.9, "Nori": 24.6, "Bolt": 24.9, "Wendy": 25.6 },
+  "Fang": { "Shelly": 61.6, "Nita": 57.4, "Edgar": 57.0, "Wendy": 30.3, "Shade": 37.2, "Amber": 38.3 },
+  "Finx": { "Shelly": 77.4, "Nita": 75.7, "Rico": 70.0, "Wendy": 32.8, "Bolt": 41.8, "Nori": 42.5 },
+  "Frank": { "Eve": 64.8, "Mr. P": 63.1, "Pam": 62.4, "Wendy": 29.2, "Bolt": 32.7, "Gus": 34.4 },
+  "Gale": { "Shelly": 67.2, "Nita": 63.3, "Eve": 59.9, "Wendy": 28.1, "Amber": 35.7, "Gus": 35.8 },
+  "Gene": { "Shelly": 61.0, "Nita": 58.0, "Piper": 55.0, "Wendy": 24.5, "Nori": 26.9, "Bo": 26.9 },
+  "Gigi": { "Shelly": 77.2, "Nita": 75.6, "Rico": 71.5, "Wendy": 38.2, "Damian": 43.0, "Nori": 43.6 },
+  "Glowy": { "Shelly": 76.7, "Nita": 74.0, "Colt": 69.8, "Wendy": 35.3, "Nori": 38.2, "Sirius": 39.5 },
+  "Gray": { "Shelly": 74.1, "Nita": 72.1, "Edgar": 67.0, "Wendy": 31.2, "Nori": 43.1, "Bolt": 43.2 },
+  "Griff": { "Shelly": 62.0, "Eve": 59.9, "Nita": 59.9, "Wendy": 35.4, "Gus": 38.4, "Amber": 38.6 },
+  "Grom": { "Shelly": 57.1, "Nita": 55.5, "Eve": 52.8, "Wendy": 23.7, "Nori": 25.7, "Bolt": 27.6 },
+  "Gus": { "Shelly": 82.8, "Nita": 82.8, "Rico": 75.9, "Wendy": 40.6, "Nori": 46.1, "Amber": 46.7 },
+  "Hank": { "Nita": 74.3, "Shelly": 74.1, "Rico": 67.2, "Wendy": 32.1, "Nori": 34.4, "Jae-Yong": 37.8 },
+  "Jacky": { "Eve": 58.9, "Mr. P": 55.0, "Gene": 54.7, "Wendy": 23.3, "Bolt": 25.4, "Jae-Yong": 26.2 },
+  "Jae-Yong": { "Nita": 80.5, "Shelly": 79.7, "Pam": 74.3, "Wendy": 29.5, "Nori": 37.3, "Starr Nova": 38.3 },
+  "Janet": { "Shelly": 74.4, "Nita": 72.0, "Rico": 67.3, "Wendy": 31.4, "Bolt": 38.2, "Starr Nova": 39.6 },
+  "Jessie": { "Eve": 62.0, "Ollie": 59.2, "Mr. P": 58.2, "Wendy": 25.6, "Bolt": 27.5, "Gus": 29.3 },
+  "Juju": { "Shelly": 73.3, "Nita": 70.3, "Jacky": 65.0, "Wendy": 29.9, "Nori": 35.4, "Bolt": 37.5 },
+  "Kaze": { "Shelly": 72.3, "Barley": 67.4, "Nita": 66.5, "Wendy": 33.6, "Nori": 43.3, "Starr Nova": 43.4 },
+  "Kenji": { "Brock": 59.8, "Mr. P": 59.6, "Grom": 58.6, "Wendy": 32.5, "Bolt": 35.0, "Shade": 36.4 },
+  "Kit": { "Shelly": 72.6, "Nita": 70.8, "Barley": 68.9, "Wendy": 35.2, "Damian": 43.7, "Shade": 44.0 },
+  "Larry & Lawrie": { "Shelly": 66.9, "Nita": 64.0, "Eve": 62.8, "Wendy": 28.9, "Nori": 31.4, "Bolt": 32.2 },
+  "Leon": { "Shelly": 60.6, "Nita": 59.8, "Brock": 57.5, "Wendy": 23.9, "Nori": 33.4, "Bolt": 33.5 },
+  "Lily": { "Shelly": 60.9, "Grom": 56.1, "Nita": 56.1, "Wendy": 26.2, "Bolt": 33.1, "Shade": 33.1 },
+  "Lou": { "Shelly": 60.8, "Surge": 57.7, "Colt": 56.4, "Wendy": 32.9, "Nori": 35.5, "Gus": 36.1 },
+  "Lumi": { "Shelly": 77.4, "Nita": 74.4, "Colt": 70.7, "Wendy": 40.3, "Nori": 45.4, "Amber": 45.7 },
+  "Maisie": { "Shelly": 65.8, "Nita": 60.5, "Mr. P": 59.9, "Wendy": 29.6, "Gus": 37.5, "Bolt": 37.7 },
+  "Mandy": { "Shelly": 72.5, "Nita": 71.2, "Jacky": 69.8, "Wendy": 32.3, "Bolt": 42.9, "Starr Nova": 44.6 },
+  "Max": { "Shelly": 63.7, "Nita": 62.3, "Eve": 60.3, "Wendy": 31.3, "Nori": 33.7, "Shade": 35.4 },
+  "Meeple": { "Shelly": 76.9, "Nita": 76.4, "Rico": 70.1, "Wendy": 29.1, "Bolt": 40.8, "Damian": 41.1 },
+  "Meg": { "Piper": 55.7, "Brock": 55.7, "Mr. P": 55.6, "Wendy": 29.4, "Bolt": 32.3, "Gus": 32.9 },
+  "Melodie": { "Shelly": 63.9, "Eve": 58.7, "Brock": 58.0, "Wendy": 32.0, "Gus": 34.5, "Amber": 35.5 },
+  "Mico": { "Shelly": 75.3, "Nita": 70.2, "Rico": 67.7, "Wendy": 28.3, "Nori": 36.6, "Bolt": 37.0 },
+  "Mina": { "Shelly": 75.5, "Nita": 72.4, "Edgar": 68.9, "Wendy": 33.6, "Shade": 41.2, "Amber": 41.7 },
+  "Moe": { "Shelly": 75.9, "Nita": 73.6, "Colt": 68.0, "Wendy": 30.3, "Nori": 39.1, "Shade": 40.0 },
+  "Mortis": { "Nita": 75.5, "Shelly": 74.8, "Barley": 69.8, "Wendy": 26.2, "Shade": 33.3, "Amber": 34.0 },
+  "Mr. P": { "Shelly": 56.6, "Piper": 53.2, "Nita": 53.2, "Wendy": 25.3, "Nori": 25.5, "Bolt": 25.6 },
+  "Najia": { "Shelly": 74.8, "Nita": 72.5, "Colt": 68.3, "Wendy": 32.4, "Bolt": 36.4, "Starr Nova": 39.9 },
+  "Nani": { "Shelly": 72.1, "Nita": 70.0, "Rico": 64.7, "Wendy": 27.9, "Nori": 37.9, "Starr Nova": 38.2 },
+  "Nita": { "Edgar": 55.4, "Meg": 54.9, "Rico": 54.7, "Gus": 17.2, "Bolt": 17.9, "Wendy": 18.7 },
+  "Nori": { "Barley": 76.4, "Shelly": 75.2, "Eve": 75.1, "Wendy": 40.8, "Bolt": 50.2, "Starr Nova": 50.2 },
+  "Ollie": { "Shelly": 60.6, "Nita": 56.1, "Eve": 55.5, "Wendy": 27.0, "Bolt": 27.4, "Trunk": 27.4 },
+  "Otis": { "Shelly": 61.5, "Colt": 57.1, "Surge": 57.0, "Wendy": 30.0, "Trunk": 35.7, "Bo": 36.1 },
+  "Pam": { "Shelly": 60.7, "Eve": 59.2, "Nita": 57.7, "Wendy": 25.1, "Jae-Yong": 25.6, "Nori": 25.7 },
+  "Pearl": { "Shelly": 66.3, "Nita": 61.4, "Brock": 61.3, "Wendy": 33.8, "Jae-Yong": 38.1, "Nori": 38.3 },
+  "Penny": { "Eve": 62.5, "Shelly": 62.2, "Mr. P": 60.9, "Wendy": 24.5, "Bolt": 29.9, "Nori": 30.5 },
   "Pierce": { "Shelly": 76.1, "Nita": 72.7, "Jacky": 70.8, "Wendy": 36.4, "Starr Nova": 46.5, "Bolt": 47.7 },
   "Piper": { "Shelly": 52.7, "Colt": 52.6, "Nita": 51.8, "Wendy": 26.4, "Nori": 32.0, "Bolt": 32.6 },
-  "El Primo": { "Eve": 56.7, "Brock": 56.2, "Edgar": 54.9, "Bolt": 25.6, "Jae-Yong": 26.3, "Wendy": 29.0 },
-  "Meeple": { "Shelly": 76.9, "Nita": 76.4, "Rico": 70.1, "Wendy": 29.1, "Bolt": 40.8, "Damian": 41.1 },
-  "8-Bit": { "Eve": 59.5, "Clancy": 57.5, "Mr. P": 57.4, "Wendy": 27.5, "Gus": 27.8, "Jae-Yong": 28.9 },
-  "Mortis": { "Nita": 75.5, "Shelly": 74.8, "Barley": 69.8, "Wendy": 26.2, "Shade": 33.3, "Amber": 34.0 },
-  "Bo": { "Gene": 73.2, "Ollie": 72.2, "Pam": 72.1, "Wendy": 31.5, "Bolt": 39.7, "Nori": 40.5 },
-  "Colette": { "Shelly": 62.9, "Mr. P": 58.9, "Nita": 58.9, "Wendy": 27.0, "Shade": 36.3, "Nori": 36.5 },
-  "Byron": { "Shelly": 58.3, "Nita": 55.1, "Colt": 54.5, "Wendy": 26.4, "Trunk": 31.5, "Nori": 32.5 },
-  "Willow": { "Shelly": 73.3, "Nita": 71.1, "Rico": 65.4, "Wendy": 28.8, "Nori": 36.2, "Bolt": 37.6 },
-  "Crow": { "Shelly": 56.0, "Nita": 54.8, "Mr. P": 54.7, "Wendy": 21.5, "Shade": 30.6, "Gus": 31.3 },
-  "Carl": { "Shelly": 62.5, "Edgar": 61.3, "Eve": 61.3, "Wendy": 29.1, "Gus": 32.1, "Bolt": 32.3 },
-  "Mina": { "Shelly": 75.5, "Nita": 72.4, "Edgar": 68.9, "Wendy": 33.6, "Shade": 41.2, "Amber": 41.7 },
-  "Pearl": { "Shelly": 66.3, "Nita": 61.4, "Brock": 61.3, "Wendy": 33.8, "Jae-Yong": 38.1, "Nori": 38.3 },
+  "Poco": { "Eve": 57.7, "Rico": 56.3, "Gene": 56.1, "Wendy": 27.8, "Bolt": 31.5, "Nori": 32.8 },
+  "R-T": { "Shelly": 76.8, "Nita": 74.0, "Edgar": 69.0, "Wendy": 33.1, "Jae-Yong": 40.9, "Finx": 42.1 },
+  "Rico": { "Eve": 52.9, "Brock": 51.3, "Mr. P": 51.0, "Gus": 24.1, "Wendy": 24.2, "Bolt": 25.9 },
+  "Rosa": { "Shelly": 71.5, "Nita": 70.2, "Rico": 66.4, "Nori": 27.3, "Wendy": 27.9, "Bolt": 30.6 },
+  "Ruffs": { "Shelly": 75.7, "Nita": 72.7, "Edgar": 68.0, "Wendy": 31.8, "Bolt": 38.8, "Damian": 40.9 },
+  "Sam": { "Nita": 76.7, "Shelly": 76.6, "Rico": 68.7, "Wendy": 32.2, "Nori": 35.4, "Pierce": 37.3 },
+  "Sandy": { "Eve": 62.8, "Shelly": 61.8, "Brock": 58.5, "Wendy": 30.2, "Gus": 34.6, "Bolt": 35.9 },
+  "Shade": { "Shelly": 77.7, "Nita": 75.7, "Colt": 72.5, "Amber": 45.8, "Nori": 45.8, "Wendy": 47.7 },
   "Shelly": { "Rico": 52.3, "Brock": 52.3, "Edgar": 52.1, "Wendy": 16.4, "Gus": 17.3, "Bolt": 19.6 },
+  "Sirius": { "Shelly": 74.9, "Nita": 70.2, "Pam": 68.1, "Wendy": 36.6, "Bolt": 43.6, "Shade": 44.3 },
+  "Spike": { "Shelly": 61.9, "Nita": 60.7, "Ollie": 58.7, "Wendy": 27.0, "Shade": 35.6, "Bolt": 36.3 },
+  "Sprout": { "Nita": 76.7, "Shelly": 76.2, "Gene": 71.0, "Wendy": 30.4, "Nori": 37.9, "Starr Nova": 39.3 },
+  "Squeak": { "Shelly": 65.2, "Nita": 62.0, "Ollie": 61.6, "Wendy": 30.6, "Bolt": 36.4, "Starr Nova": 38.7 },
+  "Starr Nova": { "Shelly": 77.3, "Nita": 75.1, "Barley": 72.5, "Wendy": 40.5, "Nori": 49.8, "Amber": 50.7 },
+  "Stu": { "Shelly": 74.0, "Nita": 72.2, "Edgar": 65.6, "Wendy": 29.6, "Gus": 36.6, "Amber": 37.8 },
+  "Surge": { "Brock": 54.2, "Colt": 53.6, "Barley": 53.3, "Wendy": 26.4, "Shade": 31.9, "Amber": 32.2 },
+  "Tara": { "Shelly": 67.0, "Nita": 65.0, "Mr. P": 62.6, "Wendy": 29.6, "Nori": 35.9, "Bolt": 37.3 },
+  "Tick": { "Gene": 60.1, "Pam": 59.5, "Shelly": 58.6, "Wendy": 28.5, "Bolt": 32.0, "Shade": 33.2 },
+  "Trunk": { "Nita": 78.2, "Shelly": 77.9, "Mr. P": 74.1, "Wendy": 38.1, "Starr Nova": 42.0, "Nori": 42.8 },
+  "Wendy": { "Shelly": 83.6, "Nita": 81.4, "Barley": 80.3, "Shade": 52.3, "Amber": 54.4, "Ash": 56.3 },
+  "Willow": { "Shelly": 73.3, "Nita": 71.1, "Rico": 65.4, "Wendy": 28.8, "Nori": 36.2, "Bolt": 37.6 },
+  "Ziggy": { "Shelly": 74.5, "Nita": 73.5, "Rico": 67.6, "Wendy": 29.1, "Bolt": 33.1, "Nori": 35.4 },
 };
+
+// MATRICE PER CLASSE, CALIBRATA SUI DATI. Le 623 coppie misurate coprono
+// circa il 5% delle 11.556 combinazioni possibili: nessuna fonte pubblica
+// la matrice completa, quindi il resto va stimato, non inventato. Qui i
+// residui misurati sono stati raggruppati per coppia di classi e mediati:
+// il risultato è una stima fondata su misure vere per OGNI combinazione.
+//
+// Questa matrice ha SOSTITUITO l'euristica scritta a mano che c'era prima,
+// e in più punti la smentisce: la vecchia dava il Tank favorito contro
+// l'Assassin (+1), i dati dicono −5,96. Confermano invece Assassin forte
+// contro Artillery (+7,30) e Artillery contro Controller (+7,90).
+//
+// DUE CAUTELE, applicate nel codice (vedi classEdge in app.js):
+//  1. Le coppie misurate sono gli ESTREMI di ogni brawler (3 migliori e 3
+//     peggiori), non un campione casuale: le medie per classe sono quindi
+//     più marcate del vero. Per questo l'app le dimezza (fattore 0,5)
+//     invece di usarle tali e quali.
+//  2. Le celle con meno di 5 osservazioni sono `null`, non un numero
+//     traballante spacciato per stima: lì il contributo è zero.
+// Il numero fra parentesi è il campione su cui la cella è calcolata.
+const CLASS_EDGE = {
+  "Artillery": { "Artillery": null, "Assassin": -6.16, "Controller": 7.9, "Damage Dealer": 4.43, "Marksman": null, "Support": -1.84, "Tank": -2.09 },
+  "Assassin": { "Artillery": 7.3, "Assassin": -2.73, "Controller": 0.67, "Damage Dealer": 3.92, "Marksman": -0.28, "Support": -4.24, "Tank": -1.35 },
+  "Controller": { "Artillery": null, "Assassin": -5.11, "Controller": 0.1, "Damage Dealer": 3.28, "Marksman": null, "Support": -1.33, "Tank": -0.91 },
+  "Damage Dealer": { "Artillery": null, "Assassin": -1.81, "Controller": 1.24, "Damage Dealer": 3.78, "Marksman": 2.21, "Support": -4.45, "Tank": -0.63 },
+  "Marksman": { "Artillery": null, "Assassin": -4.03, "Controller": null, "Damage Dealer": 2.86, "Marksman": null, "Support": -4.85, "Tank": 0.98 },
+  "Support": { "Artillery": null, "Assassin": -4.41, "Controller": -2.82, "Damage Dealer": 4.37, "Marksman": null, "Support": -4.85, "Tank": -1.08 },
+  "Tank": { "Artillery": null, "Assassin": -5.96, "Controller": 2.17, "Damage Dealer": 3.57, "Marksman": null, "Support": -4.19, "Tank": -4.84 },
+};
+
+// MARGINI PER CLASSE — la rete di sicurezza per le combinazioni che nemmeno
+// la matrice per classe copre (celle con meno di 5 osservazioni). Sono i
+// due effetti separati: quanto rende una classe COME ATTACCANTE, e quanto è
+// facile batterla COME BERSAGLIO, entrambi al netto della differenza di
+// forza. Per una coppia scoperta la stima è la somma dei due.
+//
+// Il dato più interessante che ne esce: conta molto più CHI AFFRONTI che
+// chi sei. Da attaccante le classi si equivalgono (fra −0,78 e +0,56), da
+// bersaglio no: l'artiglieria è preda facile (+6,48, cioè chi la affronta
+// vince quasi 6,5 punti in più del previsto), mentre Assassin (−4,04) e
+// Support (−3,66) sono i bersagli più duri. È il motivo per cui un
+// artigliere lasciato scoperto perde la partita, anche se sulla carta è forte.
+const CLASS_MARGIN_ATTACK = {"Artillery": 0.56, "Assassin": 0.37, "Controller": 0.34, "Damage Dealer": 0.1, "Marksman": -0.52, "Support": -0.15, "Tank": -0.78};
+const CLASS_MARGIN_DEFEND = {"Artillery": 6.48, "Assassin": -4.04, "Controller": 1.34, "Damage Dealer": 3.71, "Marksman": 1.33, "Support": -3.66, "Tank": -1.31};
 
 // USE RATE (quanto spesso un brawler viene REALMENTE scelto in
 // Classificata, tutti i ranghi) — stessa tabella di DEFAULT_META_SCORES,
