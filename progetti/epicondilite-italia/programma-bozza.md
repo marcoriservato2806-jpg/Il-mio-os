@@ -26,4 +26,4 @@ Quindi il valore non è "un nuovo esercizio segreto", è: spiegare bene, dare un
 
 ## Stato
 
-Bozza discussa il 2026-09-06. Prossimo passo: Marco valida con persone vere (vedi file affiancato) prima di rifinire questa struttura.
+Bozza discussa il 2026-09-06. **In pausa il 2026-09-06**: Marco ha deciso di rimandare questo progetto a dopo la laurea (tra 4-5 anni), quando avrà titolo e credibilità clinica vera. Per ora cerca qualcosa che non richieda formazione specifica. La ricerca e la bozza restano qui, non si buttano: si riprendono quando ha senso.

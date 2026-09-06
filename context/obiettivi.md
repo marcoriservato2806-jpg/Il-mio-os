@@ -8,7 +8,8 @@
   - Risorse disponibili: 10 ore a settimana libere. Skill dichiarate oltre alla fisioterapia: "non so fare granché" (autovalutazione di Marco, non verificata — probabilmente più basso del vero, da non prendere come dato fisso).
   - Vincolo esplicito, precisato il 2026-09-06: niente faccia sui social, niente brand personale pubblico. Ma nessun problema a esporsi di persona — vendere, trattare, parlare con clienti va bene. Vedi anche `identity.md`.
   - Aggiornamento 2026-09-06: ha alzato il target — non vuole più un lavoretto/side hustle, vuole "costruire qualcosa di scalabile che può fare milioni", dice di essere "disposto a tutto" (nei limiti del vincolo social sopra).
-  - **Direzione scelta (2026-09-06):** e-commerce con protocollo guidato per l'epicondilite, localizzato per il mercato italiano — vedi [[nicchia-riabilitazione-guidata]] in `memoria/wiki/` per l'analisi completa. Primo passo concreto: validare con un prodotto digitale (guida/programma) prima di investire in un prodotto fisico.
+  - **Epicondilite: in pausa (2026-09-06).** Marco ha deciso di rimandarla a dopo la laurea (4-5 anni) — richiede credibilità clinica che non ha ancora. Ricerca e bozza restano in `progetti/epicondilite-italia/` e `memoria/wiki/nicchia-riabilitazione-guidata.md`, si riprendono quando ha senso.
+  - **Ora cerca qualcosa di più semplice, che non richieda formazione/credenziali specifiche.** Ancora da definire quale niche/prodotto — in corso.
 
 ## Cosa non voglio che succeda
 
