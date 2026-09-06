@@ -1,3 +1,554 @@
+<title>Assistente Draft Classificata</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap");
+
+/* Tema unico, scuro di proposito: è un'app che apri col gioco aperto, spesso
+   di sera. I neutri hanno una punta di viola invece di essere grigi puri, così
+   il fondo non sembra un default; l'oro è l'unico colore acceso e lo spende
+   solo la riga che stai per giocare. */
+:root {
+  --bg: #14121b;
+  --panel: #1d1a26;
+  --panel-2: #262231;
+  --border: #383246;
+  --text: #ece9f2;
+  --text-dim: #9c95ad;
+  --team-a: #4d8bf0;
+  --team-b: #e8534a;
+  --accent: #ffc23d;
+  --good: #57d99a;
+  --bad: #ff7a7a;
+  font-family: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-synthesis-weight: none;
+}
+
+/* Le percentuali stanno incolonnate: senza cifre a larghezza fissa ballano
+   e diventano più lente da confrontare, che è esattamente ciò che serve fare. */
+.sugg-score, .sugg-class, .meta-status, .map-notes { font-variant-numeric: tabular-nums; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  padding: 20px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0 0 16px;
+}
+
+.config-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+}
+
+.config-bar label {
+  color: var(--text-dim);
+}
+
+.config-bar input[type="number"],
+.config-bar input[type="text"] {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  width: 90px;
+}
+
+.config-bar input#pick-pattern {
+  width: 160px;
+}
+
+#mode-select,
+#map-select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+#map-select:disabled {
+  opacity: 0.4;
+}
+
+.map-notes {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--team-a);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 0 0 14px;
+}
+
+.trait-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trait-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px 3px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.trait-chip input {
+  cursor: pointer;
+}
+
+button {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+button:hover:not(:disabled) { background: #302b3d; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+.turn-banner {
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+.turn-banner.team-a { border-color: var(--team-a); color: var(--team-a); }
+.turn-banner.team-b { border-color: var(--team-b); color: var(--team-b); }
+.turn-banner.done { border-color: var(--good); color: var(--good); }
+
+.boards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.team-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.team-panel.a { border-top: 3px solid var(--team-a); }
+.team-panel.b { border-top: 3px solid var(--team-b); }
+
+.team-panel h2 {
+  font-size: 0.95rem;
+  margin: 0 0 8px;
+}
+
+.slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.slot {
+  min-width: 84px;
+  min-height: 44px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.slot.filled { border-style: solid; }
+.slot.ban.filled { opacity: 0.55; text-decoration: line-through; }
+.slot-placeholder { color: var(--text-dim); font-size: 0.7rem; }
+.slot-name { font-weight: 600; }
+.slot-class { color: var(--text-dim); font-size: 0.65rem; }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
+.panel-title {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filters select,
+.filters input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+}
+
+.filters input { flex: 1; }
+
+.meta-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.meta-hint {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+#meta-input {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.meta-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.meta-status {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin: 8px 0 0;
+}
+
+.brawler-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.brawler-card {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 6px;
+  background: var(--panel-2);
+  text-align: center;
+}
+
+.brawler-card.clickable { cursor: pointer; }
+.brawler-card.clickable:hover { background: #302b3d; }
+@media (prefers-reduced-motion: no-preference) {
+  .brawler-card.clickable { transition: background 0.12s ease; }
+}
+.brawler-card.used { opacity: 0.25; filter: grayscale(1); }
+
+.brawler-name { font-size: 0.8rem; font-weight: 600; }
+.brawler-class { font-size: 0.65rem; color: var(--text-dim); }
+
+.side-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  align-self: start;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Il roster è un magazzino da cui pescare, non un protagonista: niente
+   ombra, bordi più quieti, così l'occhio va prima ai suggerimenti. */
+.brawler-card { box-shadow: none; }
+
+.suggestion-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  background: var(--panel-2);
+}
+.suggestion-row:hover { background: #302b3d; }
+.suggestion-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* La prima riga è quella che nove volte su dieci giocherai: si distingue
+   senza dover leggere il numero. */
+.suggestion-row.top {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, rgba(255, 194, 61, 0.13), var(--panel-2) 60%);
+}
+.suggestion-row.top .sugg-score { color: var(--accent); }
+.sugg-class { color: var(--text-dim); font-size: 0.7rem; }
+.sugg-score { font-weight: 700; font-size: 0.95rem; }
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+.badge.trap { background: rgba(255, 122, 122, 0.14); color: var(--bad); border: 1px solid rgba(255, 122, 122, 0.35); }
+.badge.sleeper { background: rgba(87, 217, 154, 0.13); color: var(--good); border: 1px solid rgba(87, 217, 154, 0.32); }
+
+.hint { color: var(--text-dim); font-size: 0.8rem; }
+
+footer {
+  margin-top: 18px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Durante un draft in Classificata hai pochi secondi per decidere, e lo fai
+   dal telefono. Quindi su schermo stretto: i suggerimenti PRIMA del roster
+   (sono la ragione per cui apri l'app), bersagli più grandi da toccare col
+   pollice, e tutto il resto compresso. */
+@media (max-width: 800px) {
+  body { padding: 10px; }
+  .main-grid { grid-template-columns: 1fr; }
+  .side-panel { order: -1; }
+
+  /* I due pannelli squadra restano affiancati anche sul telefono: impilati
+     mangiavano mezzo schermo e spingevano i suggerimenti sotto la piega,
+     cioè esattamente dove non servono a niente quando hai il timer che corre.
+     Sono solo sei caselle per parte: rimpicciolite ci stanno in due colonne. */
+  .boards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .team-panel { padding: 8px; }
+  .team-panel h2 { font-size: 0.8rem; }
+  .boards .panel-title { font-size: 0.68rem; margin-bottom: 5px; }
+  .boards .slot-row { gap: 4px; margin-bottom: 6px; }
+  .boards .slot {
+    min-width: 0;
+    flex: 1 1 30%;
+    min-height: 34px;
+    padding: 2px;
+    font-size: 0.62rem;
+  }
+  .boards .slot-class { display: none; }
+  .boards .slot-placeholder { font-size: 0.58rem; }
+
+  /* La barra di configurazione serve una volta a inizio partita: compatta. */
+  .config-bar { font-size: 0.8rem; }
+  .config-bar input[type="number"] { width: 56px; }
+  .config-bar input#pick-pattern { width: 108px; }
+  h1 { font-size: 1.15rem; }
+  .subtitle { font-size: 0.78rem; margin-bottom: 10px; }
+
+  .config-bar { padding: 8px 10px; gap: 8px; }
+  #mode-select, #map-select, .filters select, .filters input {
+    padding: 9px 8px;
+    font-size: 0.9rem;
+  }
+  #map-select { max-width: 100%; }
+
+  .brawler-grid {
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    max-height: 340px;
+  }
+  .brawler-card { padding: 11px 6px; }
+  .suggestion-row { padding: 10px; font-size: 0.9rem; }
+  .slot { min-width: 70px; min-height: 40px; }
+  button { padding: 9px 12px; }
+}
+
+/* La documentazione delle fonti è lunga apposta (serve a poterla
+   controllare), ma non deve stare fra te e il draft: chiusa di default. */
+footer details summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  padding: 8px 0;
+}
+footer details[open] summary { margin-bottom: 8px; }
+
+</style>
+
+<div class="container">
+  <h1>Assistente Draft — Brawl Stars Classificata</h1>
+  <p class="subtitle">
+    Gestisci ban e pick della partita e ricevi suggerimenti basati sulle classi già scelte dalle due squadre.
+    Formato di ban/pick regolabile qui sotto: i rank più bassi non hanno ban, da Diamante in su sì — controlla il tuo rank attuale e imposta di conseguenza.
+  </p>
+
+  <div class="config-bar">
+    <label for="bans-per-team">Ban per squadra</label>
+    <input type="number" id="bans-per-team" min="0" max="3" value="3" />
+
+    <label for="pick-pattern">Ordine pick (A/B)</label>
+    <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
+
+    <button id="apply-config">Applica e ricomincia</button>
+    <button id="undo-btn">Annulla ultima mossa</button>
+    <button id="reset-btn">Reset draft</button>
+  </div>
+
+  <div class="config-bar">
+    <label for="mode-select">Modalità</label>
+    <select id="mode-select"></select>
+
+    <label for="map-select">Mappa</label>
+    <select id="map-select"></select>
+
+    <label>Caratteristiche mappa (se non è in elenco)</label>
+    <div class="trait-list" id="map-traits"></div>
+  </div>
+
+  <p id="map-notes" class="map-notes" hidden></p>
+
+  <div id="turn-banner" class="turn-banner"></div>
+
+  <div class="boards">
+    <div class="team-panel a">
+      <h2>Squadra Blu</h2>
+      <div class="panel-title">Ban</div>
+      <div class="slot-row" id="bans-A"></div>
+      <div class="panel-title">Pick</div>
+      <div class="slot-row" id="picks-A"></div>
+    </div>
+    <div class="team-panel b">
+      <h2>Squadra Rossa</h2>
+      <div class="panel-title">Ban</div>
+      <div class="slot-row" id="bans-B"></div>
+      <div class="panel-title">Pick</div>
+      <div class="slot-row" id="picks-B"></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div>
+      <p class="panel-title">Roster</p>
+      <div class="filters">
+        <select id="class-filter"></select>
+        <input type="text" id="search-box" placeholder="Cerca brawler..." />
+      </div>
+      <div class="brawler-grid" id="brawler-grid"></div>
+    </div>
+
+    <div class="side-panel">
+      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
+      <div id="suggestions"></div>
+    </div>
+  </div>
+
+  <div class="meta-panel">
+    <p class="panel-title">Dati meta</p>
+    <p class="meta-hint">
+      Win rate reali su Classificata (BrawlMetrics, letti il 6/9/2026), attivi di base senza
+      nessuna azione richiesta. "Tutti i ranghi" è la media Bronze→Pro, adatta alla maggior parte
+      delle partite; "Masters" riflette meglio la meta ad alto livello/con squadra coordinata,
+      dove alcuni pick (es. El Primo) rendono molto di più che in ladder. Se vuoi aggiungere o
+      correggere un numero, incolla qui una lista (una riga per brawler, es. "Piper 62%") e premi
+      "Salva e applica"; resta facoltativo. Salvato solo in questo browser.
+    </p>
+    <label for="meta-source-select">Fascia dati meta</label>
+    <select id="meta-source-select">
+      <option value="ALL_RANKS">Tutti i ranghi (Bronze→Pro)</option>
+      <option value="MASTERS">Masters / competitivo</option>
+    </select>
+    <textarea id="meta-input" rows="5" placeholder="Piper 62%&#10;Brock: 58.4&#10;Edgar 43%"></textarea>
+    <div class="meta-actions">
+      <button id="meta-save">Salva e applica</button>
+      <button id="meta-clear">Cancella</button>
+    </div>
+    <p id="meta-status" class="meta-status"></p>
+  </div>
+
+  <footer>
+    <details>
+      <summary>Da dove vengono i numeri, cosa è stato controllato e cosa è stato scartato</summary>
+    <strong>Come funzionano i suggerimenti:</strong> il punteggio somma quattro cose. (1) <em>Matchup</em>: vantaggio di classe contro i pick avversari già scesi in campo (Tank↔Assassin, Damage Dealer↔Tank/Assassin/Marksman, Marksman↔Artillery, Controller↔Tank/Damage Dealer/Artillery, Assassin↔Marksman/Support/Artillery) — questa parte resta un'euristica di design, non un dato misurato. (2) <em>Sinergia</em>: penalizza tre volte la stessa classe e premia i ruoli mancanti (frontline, support). (3) <em>Mappa o modalità</em>: win rate reale, con la mappa che ha la precedenza quando esiste — non si sommano, perché la mappa è un sottoinsieme della modalità e contarle entrambe conterebbe due volte lo stesso segnale. Il peso del dato mappa scala con la sua affidabilità (campione × freschezza). (4) <em>Meta</em>: win rate generale in Classificata nella fascia di rango scelta. Passa il mouse sul punteggio per vedere quanto pesa ogni pezzo.
+    <br /><br />
+    <strong>Roster:</strong> 106 brawler su 108. Mancano solo Vince (non ancora uscito, release ottobre 2026) e Cosmo (annunciato per settembre 2026, disponibilità in Classificata non confermata) — esclusi apposta finché non sono verificati, non per svista. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
+    <br /><br />
+    <strong>Modalità:</strong> selezionando una delle 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout), i suggerimenti usano il win rate REALE di ciascun brawler in quella modalità specifica (106/106 brawler, BrawlMetrics, 6/9/2026) — non più una stima per classe. La differenza è enorme per alcuni: Rosa è S+ 72% in Brawl Ball ma D 39% in Bounty; Edgar è S+ 54% in Heist ma D 35% in Knockout. Unico limite: questi numeri coprono "tutti i livelli di trofei" in quella modalità, non solo la Classificata, e non è stato trovato un secondo sito con lo stesso dettaglio per un riscontro incrociato numerico — trattali come "come si comporta il brawler in quella modalità", non come un dato Ranked-puro al 100%.
+    <br /><br />
+    <strong>Mappe:</strong> 36 mappe, di cui <strong>29 con win rate reali per singolo brawler</strong>, lette una pagina alla volta da BrawlMetrics il 6/9/2026: in totale <strong>quasi 16 milioni di partite</strong> analizzate. Per ogni mappa l'app ti dice quante partite e di che data sono i dati, e ne pesa il valore di conseguenza: Flaring Phoenix ha 3,7 milioni di partite ma sono di fine luglio, quindi vale meno di Triple Dribble che ne ha 1,4 milioni aggiornate a ieri. Le 7 mappe senza pagina dati sono marcate "dati non verificati" e pesano poco. Correzione importante trovata col controllo incrociato: <strong>Ring of Fire era in elenco ma è stata rimossa dal gioco nel gennaio 2021</strong>; aggiunte invece 7 mappe della rotazione attuale che mancavano (On A Roll, Tasty Berry, Backyard Bowl, Jedna, Hot Tubs, Photic Doom, Konnakol).
+    <br /><br />
+    <strong>Ban:</strong> durante la fase di ban l'app ti dice chi bannare (prima non diceva niente). La priorità non è solo "il più forte": è forza × quanto quel brawler viene <em>davvero</em> scelto. Bannare un mostro che però prende lo 0,05% dei giocatori è un ban buttato.
+    <br /><br />
+    <strong>Trappole e sottovalutati:</strong> confrontando win rate e use rate (quante volte un brawler viene scelto) escono due categorie che la sola tier list nasconde. Le <span style="color:#ff9d9d">trappole</span> — molto scelte, perdono lo stesso: Griff (4,29% di scelte, 49,4% di vittorie), Max (2,50% / 47,4%), Colt (2,18% / 47,6%), Pierce (2,14% / 45,9%). E i <span style="color:#8fe3b4">sottovalutati</span> — vincono tanto ma quasi nessuno li prende, quindi quasi nessuno li banna e te li ritrovi liberi: il caso limite è Wendy, prima in assoluto per win rate (58,3%) e scelta solo dall'1,40%.
+    <br /><br />
+    <strong>Un dato che ho controllato e buttato via.</strong> BrawlMetrics pubblica per ogni brawler "forte contro / debole contro" con percentuali, e sembra la funzione più preziosa che esista per un drafter. Campionandone 17 salta fuori che è quasi tutta apparenza: "debole contro Wendy" compare in 15 casi su 17, e "forte contro Shelly/Nita" in quasi tutti — perfino Shelly, la più debole del gioco, risulta "debole contro Wendy, Gus, Bolt". Non sono matchup: è la classifica generale riscritta al contrario, e metterla nel punteggio significherebbe contare due volte la stessa informazione facendola sembrare due. Non è stata usata. Lo stesso vale per la lista di counter di Brawlio (nessun numero, terne identiche per classi diverse).
+    <br /><br />
+    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → BrawlMetrics (fonte numerica principale: ranked per fascia di rango, per modalità e per mappa), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi), Brawl Planet e timesaver.gg (contesto, con l'avvertenza che il primo misura partite trofei e non Classificata). Provate e scartate → Brawlify, noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (tutte bloccano il fetch: 403/402), brawlstats.net (429), Brawl Calculator (solo indice, i dati stanno su 107 pagine separate), pinkcrow.net (solo 6 nomi, articolo di agosto), huskyboost (nessun numero, senza data). Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter per ogni brawler ma senza numeri e con triple identiche per brawler di classi diverse: non è stata usata nel punteggio per non aggiungere rumore travestito da dato.
+    <br /><br />
+    <strong>Dati meta:</strong> 106 win rate reali su Classificata (uno per quasi ogni brawler del roster), letti il 6 settembre 2026 direttamente dalle tabelle di BrawlMetrics — non stime, non citazioni di seconda mano. Incrociati con Dexerto (tier list indipendente, senza numeri): i due concordano sulla stessa cinquina S — Wendy, Shade, Gus, Amber, Nori — che sono quindi i pick più sicuri in assoluto. Due tabelle disponibili dal menu "Fascia dati meta": <strong>tutti i ranghi</strong> (Bronze→Pro, il default) e <strong>Masters</strong>, perché la meta cambia parecchio con lo scaglione — es. El Primo è S tier a Masters (serve coordinazione di squadra) ma molto più debole in ladder media. Il riquadro applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage). Brawlify, noff.gg e Brawl Time Ninja restano bloccati (403) al fetch diretto anche oggi: non è stato possibile usarli come terza fonte numerica indipendente, solo BrawlMetrics + Dexerto.
+    </details>
+  </footer>
+</div>
+
+<script>
 // Dati del draft: roster brawler e matrice dei vantaggi di classe.
 //
 // ATTENZIONE SULLA COMPLETEZZA DEL ROSTER:
@@ -739,3 +1290,654 @@ const META_SOURCE_LABELS = {
   ALL_RANKS: "Ranked, tutti i ranghi (Bronze→Pro) — brawlmetrics.gg, 6/9/2026",
   MASTERS: "Ranked, solo Masters — brawlmetrics.gg, 6/9/2026",
 };
+
+
+// Logica del draft: stato, sequenza turni, punteggio suggerimenti, rendering.
+
+const state = {
+  bansPerTeam: 3, // Diamante+: ogni giocatore banna 1 brawler, 3 a squadra in 3v3
+  pickPattern: ["A", "B", "B", "A", "A", "B"], // 3v3 standard "1-2-2-1"
+  sequence: [], // array di {phase:'ban'|'pick', team:'A'|'B'}
+  turnIndex: 0,
+  bans: { A: [], B: [] },
+  picks: { A: [], B: [] },
+  filterClass: "ALL",
+  search: "",
+  mode: null, // una di MODES, o null = nessuna modalità selezionata
+  mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
+  map: null, // riferimento a un oggetto di MAPS, o null
+  customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
+  metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
+};
+
+const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
+const META_SOURCE_STORAGE_KEY = "bsdraft_meta_source_v1";
+
+function baseMetaScores() {
+  return state.metaSource === "MASTERS" ? DEFAULT_META_SCORES_MASTERS : DEFAULT_META_SCORES;
+}
+
+// I valori della tabella di base scelta (vedi baseMetaScores) si applicano
+// sempre, senza che l'utente debba incollare nulla. Quello che l'utente
+// eventualmente incolla e salva (persistito in localStorage) si somma
+// sopra, sovrascrivendo il default nome per nome dove i due coincidono.
+function loadCustomScores() {
+  let raw = "";
+  try {
+    raw = localStorage.getItem(META_STORAGE_KEY) || "";
+    state.metaSource = localStorage.getItem(META_SOURCE_STORAGE_KEY) || "ALL_RANKS";
+  } catch (e) {
+    raw = "";
+  }
+  const { scores } = parseMetaText(raw);
+  setCustomScores({ ...baseMetaScores(), ...scores });
+  return raw;
+}
+
+function saveMetaRaw(raw) {
+  try {
+    localStorage.setItem(META_STORAGE_KEY, raw);
+  } catch (e) {
+    // localStorage non disponibile (es. modalità privata): i dati restano solo per questa sessione
+  }
+}
+
+function saveMetaSource(source) {
+  state.metaSource = source;
+  try {
+    localStorage.setItem(META_SOURCE_STORAGE_KEY, source);
+  } catch (e) {
+    // localStorage non disponibile: la scelta vale solo per questa sessione
+  }
+}
+
+// Parser tollerante: cerca in ogni riga un nome di brawler noto (parola intera,
+// case-insensitive, i nomi più lunghi prima per evitare match parziali tipo
+// "Bo" dentro "Bonnie") e il primo numero della riga (con o senza "%").
+// Righe senza nome riconosciuto o senza numero vengono segnalate, non ignorate in silenzio.
+function parseMetaText(text) {
+  const scores = {};
+  const unrecognized = [];
+  const namesByLengthDesc = BRAWLERS.map((b) => b.name).sort((a, b) => b.length - a.length);
+
+  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  for (const line of lines) {
+    let matchedName = null;
+    for (const name of namesByLengthDesc) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, "i");
+      if (re.test(line)) {
+        matchedName = name;
+        break;
+      }
+    }
+    const numMatch = line.match(/(\d+(?:[.,]\d+)?)\s*%?/);
+    if (matchedName && numMatch) {
+      scores[matchedName] = parseFloat(numMatch[1].replace(",", "."));
+    } else {
+      unrecognized.push(line);
+    }
+  }
+  return { scores, unrecognized };
+}
+
+function buildSequence() {
+  const seq = [];
+  for (let i = 0; i < state.bansPerTeam; i++) {
+    seq.push({ phase: "ban", team: "A" });
+    seq.push({ phase: "ban", team: "B" });
+  }
+  for (const team of state.pickPattern) {
+    seq.push({ phase: "pick", team });
+  }
+  state.sequence = seq;
+  state.turnIndex = 0;
+}
+
+function usedNames() {
+  return new Set([
+    ...state.bans.A,
+    ...state.bans.B,
+    ...state.picks.A,
+    ...state.picks.B,
+  ]);
+}
+
+function currentTurn() {
+  return state.sequence[state.turnIndex] || null;
+}
+
+function classOf(name) {
+  const b = BRAWLERS.find((x) => x.name === name);
+  return b ? b.class : null;
+}
+
+// Quanto fidarsi dei dati di una mappa: due cose diverse la rovinano.
+// Dati vecchi (la mappa non è in rotazione da settimane, quindi le sue
+// win rate sono di prima degli ultimi riequilibri) e campione piccolo.
+// Restituisce 0..1, usato per pesare il bonus mappa invece di trattare
+// allo stesso modo 1,5 milioni di partite di ieri e 10mila di un mese fa.
+function mapConfidence(map) {
+  if (!map || !map.winRates || !map.updated) return 0;
+  const days = (Date.now() - new Date(map.updated + "T00:00:00Z").getTime()) / 86400000;
+  const freshness = days <= 7 ? 1 : days <= 21 ? 0.75 : days <= 45 ? 0.5 : 0.35;
+  const size = map.sample >= 100000 ? 1 : map.sample >= 30000 ? 0.85 : 0.7;
+  return freshness * size;
+}
+
+function confidenceLabel(conf) {
+  if (conf >= 0.85) return "alta";
+  if (conf >= 0.6) return "media";
+  if (conf > 0) return "bassa";
+  return "nessun dato";
+}
+
+// Minaccia = quanto forte è un brawler sul contesto più specifico che
+// conosciamo (mappa > modalità > meta generale). Usata per suggerire i ban.
+function threatOf(name) {
+  if (state.map && state.map.winRates && state.map.winRates[name] !== undefined) {
+    return { value: state.map.winRates[name], source: "mappa" };
+  }
+  if (state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][name] !== undefined) {
+    return { value: MODE_WIN_RATES[state.mode][name], source: "modalità" };
+  }
+  if (state.customScores[name] !== undefined) {
+    return { value: state.customScores[name], source: "meta" };
+  }
+  return null;
+}
+
+// Etichetta un brawler confrontando la sua POSIZIONE per win rate con la
+// sua POSIZIONE per quante volte viene scelto. Il confronto per posizione
+// invece che per soglie fisse evita il problema opposto: con soglie secche
+// Wendy (58,3% di vittorie ma solo 1,40% di scelte) non veniva segnalata,
+// pur essendo il sottovalutato da manuale — prima per forza, ventitreesima
+// per popolarità, quindi quasi mai bannata.
+//  - "sottovalutato": molto più in alto per vittorie che per scelte, ED è
+//    davvero forte (>=52%). Senza quest'ultima condizione finirebbero in
+//    lista brawler solo impopolari, non buoni.
+//  - "trappola": molto più scelto di quanto meriti, e sotto il 50%.
+// Entrambi usano la win rate generale in Classificata, la stessa
+// popolazione da cui viene la use rate: confrontare numeri omogenei.
+let _rankCache = null;
+
+// Unico punto in cui si riscrive customScores, così la cache dei ranking
+// non può restare indietro rispetto ai dati (succedeva incollando valori
+// propri: la fascia non cambiava e la cache non veniva invalidata).
+function setCustomScores(scores) {
+  state.customScores = scores;
+  _rankCache = null;
+}
+
+function pickRanks() {
+  if (_rankCache) return _rankCache;
+  const rows = Object.keys(state.customScores)
+    .filter((n) => USE_RATES[n] !== undefined)
+    .map((n) => ({ n, wr: state.customScores[n], use: USE_RATES[n] }));
+  [...rows].sort((a, b) => b.wr - a.wr).forEach((r, i) => (r.wrRank = i + 1));
+  [...rows].sort((a, b) => b.use - a.use).forEach((r, i) => (r.useRank = i + 1));
+  _rankCache = new Map(rows.map((r) => [r.n, r]));
+  return _rankCache;
+}
+
+function pickFlag(name) {
+  const r = pickRanks().get(name);
+  if (!r) return null;
+  const gap = r.useRank - r.wrRank;
+  if (gap >= 18 && r.wr >= 52) return { kind: "sleeper", use: r.use, wr: r.wr, gap };
+  if (gap <= -30 && r.wr < 50) return { kind: "trap", use: r.use, wr: r.wr, gap };
+  return null;
+}
+
+// Un ban serve a togliere dal tavolo qualcosa che l'avversario userebbe
+// davvero: bannare il brawler più forte in assoluto che però prende lo
+// 0,05% dei giocatori è un ban buttato. Quindi la priorità mescola forza
+// (nel contesto più specifico che abbiamo) e probabilità di essere scelto.
+function computeBanSuggestions() {
+  const used = usedNames();
+  const candidates = [];
+  for (const b of BRAWLERS) {
+    if (used.has(b.name)) continue;
+    const t = threatOf(b.name);
+    if (!t) continue;
+    const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
+    // La percentuale di scelte che abbiamo è GLOBALE. Pesarci sopra una win
+    // rate di mappa significherebbe mescolare due popolazioni diverse, e si
+    // vede subito quanto sbaglia: su Super Beach Rosa vince l'80,7% ma è
+    // scelta globalmente dallo 0,14%, quindi finiva dietro a brawler molto
+    // più deboli su quella mappa. Ma è ovvio che su Super Beach Rosa la
+    // prendono, ed è ovvio che vada bannata. Quindi il peso della
+    // popolarità vale pieno solo quando anche la forza è un dato globale,
+    // e quasi si annulla quando parliamo di una mappa specifica.
+    const popWeight = t.source === "mappa" ? 0.25 : t.source === "modalità" ? 0.6 : 1;
+    const popularity = 1 + (Math.min(use, 4.5) / 3) * popWeight;
+    const priority = (t.value - 50) * popularity;
+    candidates.push({
+      name: b.name, class: b.class, wr: t.value, source: t.source,
+      use, priority: Math.round(priority * 10) / 10,
+    });
+  }
+  candidates.sort((a, b) => b.priority - a.priority);
+  return candidates.slice(0, 8);
+}
+
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses) {
+  let matchup = 0;
+  for (const ec of enemyClasses) {
+    matchup += CLASS_MATCHUPS[candidateClass][ec] || 0;
+  }
+
+  const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
+  let synergy = -sameClassCount; // scoraggia 3x la stessa classe
+
+  const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
+  if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) {
+    synergy += 1;
+  }
+  const hasSupport = ownClasses.some((c) => c === "Support");
+  if (!hasSupport && candidateClass === "Support" && ownClasses.length >= 1) {
+    synergy += 0.5;
+  }
+
+  // Mappa e modalità NON si sommano: la mappa è il dato più specifico
+  // che esiste, quindi quando c'è una win rate misurata su quella mappa
+  // sostituisce quella di modalità invece di sommarcisi (altrimenti lo
+  // stesso segnale verrebbe contato due volte, visto che la mappa è un
+  // sottoinsieme della modalità).
+  const mapWr = state.map && state.map.winRates ? state.map.winRates[candidateName] : undefined;
+
+  let mapBonus = 0;
+  for (const trait of state.mapTraits) {
+    mapBonus += (MAP_TRAIT_CLASS_BONUS[trait] || {})[candidateClass] || 0;
+  }
+  if (mapWr !== undefined) {
+    mapBonus += ((mapWr - 50) / 10) * mapConfidence(state.map) * 2;
+  } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(candidateName)) {
+    mapBonus += 1.5; // solo un nome citato dalle fonti, senza numero: peso ridotto apposta
+  }
+
+  let modeBonus = 0;
+  if (mapWr === undefined && state.mode && MODE_WIN_RATES[state.mode] && MODE_WIN_RATES[state.mode][candidateName] !== undefined) {
+    modeBonus = (MODE_WIN_RATES[state.mode][candidateName] - 50) / 10;
+  }
+
+  let metaBonus = 0;
+  if (state.customScores[candidateName] !== undefined) {
+    metaBonus = (state.customScores[candidateName] - 50) / 10; // 60% -> +1, 70% -> +2, 40% -> -1...
+  }
+
+  const round2 = (n) => Math.round(n * 100) / 100;
+  // modeBonus ora è un win rate reale per quella modalità (vedi sopra), non più
+  // un +1/-1 euristico per classe: peso 1.5 (più specifico del meta generale,
+  // ma senza schiacciare il matchup di classe, che resta la base).
+  const total = round2(matchup * 2 + synergy + modeBonus * 1.5 + mapBonus + metaBonus);
+  return { total, matchup, synergy, modeBonus: round2(modeBonus), mapBonus, metaBonus: round2(metaBonus) };
+}
+
+function computeSuggestions() {
+  const turn = currentTurn();
+  if (!turn || turn.phase !== "pick") return [];
+
+  const used = usedNames();
+  const own = turn.team;
+  const enemy = own === "A" ? "B" : "A";
+  const ownClasses = state.picks[own].map(classOf);
+  const enemyClasses = state.picks[enemy].map(classOf);
+
+  const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses);
+    return { name: b.name, class: b.class, ...s };
+  });
+
+  candidates.sort((a, b) => b.total - a.total);
+  return candidates.slice(0, 8);
+}
+
+function pickOrBan(name) {
+  const turn = currentTurn();
+  if (!turn) return;
+  const used = usedNames();
+  if (used.has(name)) return;
+
+  if (turn.phase === "ban") {
+    state.bans[turn.team].push(name);
+  } else {
+    state.picks[turn.team].push(name);
+  }
+  state.turnIndex++;
+  render();
+}
+
+function undoLast() {
+  if (state.turnIndex === 0) return;
+  state.turnIndex--;
+  const turn = state.sequence[state.turnIndex];
+  if (turn.phase === "ban") {
+    state.bans[turn.team].pop();
+  } else {
+    state.picks[turn.team].pop();
+  }
+  render();
+}
+
+function resetDraft() {
+  state.bans = { A: [], B: [] };
+  state.picks = { A: [], B: [] };
+  buildSequence();
+  render();
+}
+
+function applyConfig() {
+  const bansInput = document.getElementById("bans-per-team");
+  const patternInput = document.getElementById("pick-pattern");
+  state.bansPerTeam = Math.max(0, Math.min(3, parseInt(bansInput.value, 10) || 0));
+  const pattern = patternInput.value
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s === "A" || s === "B");
+  if (pattern.length > 0) state.pickPattern = pattern;
+  resetDraft();
+}
+
+function renderSlots(team) {
+  const bansEl = document.getElementById(`bans-${team}`);
+  const picksEl = document.getElementById(`picks-${team}`);
+  bansEl.innerHTML = "";
+  picksEl.innerHTML = "";
+
+  const totalBans = state.sequence.filter((s) => s.phase === "ban" && s.team === team).length;
+  const totalPicks = state.sequence.filter((s) => s.phase === "pick" && s.team === team).length;
+
+  for (let i = 0; i < totalBans; i++) {
+    const name = state.bans[team][i];
+    bansEl.appendChild(makeSlot(name, "ban"));
+  }
+  for (let i = 0; i < totalPicks; i++) {
+    const name = state.picks[team][i];
+    picksEl.appendChild(makeSlot(name, "pick"));
+  }
+}
+
+function makeSlot(name, phase) {
+  const div = document.createElement("div");
+  div.className = "slot " + (name ? "filled" : "empty") + " " + phase;
+  if (name) {
+    const cls = classOf(name);
+    div.style.borderColor = CLASS_COLORS[cls] || "#666";
+    div.innerHTML = `<span class="slot-name">${name}</span><span class="slot-class">${cls || ""}</span>`;
+  } else {
+    div.innerHTML = `<span class="slot-placeholder">${phase === "ban" ? "ban" : "pick"}</span>`;
+  }
+  return div;
+}
+
+function renderTurnBanner() {
+  const el = document.getElementById("turn-banner");
+  const turn = currentTurn();
+  if (!turn) {
+    el.textContent = "Draft completato.";
+    el.className = "turn-banner done";
+    return;
+  }
+  const teamName = turn.team === "A" ? "Squadra Blu" : "Squadra Rossa";
+  const phaseName = turn.phase === "ban" ? "banna" : "sceglie";
+  el.textContent = `Turno: ${teamName} ${phaseName} un brawler`;
+  el.className = "turn-banner active " + (turn.team === "A" ? "team-a" : "team-b");
+}
+
+function renderGrid() {
+  const grid = document.getElementById("brawler-grid");
+  grid.innerHTML = "";
+  const used = usedNames();
+  const turn = currentTurn();
+
+  const list = BRAWLERS.filter((b) => {
+    if (state.filterClass !== "ALL" && b.class !== state.filterClass) return false;
+    if (state.search && !b.name.toLowerCase().includes(state.search.toLowerCase())) return false;
+    return true;
+  });
+
+  for (const b of list) {
+    const card = document.createElement("div");
+    const isUsed = used.has(b.name);
+    card.className = "brawler-card" + (isUsed ? " used" : "");
+    card.style.borderColor = CLASS_COLORS[b.class] || "#666";
+    card.innerHTML = `<div class="brawler-name">${b.name}</div><div class="brawler-class">${b.class}</div>`;
+    if (!isUsed && turn) {
+      card.classList.add("clickable");
+      card.title = turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
+      card.addEventListener("click", () => pickOrBan(b.name));
+    }
+    grid.appendChild(card);
+  }
+}
+
+function renderSuggestions() {
+  const el = document.getElementById("suggestions");
+  const titleEl = document.getElementById("suggestions-title");
+  const turn = currentTurn();
+
+  if (!turn) {
+    titleEl.textContent = "Suggerimenti";
+    el.innerHTML = `<p class="hint">Draft completato.</p>`;
+    return;
+  }
+
+  const sign = (n) => (n > 0 ? "+" + n : String(n));
+
+  if (turn.phase === "ban") {
+    titleEl.textContent = "Chi conviene bannare";
+    const bans = computeBanSuggestions();
+    if (bans.length === 0) {
+      el.innerHTML = `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
+      return;
+    }
+    el.innerHTML = `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare.</p>`;
+    bans.forEach((s, i) => {
+      const row = document.createElement("div");
+      row.className = "suggestion-row" + (i === 0 ? " top" : "");
+      row.style.borderColor = CLASS_COLORS[s.class] || "#666";
+      row.innerHTML = `
+        <span class="sugg-name">${s.name}</span>
+        <span class="sugg-class">${s.wr}% · ${s.use}% scelte</span>
+        <span class="sugg-score" title="priorità = (win rate su ${s.source} − 50) pesata per quanto viene scelto">${s.priority}</span>
+      `;
+      row.addEventListener("click", () => pickOrBan(s.name));
+      el.appendChild(row);
+    });
+    return;
+  }
+
+  titleEl.textContent = "Chi conviene scegliere";
+  const suggestions = computeSuggestions();
+  if (suggestions.length === 0) {
+    el.innerHTML = `<p class="hint">Nessun candidato disponibile.</p>`;
+    return;
+  }
+  el.innerHTML = "";
+  suggestions.forEach((s, i) => {
+    const row = document.createElement("div");
+    row.className = "suggestion-row" + (i === 0 ? " top" : "");
+    row.style.borderColor = CLASS_COLORS[s.class] || "#666";
+    const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
+    const flag = pickFlag(s.name);
+    const badge = flag
+      ? `<span class="badge ${flag.kind}" title="${flag.wr}% vittorie · ${flag.use}% di scelte">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
+      : "";
+    row.innerHTML = `
+      <span class="sugg-name">${s.name}${badge}</span>
+      <span class="sugg-class">${s.class}</span>
+      <span class="sugg-score" title="${tooltip}">${sign(s.total)}</span>
+    `;
+    row.addEventListener("click", () => pickOrBan(s.name));
+    el.appendChild(row);
+  });
+}
+
+function render() {
+  renderTurnBanner();
+  renderSlots("A");
+  renderSlots("B");
+  renderGrid();
+  renderSuggestions();
+  document.getElementById("undo-btn").disabled = state.turnIndex === 0;
+}
+
+function initFilters() {
+  const classSelect = document.getElementById("class-filter");
+  classSelect.innerHTML = `<option value="ALL">Tutte le classi</option>`;
+  for (const c of CLASSES) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    classSelect.appendChild(opt);
+  }
+  classSelect.addEventListener("change", (e) => {
+    state.filterClass = e.target.value;
+    renderGrid();
+  });
+
+  document.getElementById("search-box").addEventListener("input", (e) => {
+    state.search = e.target.value;
+    renderGrid();
+  });
+}
+
+function populateMapSelect() {
+  const mapSelect = document.getElementById("map-select");
+  const mapsForMode = state.mode ? MAPS.filter((m) => m.mode === state.mode) : [];
+  mapSelect.innerHTML = `<option value="">Nessuna / non elencata (usa i tratti)</option>`;
+  for (const m of mapsForMode) {
+    const opt = document.createElement("option");
+    opt.value = m.name;
+    opt.textContent = m.winRates
+      ? `${m.name} (${Math.round(m.sample / 1000)}k partite)`
+      : `${m.name} — dati non verificati`;
+    mapSelect.appendChild(opt);
+  }
+  mapSelect.disabled = mapsForMode.length === 0;
+  state.map = null;
+  renderMapNotes();
+}
+
+function renderMapNotes() {
+  const el = document.getElementById("map-notes");
+  if (!state.map) {
+    el.textContent = "";
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const m = state.map;
+  let provenance;
+  if (m.winRates) {
+    const conf = mapConfidence(m);
+    provenance = `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite · aggiornati ${m.updated} · affidabilità ${confidenceLabel(conf)}`;
+  } else {
+    provenance = "Dati mappa: nessuna win rate verificata per questa mappa — sotto ci sono solo nomi citati dalle fonti, pesano poco nei suggerimenti.";
+  }
+  el.innerHTML = `<strong>${provenance}</strong>${m.notes ? "<br />" + m.notes : ""}`;
+}
+
+function initModeAndMap() {
+  const modeSelect = document.getElementById("mode-select");
+  modeSelect.innerHTML = `<option value="">Nessuna / generica</option>`;
+  for (const m of MODES) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    modeSelect.appendChild(opt);
+  }
+  modeSelect.addEventListener("change", (e) => {
+    state.mode = e.target.value || null;
+    populateMapSelect();
+    renderSuggestions();
+  });
+
+  const mapSelect = document.getElementById("map-select");
+  mapSelect.addEventListener("change", (e) => {
+    const found = MAPS.find((m) => m.mode === state.mode && m.name === e.target.value);
+    state.map = found || null;
+    renderMapNotes();
+    renderSuggestions();
+  });
+  populateMapSelect();
+
+  const traitsEl = document.getElementById("map-traits");
+  traitsEl.innerHTML = "";
+  for (const t of MAP_TRAITS) {
+    const chip = document.createElement("label");
+    chip.className = "trait-chip";
+    chip.innerHTML = `<input type="checkbox" value="${t}" /> ${t}`;
+    chip.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked) state.mapTraits.add(t);
+      else state.mapTraits.delete(t);
+      renderSuggestions();
+    });
+    traitsEl.appendChild(chip);
+  }
+}
+
+function renderMetaStatus(unrecognized) {
+  const el = document.getElementById("meta-status");
+  const defaultCount = Object.keys(baseMetaScores()).length;
+  const totalCount = Object.keys(state.customScores).length;
+  const pastedText = (document.getElementById("meta-input").value || "").trim();
+  const sourceLabel = META_SOURCE_LABELS[state.metaSource] || META_SOURCE_LABELS.ALL_RANKS;
+  let msg = `${defaultCount} brawler già inclusi di base — fonte: ${sourceLabel}.`;
+  if (pastedText.length > 0) {
+    msg += ` ${totalCount} in totale contando quelli che hai incollato/corretto tu.`;
+  }
+  if (unrecognized && unrecognized.length > 0) {
+    msg += ` ${unrecognized.length} riga/e non capite: ${unrecognized.slice(0, 3).join(" | ")}${unrecognized.length > 3 ? "…" : ""}`;
+  }
+  el.textContent = msg;
+}
+
+function initMetaPanel() {
+  const textarea = document.getElementById("meta-input");
+  const sourceSelect = document.getElementById("meta-source-select");
+  const raw = loadCustomScores();
+  textarea.value = raw;
+  sourceSelect.value = state.metaSource;
+  renderMetaStatus(null);
+
+  sourceSelect.addEventListener("change", (e) => {
+    saveMetaSource(e.target.value);
+    const { scores } = parseMetaText(textarea.value);
+    setCustomScores({ ...baseMetaScores(), ...scores });
+    renderMetaStatus(null);
+    renderSuggestions();
+  });
+
+  document.getElementById("meta-save").addEventListener("click", () => {
+    const text = textarea.value;
+    const { scores, unrecognized } = parseMetaText(text);
+    setCustomScores({ ...baseMetaScores(), ...scores });
+    saveMetaRaw(text);
+    renderMetaStatus(unrecognized);
+    renderSuggestions();
+  });
+
+  document.getElementById("meta-clear").addEventListener("click", () => {
+    textarea.value = "";
+    setCustomScores({ ...baseMetaScores() });
+    saveMetaRaw("");
+    renderMetaStatus(null);
+    renderSuggestions();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initFilters();
+  initModeAndMap();
+  initMetaPanel();
+  buildSequence();
+  render();
+
+  document.getElementById("apply-config").addEventListener("click", applyConfig);
+  document.getElementById("undo-btn").addEventListener("click", undoLast);
+  document.getElementById("reset-btn").addEventListener("click", resetDraft);
+});
+
+</script>

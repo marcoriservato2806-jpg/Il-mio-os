@@ -207,7 +207,16 @@ function computeBanSuggestions() {
     const t = threatOf(b.name);
     if (!t) continue;
     const use = USE_RATES[b.name] !== undefined ? USE_RATES[b.name] : 0.3;
-    const popularity = 1 + Math.min(use, 4.5) / 3;
+    // La percentuale di scelte che abbiamo è GLOBALE. Pesarci sopra una win
+    // rate di mappa significherebbe mescolare due popolazioni diverse, e si
+    // vede subito quanto sbaglia: su Super Beach Rosa vince l'80,7% ma è
+    // scelta globalmente dallo 0,14%, quindi finiva dietro a brawler molto
+    // più deboli su quella mappa. Ma è ovvio che su Super Beach Rosa la
+    // prendono, ed è ovvio che vada bannata. Quindi il peso della
+    // popolarità vale pieno solo quando anche la forza è un dato globale,
+    // e quasi si annulla quando parliamo di una mappa specifica.
+    const popWeight = t.source === "mappa" ? 0.25 : t.source === "modalità" ? 0.6 : 1;
+    const popularity = 1 + (Math.min(use, 4.5) / 3) * popWeight;
     const priority = (t.value - 50) * popularity;
     candidates.push({
       name: b.name, class: b.class, wr: t.value, source: t.source,
@@ -430,9 +439,9 @@ function renderSuggestions() {
       return;
     }
     el.innerHTML = `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare.</p>`;
-    for (const s of bans) {
+    bans.forEach((s, i) => {
       const row = document.createElement("div");
-      row.className = "suggestion-row";
+      row.className = "suggestion-row" + (i === 0 ? " top" : "");
       row.style.borderColor = CLASS_COLORS[s.class] || "#666";
       row.innerHTML = `
         <span class="sugg-name">${s.name}</span>
@@ -441,7 +450,7 @@ function renderSuggestions() {
       `;
       row.addEventListener("click", () => pickOrBan(s.name));
       el.appendChild(row);
-    }
+    });
     return;
   }
 
@@ -452,9 +461,9 @@ function renderSuggestions() {
     return;
   }
   el.innerHTML = "";
-  for (const s of suggestions) {
+  suggestions.forEach((s, i) => {
     const row = document.createElement("div");
-    row.className = "suggestion-row";
+    row.className = "suggestion-row" + (i === 0 ? " top" : "");
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     const tooltip = `matchup ${sign(s.matchup)} · sinergia ${sign(s.synergy)} · modalità ${sign(s.modeBonus)} · mappa ${sign(s.mapBonus)} · meta ${sign(s.metaBonus)}`;
     const flag = pickFlag(s.name);
@@ -468,7 +477,7 @@ function renderSuggestions() {
     `;
     row.addEventListener("click", () => pickOrBan(s.name));
     el.appendChild(row);
-  }
+  });
 }
 
 function render() {
