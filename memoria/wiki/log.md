@@ -1,5 +1,8 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-06 13:10] app | Pulsante per saltare i ban in qualsiasi momento
+In partita la fase ban dura una ventina di secondi e non si fa in tempo a inserirne sei. Il salto accorcia la sequenza ai ban effettivamente inseriti invece di spostare solo l'indice: senza questo, "annulla" tornava su caselle mai riempite e cancellava il ban sbagliato.
+
 ## [2026-09-06 12:40] app | Punteggio riscritto in percentuali di vittoria, analisi adattata all'ordine 1-2-2-1, memoria wiki creata
 Il punteggio era in punti astratti e non si capiva: ora è una percentuale di vittorie stimata. Aggiunto il rischio residuo (esposizione a ciò che l'avversario può ancora prendere), perché con l'ordine 1-2-2-1 solo l'ultimo pick vede tre avversari. Corretto un bug per cui i brawler senza dati risultavano i più solidi.
 

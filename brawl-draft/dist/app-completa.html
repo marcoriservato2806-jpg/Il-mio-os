@@ -540,6 +540,19 @@ footer details[open] summary { margin-bottom: 8px; }
 .risk-chip.warn { border-color: rgba(255, 122, 122, 0.5); color: var(--bad); }
 .risk-chip.ok { border-color: rgba(87, 217, 154, 0.35); color: var(--good); }
 
+/* Salta i ban: deve essere trovabile in due secondi mentre il timer corre,
+   quindi sta in cima al pannello che stai già guardando, a tutta larghezza. */
+.skip-bans {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  font-weight: 600;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+.skip-bans:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+
 </style>
 
 <div class="container">
@@ -2030,6 +2043,22 @@ function undoLast() {
   render();
 }
 
+// In partita la fase ban dura una ventina di secondi e spesso non fai in
+// tempo a inserirli tutti. Questo salta ai pick MANTENENDO i ban che hai già
+// messo: la sequenza viene accorciata a quelli effettivamente inseriti,
+// invece di limitarsi a spostare l'indice. Serve perché altrimenti "annulla"
+// tornerebbe su caselle di ban mai riempite e finirebbe per cancellare il
+// ban sbagliato — i due indici non corrisponderebbero più.
+function skipBans() {
+  const turn = currentTurn();
+  if (!turn || turn.phase !== "ban") return;
+  const banTurnsDone = state.sequence.slice(0, state.turnIndex).filter((t) => t.phase === "ban");
+  const pickTurns = state.sequence.filter((t) => t.phase === "pick");
+  state.sequence = [...banTurnsDone, ...pickTurns];
+  state.turnIndex = banTurnsDone.length;
+  render();
+}
+
 function resetDraft() {
   state.bans = { A: [], B: [] };
   state.picks = { A: [], B: [] };
@@ -2268,10 +2297,16 @@ function renderSuggestions() {
     titleEl.textContent = "Chi conviene bannare";
     const bans = computeBanSuggestions();
     if (bans.length === 0) {
-      el.innerHTML = `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
+      el.innerHTML =
+        `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
+        `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
+      const b = document.getElementById("skip-bans");
+      if (b) b.addEventListener("click", skipBans);
       return;
     }
-    el.innerHTML = `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare.</p>`;
+    el.innerHTML =
+      `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
+      `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare, oppure salta: i ban che hai già inserito restano validi.</p>`;
     bans.forEach((s, i) => {
       const row = document.createElement("div");
       row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -2284,6 +2319,8 @@ function renderSuggestions() {
       row.addEventListener("click", () => pickOrBan(s.name));
       el.appendChild(row);
     });
+    const skipBtn = document.getElementById("skip-bans");
+    if (skipBtn) skipBtn.addEventListener("click", skipBans);
     return;
   }
 
