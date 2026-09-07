@@ -95,11 +95,29 @@ controllare cosa è stato combinato mentre l'utente non c'era. Sotto, due o tre
 righe che dicano **cosa è cambiato e perché**, non l'elenco dei file toccati:
 quello lo dice già `git`.
 
-## Il controllo
+## Il controllo, e perché non dipende da me
 
 ```bash
 node script/check-memoria.js
 ```
+
+**Gira da solo a fine turno**, tramite un hook `Stop` collegato in
+`.claude/settings.json` che esegue `script/hook-memoria.sh`. Non è un
+dettaglio tecnico: la disciplina della memoria era affidata al fatto che me
+ne ricordassi, e "ricordarsi" è esattamente la cosa che qui non funziona —
+fra una conversazione e l'altra non ricordo niente, e dentro una lunga la
+regola si perde. Adesso lo esegue il programma. È il punto 4 del ciclo
+dell'errore applicato al ciclo dell'errore stesso.
+
+L'hook parla **solo quando c'è qualcosa che non va**: un avviso che compare
+sempre viene ignorato dopo tre volte. Segnala due cose:
+- la memoria è incoerente (uno dei controlli qui sotto fallisce);
+- **c'è lavoro di oggi ma il registro non è stato aggiornato** — cioè sto per
+  chiudere avendo fatto qualcosa senza annotarlo.
+
+E il controllo, a sua volta, verifica che l'hook ci sia ancora e sia
+collegato: se sparisce, la memoria tornerebbe a dipendere dalla mia buona
+volontà senza che nessuno se ne accorga.
 
 Verifica che ogni file citato in `CLAUDE.md` esista, che ogni pagina sia
 nell'indice, che nessun `[[collegamento]]` sia morto, che il registro rispetti
