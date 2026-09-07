@@ -1,0 +1,11 @@
+.env
+.env.local
+
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/radar.db
+
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo

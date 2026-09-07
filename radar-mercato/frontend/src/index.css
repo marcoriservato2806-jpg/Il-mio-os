@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #eef1ee;
+  --paper-raised: #ffffff;
+  --paper-sunk: #e4e8e3;
+  --ink: #182420;
+  --ink-dim: #55645c;
+  --ink-faint: #7c8880;
+  --line: rgba(24, 36, 32, 0.14);
+  --accent: #8a6414;
+  --accent-soft: rgba(138, 100, 20, 0.12);
+  --teal: #2c5964;
+  --teal-soft: rgba(44, 89, 100, 0.1);
+  --good: #2f6b45;
+  --good-soft: rgba(47, 107, 69, 0.12);
+  --bad: #9c3c31;
+  --bad-soft: rgba(156, 60, 49, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #12181a;
+    --paper-raised: #1b2224;
+    --paper-sunk: #0d1213;
+    --ink: #e8ede9;
+    --ink-dim: #a3b0a8;
+    --ink-faint: #79877e;
+    --line: rgba(232, 237, 233, 0.16);
+    --accent: #d9aa42;
+    --accent-soft: rgba(217, 170, 66, 0.16);
+    --teal: #7fb0ba;
+    --teal-soft: rgba(127, 176, 186, 0.14);
+    --good: #6bbb84;
+    --good-soft: rgba(107, 187, 132, 0.16);
+    --bad: #de8378;
+    --bad-soft: rgba(222, 131, 120, 0.16);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
