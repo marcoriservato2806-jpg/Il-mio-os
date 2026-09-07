@@ -701,6 +701,53 @@ function cartaDi(b) {
   return card;
 }
 
+// I risultati della ricerca, subito sotto la casella.
+//
+// Prima l'unica risposta a quello che si scriveva era una riga di testo
+// ("Invio → Wendy") e la griglia filtrata, che pero' sul telefono sta a 850px,
+// cioe' fuori schermo: bisognava scrivere il nome intero e sperare. Adesso i
+// candidati compaiono dove stai gia' guardando, e si toccano.
+function renderSearchResults() {
+  const box = document.getElementById("search-results");
+  if (!box) return;
+  const q = state.search.trim();
+  if (!q) { box.hidden = true; box.replaceChildren(); return; }
+
+  const used = usedNames();
+  const turn = currentTurn();
+  const trovati = visibleBrawlers().filter((b) => !used.has(b.name)).slice(0, 6);
+  box.hidden = false;
+
+  if (!trovati.length) {
+    box.replaceChildren();
+    box.innerHTML = `<p class="sr-vuoto">Nessun brawler con questo nome.</p>`;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  trovati.forEach((b, i) => {
+    const riga = document.createElement("button");
+    riga.type = "button";
+    // Il primo e' quello che prende Invio: si vede, cosi' non serve leggere
+    // un'etichetta a parte per sapere cosa succede premendo.
+    riga.className = "sr-riga" + (i === 0 ? " primo" : "");
+    riga.style.borderLeftColor = CLASS_COLORS[b.class] || "#666";
+    const punteggio = _classifica.get(b.name);
+    const fuori = filtroAttivo() && !schierabile(b.name) && turn && turn.team === state.myTeam;
+    riga.innerHTML =
+      `${ritratto(b.name, "mini")}` +
+      `<span class="sr-nome">${b.name}` +
+        (i === 0 ? ` <span class="sr-invio">Invio</span>` : "") +
+        (fuori ? ' <span class="sr-fuori">non schierabile</span>' : "") +
+      `</span>` +
+      `<span class="sr-classe">${b.class}</span>` +
+      `<span class="sr-punti">${punteggio === undefined ? "" : Math.round(punteggio) + "%"}</span>`;
+    riga.addEventListener("click", () => toggleBrawler(b.name));
+    frag.appendChild(riga);
+  });
+  box.replaceChildren(frag);
+}
+
 function renderGrid() {
   const grid = document.getElementById("brawler-grid");
   const used = usedNames();
@@ -711,10 +758,8 @@ function renderGrid() {
   if (hint) {
     if (!turn) hint.textContent = "Draft completato.";
     else if (state.search) {
-      const first = list.find((b) => !used.has(b.name));
-      hint.innerHTML = first
-        ? `Invio → <strong>${first.name}</strong>`
-        : "Nessun brawler con questo nome.";
+      // L'elenco qui sopra dice gia' chi ha trovato e cosa prende Invio.
+      hint.textContent = "";
     } else {
       hint.textContent = turn.phase === "ban"
         ? "Tocca chi è stato bannato. I tasti 1-8 prendono dai suggerimenti."
@@ -961,6 +1006,7 @@ function render() {
   // precedente — in fase pick comparivano ancora quelli dei ban.
   renderSuggestions();
   renderGrid();
+  renderSearchResults();
   renderMapArt();
   renderFirstPick();
   updateSetupUI();
@@ -971,6 +1017,7 @@ function initFilters() {
   box.addEventListener("input", (e) => {
     state.search = e.target.value;
     renderGrid();
+    renderSearchResults();
   });
 
   // Invio prende il primo della lista. Due lettere e Invio bastano per
