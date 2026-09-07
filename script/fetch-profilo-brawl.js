@@ -62,6 +62,40 @@ if (!TAG) {
     nome: c.displayName, potenza: c.power, rank: c.rank, trofei: c.trophies,
   })).sort((a, b) => b.trofei - a.trofei);
 
+  // In Classificata i brawler sotto potenza 9 NON si possono schierare, e da
+  // Mythic in su serve potenza 11. Quindi il livello non è un dettaglio: è
+  // ciò che separa un consiglio utile da uno che non puoi nemmeno eseguire.
+  const g9 = posseduti.filter((b) => b.potenza >= 9).length;
+  const g11 = posseduti.filter((b) => b.potenza >= 11).length;
   console.error(`#${TAG}: ${posseduti.length} brawler${head ? ` (la pagina dice ${head[0]})` : ""}`);
+  console.error(`  giocabili in Classificata (pot. 9+): ${g9}   ·   da Mythic in su (pot. 11): ${g11}`);
+
+  // Il file scritto nel repo NON contiene il tag: il repository è pubblico e
+  // il tag è ciò che collega questa cartella al profilo di gioco. I livelli
+  // di potenza da soli non identificano nessuno.
+  const fs = require("fs");
+  const path = require("path");
+  const dest = path.join(__dirname, "..", "brawl-draft", "profilo.js");
+  const righe = posseduti
+    .slice()
+    .sort((a, b) => a.nome.localeCompare(b.nome, "it"))
+    .map((b) => `  ${JSON.stringify(b.nome)}: ${b.potenza},`)
+    .join("\n");
+  fs.writeFileSync(dest, `// Livello di potenza dei brawler del proprietario dell'app.
+// GENERATO da script/fetch-profilo-brawl.js — non modificare a mano.
+// Letto il ${new Date().toISOString().slice(0, 10)} dal tracker pubblico di brawlplanet.
+//
+// PERCHÉ SERVE: in Classificata un brawler sotto POTENZA 9 non si può
+// schierare, e da Mythic in su ne serve uno a POTENZA 11. Un consiglio su un
+// brawler che non puoi mettere in campo è peggio che inutile: fa perdere i
+// secondi che non hai. Qui ce ne sono ${g9} giocabili su ${posseduti.length}, ${g11} a potenza 11.
+//
+// Il tag del giocatore NON sta qui apposta: questo repository è pubblico.
+// È una fotografia: risbloccando o potenziando un brawler va rilanciato.
+const PROFILO_POTENZA = {
+${righe}
+};
+`);
+  console.error(`scritto brawl-draft/profilo.js (senza il tag)`);
   console.log(JSON.stringify({ tag: TAG, letto: new Date().toISOString().slice(0, 10), posseduti }, null, 1));
 })();

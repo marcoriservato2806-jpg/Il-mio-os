@@ -9,13 +9,15 @@ const state = {
   picks: { A: [], B: [] },
   filterClass: "ALL",
   search: "",
-  gridOrder: "played", // "played" | "az" | "class" — vedi renderGrid
+  gridOrder: "score", // "score" | "played" | "az" | "class" — vedi renderGrid
   mode: null, // una di MODES, o null = nessuna modalità selezionata
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
   map: null, // riferimento a un oggetto di MAPS, o null
   customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
   metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
   firstTeam: "A", // chi muove per primo: in Classificata cambia a ogni partita, quindi si sceglie
+  myTeam: "A", // in quale squadra gioco io: serve a filtrare i MIEI pick sui brawler che posso schierare
+  minPower: 9, // 9 = fino a Diamante, 11 = da Mythic in su. Sotto questa soglia il brawler non è schierabile
 };
 
 const META_STORAGE_KEY = "bsdraft_meta_raw_v1";
@@ -231,6 +233,10 @@ function pickFlag(name) {
 // davvero: bannare il brawler più forte in assoluto che però prende lo
 // 0,05% dei giocatori è un ban buttato. Quindi la priorità mescola forza
 // (nel contesto più specifico che abbiamo) e probabilità di essere scelto.
+// Punteggio dell'ultimo giro, per nome. Lo riempiono computeSuggestions e
+// computeBanSuggestions; lo legge la griglia.
+let _classifica = new Map();
+
 function computeBanSuggestions() {
   const used = usedNames();
   const candidates = [];
@@ -256,7 +262,8 @@ function computeBanSuggestions() {
     });
   }
   candidates.sort((a, b) => b.priority - a.priority);
-  return candidates.slice(0, 8);
+  _classifica = new Map(candidates.map((c) => [c.name, c.wr]));
+  return candidates.slice(0, 6);
 }
 
 // Percentuale di vittorie di A contro B, se misurata. Le coppie valgono in
@@ -401,6 +408,29 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
   };
 }
 
+// Posso davvero schierare questo brawler?
+//
+// In Classificata un brawler sotto POTENZA 9 non si puo' mettere in campo, e
+// da Mythic in su ne serve uno a POTENZA 11 — non e' una preferenza, e' una
+// regola del gioco. Consigliare un brawler non schierabile e' peggio che
+// inutile: fa perdere i secondi che non hai.
+//
+// Vale solo per la MIA squadra. Per l'avversario il roster resta intero: lui
+// li avra' maxati, e comunque devo poter registrare quello che sceglie.
+function schierabile(name) {
+  if (typeof PROFILO_POTENZA === "undefined") return true; // nessun profilo collegato: nessun filtro
+  const p = PROFILO_POTENZA[name];
+  if (p === undefined) return true; // brawler troppo nuovo per stare nella fotografia: non lo escludo
+  return p >= state.minPower;
+}
+
+// I tre brawler maxati che Classificata regala a stagione non compaiono nel
+// profilo con la potenza vera, quindi un brawler escluso puo' essere in
+// realta' giocabile. Per questo l'esclusione si puo' spegnere.
+function filtroAttivo() {
+  return state.minPower > 0 && typeof PROFILO_POTENZA !== "undefined";
+}
+
 function computeSuggestions() {
   const turn = currentTurn();
   if (!turn || turn.phase !== "pick") return [];
@@ -415,7 +445,11 @@ function computeSuggestions() {
   const enemyLeft = state.sequence.filter((sq, i) => i >= state.turnIndex && sq.phase === "pick" && sq.team === enemy).length;
   const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
 
-  const candidates = BRAWLERS.filter((b) => !used.has(b.name)).map((b) => {
+  const mieiPick = filtroAttivo() && own === state.myTeam;
+  const candidates = BRAWLERS
+    .filter((b) => !used.has(b.name))
+    .filter((b) => !mieiPick || schierabile(b.name))
+    .map((b) => {
     const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames);
     // Il caso peggiore sta nella STESSA riga della media. Tenerli in due
     // classifiche separate obbligava a confrontarle a mano e non diceva
@@ -436,7 +470,11 @@ function computeSuggestions() {
   // Il rischio resta visibile nel riquadrino "peggio", che diventa vistoso
   // quando è molto più basso: informa senza dirottare la classifica.
   candidates.sort((x, y) => y.total - x.total);
-  return candidates.slice(0, 8);
+  // La classifica intera resta a disposizione della griglia, che mostra il
+  // punteggio su ogni carta e si ordina di conseguenza. Calcolarla due volte
+  // sarebbe sprecato: è lo stesso conto.
+  _classifica = new Map(candidates.map((c) => [c.name, c.total]));
+  return candidates.slice(0, 6);
 }
 
 function pickOrBan(name) {
@@ -519,22 +557,27 @@ function ritratto(name, extra) {
   return `<span class="${cls} ritratto-vuoto">${iniziali}</span>`;
 }
 
-function renderSlots(team) {
-  const bansEl = document.getElementById(`bans-${team}`);
-  const picksEl = document.getElementById(`picks-${team}`);
+// Le due fiancate del palco sono "i miei" e "i loro", non "Blu" e "Rossa":
+// la squadra in cui gioco cambia a ogni partita, ma alleati a sinistra e
+// avversari a destra devono restare fermi, altrimenti si legge il palco al
+// contrario proprio mentre si va di fretta.
+function renderSlots(ruolo) {
+  const team = ruolo === "mine" ? state.myTeam : state.myTeam === "A" ? "B" : "A";
+  const bansEl = document.getElementById(`bans-${ruolo}`);
+  const picksEl = document.getElementById(`picks-${ruolo}`);
   bansEl.innerHTML = "";
   picksEl.innerHTML = "";
 
   const totalBans = state.sequence.filter((s) => s.phase === "ban" && s.team === team).length;
   const totalPicks = state.sequence.filter((s) => s.phase === "pick" && s.team === team).length;
 
-  for (let i = 0; i < totalBans; i++) {
-    const name = state.bans[team][i];
-    bansEl.appendChild(makeSlot(name, "ban"));
-  }
-  for (let i = 0; i < totalPicks; i++) {
-    const name = state.picks[team][i];
-    picksEl.appendChild(makeSlot(name, "pick"));
+  for (let i = 0; i < totalBans; i++) bansEl.appendChild(makeSlot(state.bans[team][i], "ban"));
+  for (let i = 0; i < totalPicks; i++) picksEl.appendChild(makeSlot(state.picks[team][i], "pick"));
+
+  const side = document.getElementById(`side-${ruolo}`);
+  if (side) {
+    side.classList.toggle("team-a", team === "A");
+    side.classList.toggle("team-b", team === "B");
   }
 }
 
@@ -578,6 +621,12 @@ function gridOrderedBrawlers() {
   const list = BRAWLERS.slice();
   if (state.gridOrder === "az") return list.sort((a, b) => a.name.localeCompare(b.name, "it"));
   if (state.gridOrder === "class") return list; // ordine del roster, che è per classe
+  if (state.gridOrder === "score" && _classifica.size) {
+    // Meglio del solo "più giocati": ordina per quanto vale QUI e ADESSO,
+    // contro chi è già in campo. Chi non ha punteggio (non schierabile,
+    // oppure senza dati) finisce in fondo invece di sparire.
+    return list.sort((a, b) => (_classifica.get(b.name) ?? -1) - (_classifica.get(a.name) ?? -1));
+  }
   return list.sort((a, b) => useRateOf(b.name).use - useRateOf(a.name).use);
 }
 
@@ -624,7 +673,9 @@ function cartaDi(b) {
   card = document.createElement("div");
   card.className = "brawler-card";
   card.style.borderColor = CLASS_COLORS[b.class] || "#666";
-  card.innerHTML = `${ritratto(b.name)}<div class="brawler-name">${b.name}</div><div class="brawler-class">${b.class}</div>`;
+  card.innerHTML =
+    `${ritratto(b.name)}<div class="brawler-name">${b.name}</div>` +
+    `<div class="card-score"></div><div class="card-bar"><i></i></div>`;
   card.addEventListener("click", () => pickOrBan(b.name));
   _carte.set(b.name, card);
   return card;
@@ -664,6 +715,32 @@ function renderGrid() {
     card.classList.toggle("used", isUsed);
     card.classList.toggle("clickable", !isUsed && !!turn);
     card.title = !turn ? "" : turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
+
+    // Non schierabile = non è una preferenza, è una regola: sotto potenza 9
+    // in Classificata non entra in campo. Resta visibile e cliccabile perché
+    // l'AVVERSARIO può averlo, e devo poter registrare il suo pick.
+    const mio = turn && turn.team === state.myTeam;
+    const fuori = filtroAttivo() && !schierabile(b.name);
+    card.classList.toggle("non-schierabile", !!(fuori && mio));
+    const pot = typeof PROFILO_POTENZA !== "undefined" ? PROFILO_POTENZA[b.name] : undefined;
+    if (fuori && mio && pot !== undefined) card.title = `Potenza ${pot}: non puoi schierarlo in Classificata (ne serve ${state.minPower}). Cliccabile lo stesso, per registrarlo se lo prende l'avversario.`;
+
+    const punteggio = _classifica.get(b.name);
+    const sc = card.querySelector(".card-score");
+    const bar = card.querySelector(".card-bar i");
+    if (punteggio === undefined) {
+      sc.textContent = "";
+      card.querySelector(".card-bar").style.visibility = "hidden";
+    } else {
+      sc.textContent = Math.round(punteggio) + "%";
+      card.querySelector(".card-bar").style.visibility = "visible";
+      // La barra copre 40-70%: sotto il 40 si perde comunque, sopra il 70 non
+      // si arriva quasi mai. Allargarla a 0-100 appiattirebbe le differenze
+      // che contano proprio nella fascia dove si decide.
+      const q = Math.max(0, Math.min(1, (punteggio - 40) / 30));
+      bar.style.width = (q * 100).toFixed(0) + "%";
+      bar.className = punteggio >= 58 ? "alto" : punteggio >= 50 ? "medio" : "basso";
+    }
     frag.appendChild(card);
   }
   grid.replaceChildren(frag);
@@ -872,10 +949,14 @@ function render() {
   renderContextLine();
   renderTurnBanner();
   renderTeamCounter();
-  renderSlots("A");
-  renderSlots("B");
-  renderGrid();
+  renderSlots("mine");
+  renderSlots("theirs");
+  // I suggerimenti PRIMA della griglia: è renderSuggestions a calcolare la
+  // classifica del turno, e la griglia la legge per il punteggio su ogni
+  // carta. Nell'ordine opposto la griglia mostrava i punteggi del turno
+  // precedente — in fase pick comparivano ancora quelli dei ban.
   renderSuggestions();
+  renderGrid();
   updateSetupUI();
   document.getElementById("undo-btn").disabled = state.turnIndex === 0;
 }
@@ -971,7 +1052,18 @@ function updateSetupUI() {
   if (sum) {
     const dove = state.map ? `${state.mode} · ${state.map.name}` : state.mode || "nessuna modalità";
     const chi = state.firstTeam === "A" ? "inizia Blu" : "inizia Rossa";
-    sum.textContent = box.open ? "Impostazioni partita — tocca per chiudere" : `${dove} · ${chi} · tocca per cambiare`;
+    const io = `gioco in ${state.myTeam === "A" ? "Blu" : "Rossa"}`;
+    // Il filtro potenza cambia parecchio i consigli: se è attivo va detto
+    // qui, altrimenti uno non capisce perché certi brawler non compaiono.
+    const pw = filtroAttivo()
+      // Conta solo quelli di cui SO la potenza. schierabile() lascia passare
+      // anche i brawler assenti dalla fotografia (troppo nuovi), ma contarli
+      // qui gonfierebbe il numero: direbbe 51 quando ne posso schierare 49.
+      ? ` · solo i miei da potenza ${state.minPower} in su (${BRAWLERS.filter((b) => PROFILO_POTENZA[b.name] >= state.minPower).length})`
+      : "";
+    sum.textContent = box.open
+      ? "Impostazioni partita — tocca per chiudere"
+      : `${dove} · ${chi} · ${io}${pw} · tocca per cambiare`;
   }
 }
 
@@ -1120,5 +1212,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
+  const mine = document.getElementById("my-team");
+  mine.value = state.myTeam;
+  mine.addEventListener("change", (e) => {
+    state.myTeam = e.target.value === "B" ? "B" : "A";
+    render();
+  });
+
+  const pw = document.getElementById("min-power");
+  pw.value = String(state.minPower);
+  pw.addEventListener("change", (e) => {
+    state.minPower = Number(e.target.value) || 0;
+    render();
+  });
+
   document.getElementById("setup").addEventListener("toggle", updateSetupUI);
 });

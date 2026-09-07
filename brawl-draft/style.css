@@ -809,3 +809,94 @@ footer details[open] summary { margin-bottom: 8px; }
 .brawler-card { padding: 5px 3px; }
 .brawler-name { font-size: 0.7rem; line-height: 1.15; }
 .brawler-class { font-size: 0.56rem; }
+
+/* ---- Il palco: alleati a sinistra, avversari a destra ------------------
+   Le due fiancate sono "i miei" e "i loro", mai "Blu" e "Rossa": la squadra
+   in cui gioco cambia a ogni partita, la posizione no. Al centro il turno,
+   che è la cosa che si guarda per prima. */
+.stage {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.15fr) 1fr;
+  gap: 8px;
+  align-items: start;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.stage-side { min-width: 0; }
+.stage-side.team-a { border-top: 3px solid var(--team-a); }
+.stage-side.team-b { border-top: 3px solid var(--team-b); }
+.stage-side { border-radius: 8px; padding-top: 7px; }
+.stage-label {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.enemies .stage-label { text-align: right; }
+.enemies .slot-row { justify-content: flex-end; }
+.stage .slot-row { gap: 4px; margin-bottom: 5px; }
+.stage .slot-row.bans { opacity: 0.5; }
+.stage .slot {
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 auto;
+  border: none;
+  padding: 0;
+}
+.stage .slot .ritratto.mini { width: 32px; height: 32px; }
+.stage .slot-name, .stage .slot-class { display: none; }
+.stage .slot.empty {
+  width: 32px;
+  height: 32px;
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+}
+.stage .slot.ban.filled .ritratto { filter: grayscale(1); opacity: 0.55; }
+.stage-center .turn-banner { margin-bottom: 8px; font-size: 0.85rem; padding: 9px 6px; }
+.stage-center .turn-actions { margin: 0; }
+
+/* ---- Carte del roster con punteggio e barra ---------------------------
+   È la parte dell'interfaccia di MetaPick che vale la pena avere: il
+   punteggio su ogni faccia, e una barra che lo rende confrontabile senza
+   leggere i numeri uno per uno. */
+.card-score {
+  font-size: 0.74rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1.1;
+}
+.card-bar {
+  display: block;
+  height: 3px;
+  margin: 3px 2px 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+.card-bar i { display: block; height: 100%; border-radius: 2px; background: var(--text-dim); }
+.card-bar i.alto { background: var(--good); }
+.card-bar i.medio { background: var(--accent); }
+.card-bar i.basso { background: var(--bad); }
+
+/* Sotto potenza 9 in Classificata non entra in campo: la carta resta
+   cliccabile (l'avversario può averlo maxato e devo poter registrare il suo
+   pick) ma si vede a occhio che per me non è un'opzione. */
+.brawler-card.non-schierabile { opacity: 0.4; }
+.brawler-card.non-schierabile .brawler-name { text-decoration: line-through; }
+.brawler-card.non-schierabile .card-score { color: var(--text-dim); }
+
+@media (max-width: 800px) {
+  .stage { grid-template-columns: 1fr; gap: 6px; padding: 8px; }
+  .stage-center { order: -1; }
+  .enemies .stage-label, .enemies .slot-row { text-align: left; justify-content: flex-start; }
+  .stage-side { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: center; }
+  .stage-label { margin: 0; }
+  .stage .slot-row { margin: 2px 0; }
+  .stage-side .slot-row.bans { grid-column: 2; }
+}

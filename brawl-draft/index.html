@@ -20,6 +20,19 @@
       <option value="B">Squadra Rossa</option>
     </select>
 
+    <label for="my-team">Io gioco in</label>
+    <select id="my-team">
+      <option value="A">Squadra Blu</option>
+      <option value="B">Squadra Rossa</option>
+    </select>
+
+    <label for="min-power">Il mio rango</label>
+    <select id="min-power">
+      <option value="9">Fino a Diamante (serve potenza 9)</option>
+      <option value="11">Da Mythic in su (serve potenza 11)</option>
+      <option value="0">Non filtrare per potenza</option>
+    </select>
+
     <label for="bans-per-team">Ban per squadra</label>
     <input type="number" id="bans-per-team" min="0" max="3" value="3" />
 
@@ -45,11 +58,24 @@
 
   <p id="map-notes" class="map-notes" hidden></p>
 
-  <div id="turn-banner" class="turn-banner"></div>
-
-  <div class="turn-actions">
-    <button id="undo-btn" title="Scorciatoia: Backspace">↩ Annulla</button>
-    <button id="reset-btn">Ricomincia</button>
+  <div class="stage">
+    <div class="stage-side allies" id="side-mine">
+      <p class="stage-label">Alleati</p>
+      <div class="slot-row" id="picks-mine"></div>
+      <div class="slot-row bans" id="bans-mine"></div>
+    </div>
+    <div class="stage-center">
+      <div id="turn-banner" class="turn-banner"></div>
+      <div class="turn-actions">
+        <button id="undo-btn" title="Scorciatoia: Backspace">↩ Annulla</button>
+        <button id="reset-btn">Ricomincia</button>
+      </div>
+    </div>
+    <div class="stage-side enemies" id="side-theirs">
+      <p class="stage-label">Avversari</p>
+      <div class="slot-row" id="picks-theirs"></div>
+      <div class="slot-row bans" id="bans-theirs"></div>
+    </div>
   </div>
 
   <div class="main-grid">
@@ -60,6 +86,7 @@
         <div class="filters">
           <input type="search" id="search-box" placeholder="Scrivi 2 lettere, poi Invio" autocomplete="off" autocorrect="off" spellcheck="false" />
           <select id="grid-order" aria-label="Ordine del roster">
+            <option value="score" selected>Migliori adesso</option>
             <option value="played">Più giocati qui</option>
             <option value="az">A-Z</option>
             <option value="class">Per classe</option>
@@ -98,20 +125,6 @@
     </div>
   </div>
 
-  <div class="boards">
-    <div class="team-panel a">
-      <h2>Squadra Blu</h2>
-      <div class="panel-title">Ban</div>
-      <div class="slot-row" id="bans-A"></div>
-      <div class="panel-title">Pick</div>
-      <div class="slot-row" id="picks-A"></div>
-    </div>
-    <div class="team-panel b">
-      <h2>Squadra Rossa</h2>
-      <div class="panel-title">Ban</div>
-      <div class="slot-row" id="bans-B"></div>
-      <div class="panel-title">Pick</div>
-      <div class="slot-row" id="picks-B"></div>
     </div>
   </div>
 
@@ -161,6 +174,10 @@
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
     <br /><br />
+    <strong>Il tuo profilo, e i brawler che puoi davvero schierare.</strong> Questa è la cosa che cambia di più i consigli. In Classificata <strong>un brawler sotto potenza 9 non si può mettere in campo</strong>, e da Mythic in su ne serve uno a potenza 11 — è una regola del gioco, non una preferenza. Del profilo collegato risultano <strong>106 brawler posseduti ma solo 49 schierabili</strong> (36 a potenza 11): l'app stava consigliando pick impossibili da eseguire, che sotto timer è peggio che non consigliare niente. Ora i suggerimenti <em>per la tua squadra</em> tengono solo quelli che puoi schierare; il roster resta intero, perché l'avversario li avrà maxati e devi comunque poter registrare cosa sceglie. I brawler fuori soglia restano visibili, barrati e cliccabili. <strong>Da dove viene il dato:</strong> dal tracker pubblico di brawlplanet, letto col tag — l'API ufficiale di Supercell richiede una chiave legata a un IP fisso e non è utilizzabile da una pagina web. È una <em>fotografia</em>, non un collegamento dal vivo: quando potenzi un brawler va riletta. Due avvertenze oneste: i tre brawler maxati che Classificata regala ogni stagione non compaiono con la potenza vera, quindi qualcuno segnato come escluso potrebbe essere giocabile — per questo il filtro si può spegnere; e Vince e Cosmo non sono nella fotografia, quindi non vengono filtrati.
+    <br /><br />
+    <strong>Layout.</strong> Alleati a sinistra, avversari a destra, turno al centro; il roster con il punteggio e una barra su ogni faccia, ordinato per quanto vale <em>adesso</em> contro chi è già in campo. Le due fiancate sono "i miei" e "i loro", mai "Blu" e "Rossa": la squadra in cui giochi cambia a ogni partita, la posizione sullo schermo no — altrimenti si legge il palco al contrario proprio mentre si va di fretta.
+    <br /><br />
     <strong>Ritratti.</strong> I brawler si mostrano con la faccia e non solo col nome: riconoscere un'immagine è più veloce che leggere, ed è tutto quello che conta con 22 secondi di timer. Le 106 immagini sono <em>dentro</em> il file (data URI, 96px WebP, 378 KB in tutto) e non collegate: una pagina pubblicata non carica immagini da altri siti, quindi collegate non si vedrebbero e nemmeno darebbero errore. Sono immagini di Supercell, prese dal CDN pubblico di Brawlify. Vince e Cosmo non ne hanno ancora una: per loro restano le iniziali, invece di un riquadro vuoto che sembrerebbe un guasto. <strong>Costo tenuto sotto controllo:</strong> ricreare 108 immagini a ogni ridisegno portava il render da 11ms a 66ms — con la ricerca che ridisegna a ogni lettera si sarebbe sentito. Le carte ora si creano una volta e si riordinano: 2,6ms, cioè meno di prima che ci fossero i ritratti.
     <br /><br />
     <strong>Interfaccia — cosa è stato cambiato e perché.</strong> Il draft dà <strong>22 secondi a pick</strong>, quindi il costo vero non è il calcolo ma i gesti. Misurato prima: sul telefono la pagina era alta <strong>2947px</strong> (3,5 schermate), i consigli stavano a 888px e la casella di ricerca a <strong>2052px</strong> — per registrare un pick avversario servivano duemila pixel di scorrimento e ritorno. E il roster era ordinato per classe, quindi Wendy era la 95esima carta. Ora la pagina è <strong>1305px</strong> e tutto quello che si tocca sta nella prima schermata: turno a 129px, ricerca a 251px, consigli a 358px. Il roster è ordinato per <strong>quanto ogni brawler viene giocato su questa mappa</strong> — la pick rate misurata sulle stesse partite delle win rate — così chi cerchi è quasi sempre nelle prime file. Le impostazioni si richiudono da sole quando scegli la mappa, e la legenda e la provenienza dei dati stanno in sezioni apribili invece che fisse in cima. <strong>Il codice non era lento:</strong> un render completo costa 17ms con la CPU rallentata quattro volte. Era lento l'inserimento, ed è quello che è stato corretto.
@@ -176,6 +193,7 @@
   </footer>
 </div>
 
+<script src="profilo.js"></script>
 <script src="ritratti.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>

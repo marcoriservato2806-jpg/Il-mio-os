@@ -96,13 +96,23 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non ripetere campione e data dentro `notes`: l'app li stampa già da sé leggendoli dai dati, e la copia in prosa è quella che resta indietro e mente. Le note descrivono **solo il terreno**.
 - Non cancellare una mappa sulla base di un articolo quando c'è un'API che risponde. Ring of Fire è stata tolta così, e c'era ancora.
 - Non fidarti della scheda aperta di default su una pagina che ne ha due.
+- Non far girare `renderGrid` prima di `renderSuggestions`: è quest'ultima a calcolare `_classifica`, che la griglia legge per il punteggio sulle carte. Al contrario, la griglia mostra i punteggi del turno prima.
+- Non scrivere il tag del giocatore in nessun file del repo: è pubblico.
 - Non toccare l'interfaccia per "renderla più veloce" senza aver prima misurato se è lenta: il render completo costa ~11ms con CPU rallentata 4x. Se l'utente dice "è lenta", quasi sempre parla dei gesti, non dei millisecondi.
 - Non chiudere Annulla e Ricomincia dentro le impostazioni: servono durante il draft.
 - `node script/build-brawl-draft.js` va lanciato dalla radice del repo. Se hai fatto `cd brawl-draft`, usa il percorso assoluto: lo script regge, il percorso relativo no.
 
+## La regola che cambia tutti i consigli: potenza minima
+
+**In Classificata un brawler sotto POTENZA 9 non si può schierare, e da Mythic in su ne serve uno a POTENZA 11.** Non è una preferenza dell'utente, è una regola del gioco (verificata su due fonti). Un consiglio su un brawler non schierabile è peggio che inutile: fa perdere i secondi che non ci sono.
+
+Il filtro vale **solo per la squadra dell'utente** (`state.myTeam`). Il roster resta intero: l'avversario li avrà maxati, e i suoi pick vanno comunque registrati.
+
 ## Profilo del giocatore
 
 `node script/fetch-profilo-brawl.js <tag>` legge dal tracker pubblico di brawlplanet quali brawler possiede un profilo, con livello, rank e trofei. Niente chiave, niente login.
+
+Scrive `brawl-draft/profilo.js` con i soli livelli di potenza. **Il tag non ci finisce: il repository è pubblico** ed è il tag a collegare questa cartella al profilo di gioco. Il build ha un controllo che fallisce se il tag compare nel file prodotto.
 
 **Non esiste una via dal vivo dentro la pagina pubblicata.** L'API ufficiale di Supercell vuole una chiave legata a un IP fisso (in una pagina sarebbe in chiaro e l'IP non combacerebbe), e le capability degli artifact (artifact, db, downloads, mcp, room, sample) non aprono la rete verso siti arbitrari — `mcp` raggiunge solo i connettori claude.ai dell'utente, e per Brawl Stars non ce n'è. Quindi è sempre una fotografia da rilanciare, mai un collegamento.
 

@@ -23,6 +23,7 @@ const css = read("style.css");
 const data = read("data.js");
 const app = read("app.js");
 const ritratti = read("ritratti.js");
+const profilo = read("profilo.js");
 
 // Prende solo il contenuto del body: la pagina pubblicata viene già avvolta
 // in doctype/html/head/body dall'host, quindi ripeterli romperebbe tutto.
@@ -43,6 +44,8 @@ ${css}
 ${body}
 
 <script>
+${profilo}
+
 ${ritratti}
 
 ${data}
@@ -66,6 +69,8 @@ const checks = [
   ["contiene la logica", out.includes("function computeSuggestions")],
   ["contiene il markup", out.includes('id="brawler-grid"')],
   ["contiene i ritratti", out.includes("const BRAWLER_IMGS")],
+  ["contiene il profilo", out.includes("const PROFILO_POTENZA")],
+  ["il tag del giocatore non finisce nel file", !/#?2UJC2U28G2/i.test(out)],
 ];
 let ok = true;
 for (const [label, pass] of checks) {
