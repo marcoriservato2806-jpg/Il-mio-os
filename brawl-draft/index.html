@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Assistente Draft Classificata</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+  <h1>Assistente Draft — Brawl Stars Classificata</h1>
+  <p class="subtitle">Ban e pick della Classificata, con i numeri della mappa che stai giocando.</p>
+
+  <details id="setup" class="setup" open>
+    <summary id="setup-summary">Impostazioni partita</summary>
+  <div class="config-bar">
+    <label for="min-power">Il mio rango</label>
+    <select id="min-power">
+      <option value="9">Fino a Diamante (serve potenza 9)</option>
+      <option value="11">Da Mythic in su (serve potenza 11)</option>
+      <option value="0">Non filtrare per potenza</option>
+    </select>
+
+    <label for="use-bans">Ban</label>
+    <select id="use-bans">
+      <option value="3">Con ban (Diamante in su)</option>
+      <option value="0">Senza ban</option>
+    </select>
+
+  </div>
+
+  <div class="config-bar">
+    <label for="mode-select">Modalità</label>
+    <select id="mode-select"></select>
+
+    <label for="map-select">Mappa</label>
+    <select id="map-select"></select>
+
+    <div id="traits-wrap" hidden>
+      <label>Caratteristiche mappa (se non è in elenco)</label>
+      <div class="trait-list" id="map-traits"></div>
+    </div>
+  </div>
+  </details>
+
+  <p id="map-notes" class="map-notes" hidden></p>
+
+  <div class="stage">
+    <div class="stage-side allies" id="side-mine">
+      <p class="stage-label">Alleati</p>
+      <div class="slot-wrap"><div class="slot-row" id="picks-mine"></div><div class="slot-row bans" id="bans-mine"></div></div>
+    </div>
+    <div class="stage-center">
+      <div id="map-art" class="map-art"></div>
+      <div id="turn-banner" class="turn-banner"></div>
+      <div class="turn-actions">
+        <button id="first-pick" type="button" aria-pressed="true">Scelgo per primo</button>
+        <button id="reset-btn" type="button" class="quiet">Svuota</button>
+      </div>
+    </div>
+    <div class="stage-side enemies" id="side-theirs">
+      <p class="stage-label">Avversari</p>
+      <div class="slot-wrap"><div class="slot-row" id="picks-theirs"></div><div class="slot-row bans" id="bans-theirs"></div></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="side-panel">
+      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
+      <div class="picker picker-top">
+        <div class="filters">
+          <input type="search" id="search-box" placeholder="Cerca un brawler…" autocomplete="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <p id="picker-hint" class="picker-hint"></p>
+      </div>
+      <div id="suggestions"></div>
+      <details id="roster-box" class="roster-box" open>
+        <summary>Sfoglia tutto il roster</summary>
+        <div class="brawler-grid" id="brawler-grid"></div>
+      </details>
+    </div>
+
+    <div class="aside">
+      <div id="team-counter" class="team-counter" hidden></div>
+      <details class="legend-box"><summary>Cosa vogliono dire i numeri, e le scorciatoie</summary>
+      <p class="legend">
+        <strong>Per andare veloce.</strong> Scrivi due lettere nella casella e premi <strong>Invio</strong>: prende il primo della lista (l'indizio sotto la casella ti dice chi, prima che tu confermi). I tasti <strong>1-8</strong> prendono dal consiglio corrispondente, <strong>/</strong> mette il cursore nella ricerca, <strong>Backspace</strong> annulla l'ultima mossa. Il roster è ordinato per <em>quanto un brawler viene giocato su questa mappa</em>, quindi chi ti serve è quasi sempre nelle prime file.
+      </p>
+      <p class="legend">
+        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
+        <br />
+        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
+        <br />
+        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
+        <br />
+        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
+        <br />
+        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
+      </p>
+      </details>
+    </div>
+  </div>
+
+    </div>
+  </div>
+
+  <details class="meta-panel">
+    <summary class="panel-title">Dati meta (facoltativo)</summary>
+    <p class="meta-hint">
+      Win rate reali su Classificata (BrawlMetrics, letti il 6/9/2026), attivi di base senza
+      nessuna azione richiesta. "Tutti i ranghi" è la media Bronze→Pro, adatta alla maggior parte
+      delle partite; "Masters" riflette meglio la meta ad alto livello/con squadra coordinata,
+      dove alcuni pick (es. El Primo) rendono molto di più che in ladder. Se vuoi aggiungere o
+      correggere un numero, incolla qui una lista (una riga per brawler, es. "Piper 62%") e premi
+      "Salva e applica"; resta facoltativo. Salvato solo in questo browser.
+    </p>
+    <label for="meta-source-select">Fascia dati meta</label>
+    <select id="meta-source-select">
+      <option value="ALL_RANKS">Tutti i ranghi (Bronze→Pro)</option>
+      <option value="MASTERS">Masters / competitivo</option>
+    </select>
+    <textarea id="meta-input" rows="5" placeholder="Piper 62%&#10;Brock: 58.4&#10;Edgar 43%"></textarea>
+    <div class="meta-actions">
+      <button id="meta-save">Salva e applica</button>
+      <button id="meta-clear">Cancella</button>
+    </div>
+    <p id="meta-status" class="meta-status"></p>
+  </details>
+
+  <footer>
+    <details>
+      <summary>Da dove vengono i numeri, cosa è stato controllato e cosa è stato scartato</summary>
+    <strong>Come funzionano i suggerimenti:</strong> il punteggio somma quattro cose. (1) <em>Matchup</em> contro i brawler già schierati dall'avversario: dove la coppia è stata misurata si usa il dato reale, altrimenti la stima calibrata sulla classe — in entrambi i casi al netto della differenza di forza, così un vantaggio non viene contato due volte. (2) <em>Sinergia</em>: penalizza tre volte la stessa classe e premia i ruoli mancanti (frontline, support). (3) <em>Mappa o modalità</em>: win rate reale, con la mappa che ha la precedenza quando esiste — non si sommano, perché la mappa è un sottoinsieme della modalità e contarle entrambe conterebbe due volte lo stesso segnale. Il peso del dato mappa scala con la sua affidabilità (campione × freschezza). (4) <em>Meta</em>: win rate generale in Classificata nella fascia di rango scelta. Passa il dito o il mouse sul punteggio per vedere quanto pesa ogni pezzo.
+    <br /><br />
+    <strong>Roster:</strong> tutti e 108. Vince e Cosmo erano esclusi perché articoli di agosto li davano per ottobre/metà settembre; l'API pubblica di Brawlify li dà entrambi <code>released: true</code> e BrawlMetrics li elenca, quindi il dato di gioco batte la previsione giornalistica e sono stati aggiunti. Non hanno ancora statistiche (troppo recenti): l'app li tratta come neutri invece di inventargli un valore. Corretti il 6/9 due buchi reali (Angelo e Sirius comparivano nei dati ma non nel roster). Dettagli e fonti in <code>data.js</code>.
+    <br /><br />
+    <strong>Modalità:</strong> selezionando una delle 6 modalità di Classificata (Gem Grab, Brawl Ball, Bounty, Heist, Hot Zone, Knockout), i suggerimenti usano il win rate reale di ciascun brawler in quella modalità — non una stima per classe. La differenza è enorme per alcuni: Rosa rende molto di più in Brawl Ball che in Bounty; Edgar molto di più in Heist che in Knockout. <strong>Corretto il 6/9:</strong> prima questi numeri venivano dalle pagine per-modalità di BrawlMetrics, che coprono <em>tutti i livelli di trofei</em> e non la Classificata — erano "come va in questa modalità", non "quanto vale in Classificata in questa modalità". Ora sono calcolati come media delle mappe di quella modalità nel pool ranked, pesata sul campione: dato di Classificata, e soprattutto sulla <em>stessa scala</em> dei dati di mappa con cui l'app li miscela.
+    <br /><br />
+    <strong>Mappe:</strong> <strong>33 mappe, tutte con win rate reali di Classificata per tutti e 106 i brawler</strong> (non più solo i primi 20), da brawlplanet.com, aggiornate a oggi e ri-aggiornate ogni ora alla fonte. <strong>Rifatte da capo il 6/9</strong> dopo che il controllo incrociato ha trovato tre errori seri nella versione precedente. <em>Primo:</em> l'elenco mappe era la rotazione <strong>trofei</strong>, non il pool Classificata — c'erano dentro mappe che in Classificata non escono mai (Super Beach, Sunny Soccer, Konnakol, Jedna, Hot Tubs, Photic Doom…) e ne mancavano che invece ci sono (Ring of Fire, Lilygear Lake, Flooded Mine, Deathcap Trap). È anche il motivo per cui 7 mappe risultavano "404, dati non verificati": erano mappe <em>solo</em> ranked cercate nella sezione trofei. <em>Secondo:</em> alcune mappe erano ferme a luglio e non si sarebbero aggiornate mai, perché quella fonte segue la rotazione trofei. <em>Terzo:</em> i numeri erano gonfi (media dei 5 migliori fra 68% e 79%, non plausibile) e poco specifici — in cima comparivano quasi sempre gli stessi brawler rari in <em>tutte</em> le modalità. Misurato: quanta informazione sulla mappa c'è davvero nel dato vale 1,51/10 sulla vecchia fonte e 3,27/10 sulla nuova, più del doppio. <strong>Controllo di integrità superato:</strong> su ogni mappa la somma delle pick rate dei 106 brawler fa 600%, cioè esattamente 6 pick per partita — le tabelle sono complete, non troncate. <strong>Correzione:</strong> Ring of Fire era stata cancellata sulla fede di un articolo del 2021 che la dava rimossa dal gioco; è tornata, e lo confermano sia l'API di Brawlify (<code>disabled: false</code>) sia il pool ranked della nuova fonte. Non si cancella una mappa per un articolo quando c'è un'API che risponde.
+    <br /><br />
+    <strong>Ban:</strong> durante la fase di ban l'app ti dice chi bannare. La priorità non è solo "il più forte": è forza × quanto quel brawler viene <em>davvero</em> scelto. Bannare un mostro che però nessuno prende è un ban buttato. <strong>Migliorato il 6/9:</strong> prima la percentuale di scelte era solo globale, quindi su una mappa specifica il suo peso andava quasi azzerato per non mescolare due popolazioni diverse — un ripiego che si vedeva, perché un brawler fortissimo su una mappa ma raro in generale finiva dietro a brawler molto più deboli lì. Ora la pick rate è <em>della mappa</em>, misurata sulle stesse partite della win rate, e il peso torna pieno.
+    <br /><br />
+    <strong>Trappole e sottovalutati:</strong> confrontando win rate e use rate (quante volte un brawler viene scelto) escono due categorie che la sola tier list nasconde. Le <span style="color:#ff9d9d">trappole</span> — molto scelte, perdono lo stesso: Griff (4,29% di scelte, 49,4% di vittorie), Max (2,50% / 47,4%), Colt (2,18% / 47,6%), Pierce (2,14% / 45,9%). E i <span style="color:#8fe3b4">sottovalutati</span> — vincono tanto ma quasi nessuno li prende, quindi quasi nessuno li banna e te li ritrovi liberi: il caso limite è Wendy, prima in assoluto per win rate (58,3%) e scelta solo dall'1,40%.
+    <br /><br />
+    <strong>Counter — tutte le 11.556 combinazioni coperte.</strong> Ogni brawler è stato analizzato singolarmente: 104 pagine su 108 lette una per una (mancano solo Bonnie e i due appena usciti, senza statistiche), per <strong>623 coppie misurate</strong>, che lette nei due versi diventano 1.210 abbinamenti con un dato reale. Nessuna fonte al mondo pubblica la matrice completa — ogni sito si ferma ai 3 migliori e 3 peggiori per brawler — quindi il resto è <em>modellato</em> a partire da quelle misure, non inventato: 10,5% misurato direttamente, 89,5% stimato, 0% scoperto.
+    <br /><br />
+    <strong>Come si distingue un counter vero da un'illusione.</strong> Il numero grezzo inganna: quasi tutti risultano "deboli contro Wendy" solo perché Wendy è la più forte. Si sottrae quindi la parte spiegata dalla differenza di forza — atteso(A,B) = 50 + (forza A − forza B) — e resta il matchup vero. Il modello non è stato dato per buono ma <em>verificato</em>: sulle 623 coppie il residuo medio è <strong>−0,01</strong> con deviazione standard 5,57, cioè nessuna distorsione sistematica. Esempi: Edgar contro Wendy fa 22,6% con atteso 23,0 (residuo −0,4: <em>non</em> è un counter); Jae-Yong contro Wendy fa 29,5% con atteso 43,0 (residuo −13,5: lo è). Il counter più forte trovato: <strong>Nori contro Rosa, +20,2</strong>.
+    <br /><br />
+    <strong>La matrice per classe ora è calibrata sui dati, non scritta a mano</strong> — e in più punti smentisce l'euristica che c'era prima: davo il Tank favorito contro l'Assassin (+1), le misure dicono −5,96. Confermano invece Assassin contro Artiglieria (+7,30) e Artiglieria contro Controller (+7,90). Due cautele applicate: le stime sono dimezzate, perché le coppie misurate sono gli estremi di ogni brawler e quindi esagerano; e le celle con meno di 5 osservazioni non usano un numero traballante ma un modello additivo sui margini di classe. Da lì esce il risultato più utile di tutta l'analisi: <strong>conta molto più chi affronti che chi sei</strong>. Da attaccante le classi si equivalgono (fra −0,78 e +0,56); da bersaglio no — l'artiglieria è preda facile (+6,48), Assassin (−4,04) e Support (−3,66) sono i bersagli più duri.
+    <br /><br />
+    <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
+    <br /><br />
+    <strong>Meno controlli, meno errori.</strong> C'erano due menu — "chi inizia" e "io gioco in" — e bastava impostarne uno al contrario per rendere sbagliato ogni suggerimento successivo <em>senza che si vedesse</em>: l'app avrebbe consigliato con sicurezza i pick della squadra sbagliata. Ora gli <strong>Alleati sei sempre tu</strong> e resta un solo interruttore: <em>scelgo per primo</em>, sì o no. Sparito anche il campo "ordine pick" dove si poteva scrivere <code>A,B,B,A,A,B</code>: l'ordine 1-2-2-1 è fisso, e quel campo era solo un modo per rompere tutti i turni con una virgola di troppo. Via anche il filtro per classe e il menu dell'ordinamento: il roster è sempre ordinato per quanto un brawler vale <em>adesso</em>, che è la cosa giusta in ogni caso.
+    <br /><br />
+    <strong>Toccare di nuovo toglie.</strong> L'errore più comune è toccare la faccia sbagliata mentre corre il timer. Ora basta ritoccarla — nel roster o nel palco — e se ne va. E toglie <em>solo quella</em>: se ti accorgi al quinto pick di aver sbagliato il secondo, il resto del draft resta dov'è e l'app torna da sola sulla casella liberata. Per farlo il modello dei turni è stato rifatto: ogni turno ha la sua casella invece di essere una pila dove si può solo disfare l'ultima mossa.
+    <br /><br />
+    <strong>La mappa si vede.</strong> Al centro del palco c'è il disegno della mappa che hai scelto. Non è decorazione: la mappa si sceglie da una tendina di nomi che si somigliano, e il disegno è il modo più rapido per accorgersi di aver selezionato quella sbagliata. Sono le 33 immagini del pool, incorporate come i ritratti (186 KB in tutto).
+    <br /><br />
+    <strong>Il tuo profilo, e i brawler che puoi davvero schierare.</strong> Questa è la cosa che cambia di più i consigli. In Classificata <strong>un brawler sotto potenza 9 non si può mettere in campo</strong>, e da Mythic in su ne serve uno a potenza 11 — è una regola del gioco, non una preferenza. Del profilo collegato risultano <strong>106 brawler posseduti ma solo 49 schierabili</strong> (36 a potenza 11): l'app stava consigliando pick impossibili da eseguire, che sotto timer è peggio che non consigliare niente. Ora i suggerimenti <em>per la tua squadra</em> tengono solo quelli che puoi schierare; il roster resta intero, perché l'avversario li avrà maxati e devi comunque poter registrare cosa sceglie. I brawler fuori soglia restano visibili, barrati e cliccabili. <strong>Da dove viene il dato:</strong> dal tracker pubblico di brawlplanet, letto col tag — l'API ufficiale di Supercell richiede una chiave legata a un IP fisso e non è utilizzabile da una pagina web. È una <em>fotografia</em>, non un collegamento dal vivo: quando potenzi un brawler va riletta. Due avvertenze oneste: i tre brawler maxati che Classificata regala ogni stagione non compaiono con la potenza vera, quindi qualcuno segnato come escluso potrebbe essere giocabile — per questo il filtro si può spegnere; e Vince e Cosmo non sono nella fotografia, quindi non vengono filtrati.
+    <br /><br />
+    <strong>Layout.</strong> Alleati a sinistra, avversari a destra, turno al centro; il roster con il punteggio e una barra su ogni faccia, ordinato per quanto vale <em>adesso</em> contro chi è già in campo. Le due fiancate sono "i miei" e "i loro", mai "Blu" e "Rossa": la squadra in cui giochi cambia a ogni partita, la posizione sullo schermo no — altrimenti si legge il palco al contrario proprio mentre si va di fretta.
+    <br /><br />
+    <strong>Ritratti.</strong> I brawler si mostrano con la faccia e non solo col nome: riconoscere un'immagine è più veloce che leggere, ed è tutto quello che conta con 22 secondi di timer. Le 106 immagini sono <em>dentro</em> il file (data URI, 96px WebP, 378 KB in tutto) e non collegate: una pagina pubblicata non carica immagini da altri siti, quindi collegate non si vedrebbero e nemmeno darebbero errore. Sono immagini di Supercell, prese dal CDN pubblico di Brawlify. Vince e Cosmo non ne hanno ancora una: per loro restano le iniziali, invece di un riquadro vuoto che sembrerebbe un guasto. <strong>Costo tenuto sotto controllo:</strong> ricreare 108 immagini a ogni ridisegno portava il render da 11ms a 66ms — con la ricerca che ridisegna a ogni lettera si sarebbe sentito. Le carte ora si creano una volta e si riordinano: 2,6ms, cioè meno di prima che ci fossero i ritratti.
+    <br /><br />
+    <strong>Interfaccia — cosa è stato cambiato e perché.</strong> Il draft dà <strong>22 secondi a pick</strong>, quindi il costo vero non è il calcolo ma i gesti. Misurato prima: sul telefono la pagina era alta <strong>2947px</strong> (3,5 schermate), i consigli stavano a 888px e la casella di ricerca a <strong>2052px</strong> — per registrare un pick avversario servivano duemila pixel di scorrimento e ritorno. E il roster era ordinato per classe, quindi Wendy era la 95esima carta. Ora la pagina è <strong>1305px</strong> e tutto quello che si tocca sta nella prima schermata: turno a 129px, ricerca a 251px, consigli a 358px. Il roster è ordinato per <strong>quanto ogni brawler viene giocato su questa mappa</strong> — la pick rate misurata sulle stesse partite delle win rate — così chi cerchi è quasi sempre nelle prime file. Le impostazioni si richiudono da sole quando scegli la mappa, e la legenda e la provenienza dei dati stanno in sezioni apribili invece che fisse in cima. <strong>Il codice non era lento:</strong> un render completo costa 17ms con la CPU rallentata quattro volte. Era lento l'inserimento, ed è quello che è stato corretto.
+    <br /><br />
+    <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
+    <br /><br />
+    <strong>Un dato che ho controllato e buttato via.</strong> BrawlMetrics pubblica per ogni brawler "forte contro / debole contro" con percentuali, e sembra la funzione più preziosa che esista per un drafter. Campionandone 17 salta fuori che è quasi tutta apparenza: "debole contro Wendy" compare in 15 casi su 17, e "forte contro Shelly/Nita" in quasi tutti — perfino Shelly, la più debole del gioco, risulta "debole contro Wendy, Gus, Bolt". Non sono matchup: è la classifica generale riscritta al contrario, e metterla nel punteggio significherebbe contare due volte la stessa informazione facendola sembrare due. Non è stata usata. Lo stesso vale per la lista di counter di Brawlio (nessun numero, terne identiche per classi diverse).
+    <br /><br />
+    <strong>Fonti consultate (e perché alcune non ci sono):</strong> usate → <strong>brawlplanet.com</strong> (fonte numerica principale per mappe e modalità: scheda <em>Ranked</em>, 106 brawler per ognuna delle 33 mappe del pool, aggiornamento orario, più l'elenco ufficiale di quali mappe sono nel pool e quali archiviate), <strong>BrawlMetrics</strong> (meta generale per fascia di rango e matchup misurati; non più per le mappe, vedi sotto), Dexerto (riscontro indipendente sulla top-5), Pocket Tactics e Brawlvision (roster e classi). Sbloccata → l'<strong>API pubblica ufficiale di Brawlify</strong> (<code>api.brawlapi.com</code>): il sito blocca lo scraping, ma la sua API è aperta, senza chiave né limiti. È la porta d'ingresso prevista, non un aggiramento: da lì arrivano lo stato <code>released</code> dei brawler e il campo <code>disabled</code> delle mappe. <strong>Perché le mappe non vengono più da BrawlMetrics:</strong> non è un problema di qualità del sito, è che segue la <em>rotazione trofei</em> — le mappe che escono solo in Classificata lì non si aggiornano mai (alcune erano ferme a fine luglio) e alcune non hanno proprio una pagina. Le due fonti sono state messe a confronto mappa per mappa e i loro top 10 coincidono solo per 2-3 nomi su 10: non è una differenza di scala che si aggiusta, sono due misure diverse, e non vanno mai mescolate nello stesso numero. Restano bloccati allo scraping → noff.gg, Brawl Time Ninja, TopBrawl, Brawlytix, BrawlHQ, wiki Fandom (403/402), brawlstats.net (429), Brawl Calculator, pinkcrow.net, huskyboost. Scartata per qualità → brawl.tube: tier list di aprile 2026 contenente brawler inesistenti ("Anita", "Macy", "BB"). Brawlio dà una lista di counter senza numeri e con triple identiche per brawler di classi diverse: non usata, per non aggiungere rumore travestito da dato. <strong>brawltime.com</strong> ha dati freschi ma da 22 a 411 partite per brawler: troppo poche, è rumore, non è stata usata.
+    <br /><br />
+    <strong>Dati meta:</strong> 106 win rate reali su Classificata (uno per quasi ogni brawler del roster), letti il 6 settembre 2026 direttamente dalle tabelle di BrawlMetrics — non stime, non citazioni di seconda mano. Incrociati con Dexerto (tier list indipendente, senza numeri): i due concordano sulla stessa cinquina S — Wendy, Shade, Gus, Amber, Nori — che sono quindi i pick più sicuri in assoluto. Due tabelle disponibili dal menu "Fascia dati meta": <strong>tutti i ranghi</strong> (Bronze→Pro, il default) e <strong>Masters</strong>, perché la meta cambia parecchio con lo scaglione — es. El Primo è S tier a Masters (serve coordinazione di squadra) ma molto più debole in ladder media. Il riquadro applica un bonus/malus proporzionale alla percentuale (60% di win rate ≈ +1 punto, 70% ≈ +2) sommato a tutto il resto; quello che incolli e salvi si aggiunge/sovrascrive quei valori di base ed è salvato solo nel tuo browser (localStorage). Brawlify, noff.gg e Brawl Time Ninja restano bloccati (403) al fetch diretto anche oggi: non è stato possibile usarli come terza fonte numerica indipendente, solo BrawlMetrics + Dexerto.
+    </details>
+  </footer>
+</div>
+
+<script src="profilo.js"></script>
+<script src="ritratti.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
