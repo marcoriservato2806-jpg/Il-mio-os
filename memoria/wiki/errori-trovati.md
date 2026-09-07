@@ -58,3 +58,16 @@ Avevo confrontato brawlmetrics (Classificata) con brawlplanet **scheda trofei**,
 | La prima versione della forma si fermava a 9 caratteri e **lasciava passare proprio il tag da proteggere** (ne ha 10) | provato di proposito aggiungendo il tag al file e verificando che scattasse | Portata a 12. |
 
 **La lezione, che vale oltre questo caso:** una regola scritta per proteggere un segreto non deve contenere il segreto. E un controllo di sicurezza va **provato facendolo fallire** — scritto e mai messo alla prova, questo passava senza accorgersi di niente.
+
+## L'errore più silenzioso di tutti (7/9)
+
+| Errore | Come è emerso | Correzione |
+|---|---|---|
+| `CLAUDE.md` rimandava a `context/azienda.md`, `context/persone.md`, `context/obiettivi.md`, `context/tool.md`, `context/regime-fiscale.md`: **quella cartella non esisteva** e i file stavano nella radice | controllando la memoria dopo il merge, non lavorando | File spostati dove l'indice li cerca. Scritto `script/check-memoria.js` che verifica che ogni file citato in `CLAUDE.md` esista davvero. |
+
+**Perché è il peggiore:** non dà nessun sintomo. Ogni volta che serviva sapere
+qualcosa sull'azienda o sulle persone, la ricerca non trovava niente e la
+risposta onesta era "non lo so" — con il dato a due passi. Un indice che punta
+nel vuoto è peggio di un indice assente, perché fa sembrare che il dato non
+esista. Nessuna rilettura del codice lo avrebbe trovato: è saltato fuori solo
+andandolo a cercare apposta.
