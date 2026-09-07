@@ -14,18 +14,6 @@
   <details id="setup" class="setup" open>
     <summary id="setup-summary">Impostazioni partita</summary>
   <div class="config-bar">
-    <label for="first-team">Chi inizia</label>
-    <select id="first-team">
-      <option value="A">Squadra Blu</option>
-      <option value="B">Squadra Rossa</option>
-    </select>
-
-    <label for="my-team">Io gioco in</label>
-    <select id="my-team">
-      <option value="A">Squadra Blu</option>
-      <option value="B">Squadra Rossa</option>
-    </select>
-
     <label for="min-power">Il mio rango</label>
     <select id="min-power">
       <option value="9">Fino a Diamante (serve potenza 9)</option>
@@ -33,13 +21,12 @@
       <option value="0">Non filtrare per potenza</option>
     </select>
 
-    <label for="bans-per-team">Ban per squadra</label>
-    <input type="number" id="bans-per-team" min="0" max="3" value="3" />
+    <label for="use-bans">Ban</label>
+    <select id="use-bans">
+      <option value="3">Con ban (Diamante in su)</option>
+      <option value="0">Senza ban</option>
+    </select>
 
-    <label for="pick-pattern">Ordine pick (A/B)</label>
-    <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
-
-    <button id="apply-config">Applica e ricomincia</button>
   </div>
 
   <div class="config-bar">
@@ -61,37 +48,28 @@
   <div class="stage">
     <div class="stage-side allies" id="side-mine">
       <p class="stage-label">Alleati</p>
-      <div class="slot-row" id="picks-mine"></div>
-      <div class="slot-row bans" id="bans-mine"></div>
+      <div class="slot-wrap"><div class="slot-row" id="picks-mine"></div><div class="slot-row bans" id="bans-mine"></div></div>
     </div>
     <div class="stage-center">
+      <div id="map-art" class="map-art"></div>
       <div id="turn-banner" class="turn-banner"></div>
       <div class="turn-actions">
-        <button id="undo-btn" title="Scorciatoia: Backspace">↩ Annulla</button>
-        <button id="reset-btn">Ricomincia</button>
+        <button id="first-pick" type="button" aria-pressed="true">Scelgo per primo</button>
+        <button id="reset-btn" type="button" class="quiet">Svuota</button>
       </div>
     </div>
     <div class="stage-side enemies" id="side-theirs">
       <p class="stage-label">Avversari</p>
-      <div class="slot-row" id="picks-theirs"></div>
-      <div class="slot-row bans" id="bans-theirs"></div>
+      <div class="slot-wrap"><div class="slot-row" id="picks-theirs"></div><div class="slot-row bans" id="bans-theirs"></div></div>
     </div>
   </div>
 
   <div class="main-grid">
     <div class="side-panel">
       <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
-      <div id="context-line" class="context-line"></div>
       <div class="picker picker-top">
         <div class="filters">
-          <input type="search" id="search-box" placeholder="Scrivi 2 lettere, poi Invio" autocomplete="off" autocorrect="off" spellcheck="false" />
-          <select id="grid-order" aria-label="Ordine del roster">
-            <option value="score" selected>Migliori adesso</option>
-            <option value="played">Più giocati qui</option>
-            <option value="az">A-Z</option>
-            <option value="class">Per classe</option>
-          </select>
-          <select id="class-filter"></select>
+          <input type="search" id="search-box" placeholder="Cerca un brawler…" autocomplete="off" autocorrect="off" spellcheck="false" />
         </div>
         <p id="picker-hint" class="picker-hint"></p>
       </div>
@@ -173,6 +151,12 @@
     <strong>La matrice per classe ora è calibrata sui dati, non scritta a mano</strong> — e in più punti smentisce l'euristica che c'era prima: davo il Tank favorito contro l'Assassin (+1), le misure dicono −5,96. Confermano invece Assassin contro Artiglieria (+7,30) e Artiglieria contro Controller (+7,90). Due cautele applicate: le stime sono dimezzate, perché le coppie misurate sono gli estremi di ogni brawler e quindi esagerano; e le celle con meno di 5 osservazioni non usano un numero traballante ma un modello additivo sui margini di classe. Da lì esce il risultato più utile di tutta l'analisi: <strong>conta molto più chi affronti che chi sei</strong>. Da attaccante le classi si equivalgono (fra −0,78 e +0,56); da bersaglio no — l'artiglieria è preda facile (+6,48), Assassin (−4,04) e Support (−3,66) sono i bersagli più duri.
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
+    <br /><br />
+    <strong>Meno controlli, meno errori.</strong> C'erano due menu — "chi inizia" e "io gioco in" — e bastava impostarne uno al contrario per rendere sbagliato ogni suggerimento successivo <em>senza che si vedesse</em>: l'app avrebbe consigliato con sicurezza i pick della squadra sbagliata. Ora gli <strong>Alleati sei sempre tu</strong> e resta un solo interruttore: <em>scelgo per primo</em>, sì o no. Sparito anche il campo "ordine pick" dove si poteva scrivere <code>A,B,B,A,A,B</code>: l'ordine 1-2-2-1 è fisso, e quel campo era solo un modo per rompere tutti i turni con una virgola di troppo. Via anche il filtro per classe e il menu dell'ordinamento: il roster è sempre ordinato per quanto un brawler vale <em>adesso</em>, che è la cosa giusta in ogni caso.
+    <br /><br />
+    <strong>Toccare di nuovo toglie.</strong> L'errore più comune è toccare la faccia sbagliata mentre corre il timer. Ora basta ritoccarla — nel roster o nel palco — e se ne va. E toglie <em>solo quella</em>: se ti accorgi al quinto pick di aver sbagliato il secondo, il resto del draft resta dov'è e l'app torna da sola sulla casella liberata. Per farlo il modello dei turni è stato rifatto: ogni turno ha la sua casella invece di essere una pila dove si può solo disfare l'ultima mossa.
+    <br /><br />
+    <strong>La mappa si vede.</strong> Al centro del palco c'è il disegno della mappa che hai scelto. Non è decorazione: la mappa si sceglie da una tendina di nomi che si somigliano, e il disegno è il modo più rapido per accorgersi di aver selezionato quella sbagliata. Sono le 33 immagini del pool, incorporate come i ritratti (186 KB in tutto).
     <br /><br />
     <strong>Il tuo profilo, e i brawler che puoi davvero schierare.</strong> Questa è la cosa che cambia di più i consigli. In Classificata <strong>un brawler sotto potenza 9 non si può mettere in campo</strong>, e da Mythic in su ne serve uno a potenza 11 — è una regola del gioco, non una preferenza. Del profilo collegato risultano <strong>106 brawler posseduti ma solo 49 schierabili</strong> (36 a potenza 11): l'app stava consigliando pick impossibili da eseguire, che sotto timer è peggio che non consigliare niente. Ora i suggerimenti <em>per la tua squadra</em> tengono solo quelli che puoi schierare; il roster resta intero, perché l'avversario li avrà maxati e devi comunque poter registrare cosa sceglie. I brawler fuori soglia restano visibili, barrati e cliccabili. <strong>Da dove viene il dato:</strong> dal tracker pubblico di brawlplanet, letto col tag — l'API ufficiale di Supercell richiede una chiave legata a un IP fisso e non è utilizzabile da una pagina web. È una <em>fotografia</em>, non un collegamento dal vivo: quando potenzi un brawler va riletta. Due avvertenze oneste: i tre brawler maxati che Classificata regala ogni stagione non compaiono con la potenza vera, quindi qualcuno segnato come escluso potrebbe essere giocabile — per questo il filtro si può spegnere; e Vince e Cosmo non sono nella fotografia, quindi non vengono filtrati.
     <br /><br />

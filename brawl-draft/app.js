@@ -4,7 +4,6 @@ const state = {
   bansPerTeam: 3, // Diamante+: ogni giocatore banna 1 brawler, 3 a squadra in 3v3
   pickPattern: ["A", "B", "B", "A", "A", "B"], // 3v3 standard "1-2-2-1"
   sequence: [], // array di {phase:'ban'|'pick', team:'A'|'B'}
-  turnIndex: 0,
   bans: { A: [], B: [] },
   picks: { A: [], B: [] },
   filterClass: "ALL",
@@ -16,7 +15,12 @@ const state = {
   customScores: {}, // { nomeBrawler: winRatePercentuale }, incollati a mano dall'utente
   metaSource: "ALL_RANKS", // "ALL_RANKS" | "MASTERS", quale tabella di base usare (vedi data.js)
   firstTeam: "A", // chi muove per primo: in Classificata cambia a ogni partita, quindi si sceglie
-  myTeam: "A", // in quale squadra gioco io: serve a filtrare i MIEI pick sui brawler che posso schierare
+  // Io sono SEMPRE la squadra A, cioè gli Alleati a sinistra. Prima c'erano
+  // due menu ("chi inizia" e "io gioco in") ed era facile impostarne uno al
+  // contrario, il che rendeva sbagliato ogni suggerimento successivo senza
+  // che si vedesse. Con un solo interruttore — scelgo per primo sì/no —
+  // l'errore non è più possibile.
+  myTeam: "A",
   minPower: 9, // 9 = fino a Diamante, 11 = da Mythic in su. Sotto questa soglia il brawler non è schierabile
 };
 
@@ -95,31 +99,57 @@ function parseMetaText(text) {
 // sbagliare il lato fa slittare tutti i turni di una posizione, cioè rende
 // sbagliato ogni suggerimento successivo. Se tocca prima alla Rossa, si
 // specchia l'intera sequenza invece di ricostruirla a mano.
+// IL MODELLO DEI TURNI È A CASELLE, non a sequenza rigida.
+//
+// Prima ogni pick veniva accodato e si poteva solo annullare l'ultimo. Ma
+// l'errore vero è toccare il brawler sbagliato al terzo turno su sei, e
+// accorgersene al quinto: con l'accodamento l'unico rimedio era disfare
+// tutto. Ora ogni turno ha la SUA casella, quindi togliere un brawler
+// significa svuotare quella casella e basta — il resto del draft resta dov'è.
 function buildSequence() {
   const flip = (t) => (state.firstTeam === "B" ? (t === "A" ? "B" : "A") : t);
   const seq = [];
+  const conta = {};
+  const aggiungi = (phase, team) => {
+    const chiave = phase + team;
+    conta[chiave] = conta[chiave] || 0;
+    seq.push({ phase, team, k: conta[chiave]++ }); // k = quale casella di quella squadra
+  };
   for (let i = 0; i < state.bansPerTeam; i++) {
-    seq.push({ phase: "ban", team: flip("A") });
-    seq.push({ phase: "ban", team: flip("B") });
+    aggiungi("ban", flip("A"));
+    aggiungi("ban", flip("B"));
   }
-  for (const team of state.pickPattern) {
-    seq.push({ phase: "pick", team: flip(team) });
-  }
+  for (const team of state.pickPattern) aggiungi("pick", flip(team));
   state.sequence = seq;
-  state.turnIndex = 0;
+}
+
+// Dove sta scritto il brawler di un dato turno.
+function contenitore(turn) {
+  return turn.phase === "ban" ? state.bans[turn.team] : state.picks[turn.team];
+}
+
+function nomeDelTurno(turn) {
+  return contenitore(turn)[turn.k] || null;
 }
 
 function usedNames() {
-  return new Set([
-    ...state.bans.A,
-    ...state.bans.B,
-    ...state.picks.A,
-    ...state.picks.B,
-  ]);
+  const out = new Set();
+  for (const arr of [state.bans.A, state.bans.B, state.picks.A, state.picks.B]) {
+    for (const n of arr) if (n) out.add(n);
+  }
+  return out;
 }
 
+// Il turno corrente è la PRIMA casella vuota. Con le caselle questo viene
+// gratis: togli un brawler dal secondo turno e l'app torna lì da sola,
+// senza toccare quello che c'era dopo.
 function currentTurn() {
-  return state.sequence[state.turnIndex] || null;
+  for (const t of state.sequence) if (!nomeDelTurno(t)) return t;
+  return null;
+}
+
+function turniFatti() {
+  return state.sequence.filter((t) => nomeDelTurno(t)).length;
 }
 
 function classOf(name) {
@@ -442,7 +472,7 @@ function computeSuggestions() {
   const enemyNames = state.picks[enemy];
   const enemyClasses = enemyNames.map(classOf);
 
-  const enemyLeft = state.sequence.filter((sq, i) => i >= state.turnIndex && sq.phase === "pick" && sq.team === enemy).length;
+  const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
   const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
 
   const mieiPick = filtroAttivo() && own === state.myTeam;
@@ -480,47 +510,48 @@ function computeSuggestions() {
 function pickOrBan(name) {
   const turn = currentTurn();
   if (!turn) return;
-  const used = usedNames();
-  if (used.has(name)) return;
-
-  if (turn.phase === "ban") {
-    state.bans[turn.team].push(name);
-  } else {
-    state.picks[turn.team].push(name);
-  }
-  state.turnIndex++;
+  if (usedNames().has(name)) return;
+  contenitore(turn)[turn.k] = name;
   // La ricerca si svuota PRIMA di ridisegnare: svuotandola dopo, l'indizio
-  // sotto la casella restava fermo sul testo vecchio ("Nessun brawler con
-  // questo nome") anche se la casella era già vuota.
+  // sotto la casella restava fermo sul testo vecchio.
   clearSearch();
   render();
 }
 
-function undoLast() {
-  if (state.turnIndex === 0) return;
-  state.turnIndex--;
-  const turn = state.sequence[state.turnIndex];
-  if (turn.phase === "ban") {
-    state.bans[turn.team].pop();
-  } else {
-    state.picks[turn.team].pop();
+// Toccare di nuovo un brawler già in campo lo toglie. È il rimedio
+// all'errore più comune — toccare la faccia sbagliata mentre corre il
+// timer — e non richiede di ricordarsi dove sta un pulsante "annulla".
+// Toglie SOLO quello: il resto del draft non si muove.
+function removeName(name) {
+  for (const t of state.sequence) {
+    if (nomeDelTurno(t) === name) {
+      contenitore(t)[t.k] = null;
+      clearSearch();
+      render();
+      return true;
+    }
   }
-  render();
+  return false;
 }
 
-// In partita la fase ban dura una ventina di secondi e spesso non fai in
-// tempo a inserirli tutti. Questo salta ai pick MANTENENDO i ban che hai già
-// messo: la sequenza viene accorciata a quelli effettivamente inseriti,
-// invece di limitarsi a spostare l'indice. Serve perché altrimenti "annulla"
-// tornerebbe su caselle di ban mai riempite e finirebbe per cancellare il
-// ban sbagliato — i due indici non corrisponderebbero più.
+// Un tocco solo per entrambe le cose: se c'è già, lo toglie; se no, lo mette.
+function toggleBrawler(name) {
+  if (!removeName(name)) pickOrBan(name);
+}
+
+function undoLast() {
+  for (let i = state.sequence.length - 1; i >= 0; i--) {
+    const t = state.sequence[i];
+    if (nomeDelTurno(t)) { contenitore(t)[t.k] = null; render(); return; }
+  }
+}
+
 function skipBans() {
   const turn = currentTurn();
   if (!turn || turn.phase !== "ban") return;
-  const banTurnsDone = state.sequence.slice(0, state.turnIndex).filter((t) => t.phase === "ban");
-  const pickTurns = state.sequence.filter((t) => t.phase === "pick");
-  state.sequence = [...banTurnsDone, ...pickTurns];
-  state.turnIndex = banTurnsDone.length;
+  // I ban già inseriti restano validi: si tolgono solo le caselle di ban
+  // ancora vuote, così il turno passa ai pick.
+  state.sequence = state.sequence.filter((t) => t.phase !== "ban" || nomeDelTurno(t));
   render();
 }
 
@@ -531,20 +562,9 @@ function resetDraft() {
   render();
 }
 
-function applyConfig() {
-  const firstSelect = document.getElementById("first-team");
-  if (firstSelect) state.firstTeam = firstSelect.value === "B" ? "B" : "A";
-  const bansInput = document.getElementById("bans-per-team");
-  const patternInput = document.getElementById("pick-pattern");
-  state.bansPerTeam = Math.max(0, Math.min(3, parseInt(bansInput.value, 10) || 0));
-  const pattern = patternInput.value
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter((s) => s === "A" || s === "B");
-  if (pattern.length > 0) state.pickPattern = pattern;
-  resetDraft();
-}
-
+// L'ordine dei pick in Classificata è sempre 1-2-2-1: era un campo di testo
+// modificabile ("A,B,B,A,A,B"), cioè un modo per rompere tutti i turni
+// scrivendoci dentro una virgola di troppo. Ora è fisso.
 // Il ritratto del brawler. Riconoscere una faccia è più veloce che leggere
 // un nome, ed è tutto quello che serve quando hai 22 secondi. Vince e Cosmo
 // non hanno ancora un'immagine sul CDN: per loro restano le iniziali, invece
@@ -557,10 +577,6 @@ function ritratto(name, extra) {
   return `<span class="${cls} ritratto-vuoto">${iniziali}</span>`;
 }
 
-// Le due fiancate del palco sono "i miei" e "i loro", non "Blu" e "Rossa":
-// la squadra in cui gioco cambia a ogni partita, ma alleati a sinistra e
-// avversari a destra devono restare fermi, altrimenti si legge il palco al
-// contrario proprio mentre si va di fretta.
 function renderSlots(ruolo) {
   const team = ruolo === "mine" ? state.myTeam : state.myTeam === "A" ? "B" : "A";
   const bansEl = document.getElementById(`bans-${ruolo}`);
@@ -584,6 +600,10 @@ function renderSlots(ruolo) {
 function makeSlot(name, phase) {
   const div = document.createElement("div");
   div.className = "slot " + (name ? "filled" : "empty") + " " + phase;
+  if (name) {
+    div.title = `${name} — tocca per toglierlo`;
+    div.addEventListener("click", () => removeName(name));
+  }
   if (name) {
     const cls = classOf(name);
     div.style.borderColor = CLASS_COLORS[cls] || "#666";
@@ -676,7 +696,7 @@ function cartaDi(b) {
   card.innerHTML =
     `${ritratto(b.name)}<div class="brawler-name">${b.name}</div>` +
     `<div class="card-score"></div><div class="card-bar"><i></i></div>`;
-  card.addEventListener("click", () => pickOrBan(b.name));
+  card.addEventListener("click", () => toggleBrawler(b.name));
   _carte.set(b.name, card);
   return card;
 }
@@ -803,7 +823,7 @@ function renderTeamCounter() {
   const own = turn.team;
   const enemy = own === "A" ? "B" : "A";
   const enemyNames = state.picks[enemy];
-  const enemyLeft = state.sequence.filter((sq, i) => i >= state.turnIndex && sq.phase === "pick" && sq.team === enemy).length;
+  const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
 
   const fmt = (n) => Math.round(n) + "%";
   let html = "";
@@ -830,24 +850,9 @@ function renderTeamCounter() {
 // riga se le porta dietro: se dice "meta generale" vuol dire che mappa e
 // modalità non sono selezionate, ed è il motivo più comune per cui i numeri
 // sembrano strani.
-function renderContextLine() {
-  const el = document.getElementById("context-line");
-  if (!el) return;
-  const parts = [];
-  parts.push(state.mode || "nessuna modalità");
-  if (state.map) {
-    parts.push(state.map.winRates ? state.map.name : state.map.name + " (senza dati)");
-  } else {
-    parts.push(state.mode ? "nessuna mappa" : "—");
-  }
-  parts.push(state.metaSource === "MASTERS" ? "Masters" : "tutti i ranghi");
-  const weak = !state.mode && !state.map;
-  el.className = "context-line" + (weak ? " weak" : "");
-  el.innerHTML =
-    parts.map((p) => `<span>${p}</span>`).join("") +
-    (weak ? `<em>i numeri sono il meta generale: scegli modalità e mappa per averli su misura</em>` : "");
-}
-
+// La riga di contesto (chip "Knockout / Flaring Phoenix / tutti i ranghi") è
+// stata tolta: diceva la terza volta quello che già dicono il riassunto delle
+// impostazioni e l'immagine della mappa al centro del palco.
 function renderSuggestions() {
   const el = document.getElementById("suggestions");
   const titleEl = document.getElementById("suggestions-title");
@@ -874,7 +879,7 @@ function renderSuggestions() {
     }
     el.innerHTML =
       `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
-      `<p class="hint">Forza (su ${bans[0].source}) × quanto viene scelto davvero.</p>`;
+"";
     bans.forEach((s, i) => {
       const row = document.createElement("div");
       row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -890,7 +895,7 @@ function renderSuggestions() {
         <span class="sugg-class">${s.class}</span>
         <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
       `;
-      row.addEventListener("click", () => pickOrBan(s.name));
+      row.addEventListener("click", () => toggleBrawler(s.name));
       el.appendChild(row);
     });
     const skipBtn = document.getElementById("skip-bans");
@@ -940,13 +945,12 @@ function renderSuggestions() {
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
-    row.addEventListener("click", () => pickOrBan(s.name));
+    row.addEventListener("click", () => toggleBrawler(s.name));
     el.appendChild(row);
   });
 }
 
 function render() {
-  renderContextLine();
   renderTurnBanner();
   renderTeamCounter();
   renderSlots("mine");
@@ -957,33 +961,12 @@ function render() {
   // precedente — in fase pick comparivano ancora quelli dei ban.
   renderSuggestions();
   renderGrid();
+  renderMapArt();
+  renderFirstPick();
   updateSetupUI();
-  document.getElementById("undo-btn").disabled = state.turnIndex === 0;
 }
 
 function initFilters() {
-  const classSelect = document.getElementById("class-filter");
-  classSelect.innerHTML = `<option value="ALL">Tutte le classi</option>`;
-  for (const c of CLASSES) {
-    const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c;
-    classSelect.appendChild(opt);
-  }
-  classSelect.addEventListener("change", (e) => {
-    state.filterClass = e.target.value;
-    renderGrid();
-  });
-
-  const orderSelect = document.getElementById("grid-order");
-  if (orderSelect) {
-    orderSelect.value = state.gridOrder;
-    orderSelect.addEventListener("change", (e) => {
-      state.gridOrder = e.target.value;
-      renderGrid();
-    });
-  }
-
   const box = document.getElementById("search-box");
   box.addEventListener("input", (e) => {
     state.search = e.target.value;
@@ -1043,6 +1026,15 @@ function initKeyboard() {
 // partita, ma occupava 600px fissi in cima: i suggerimenti finivano sotto la
 // piega e il roster due schermate più giù. Scelta la mappa si richiude da
 // solo, e il riassunto resta nella linguetta. Riaprirlo è un tocco.
+function renderFirstPick() {
+  const b = document.getElementById("first-pick");
+  if (!b) return;
+  const primo = state.firstTeam === state.myTeam;
+  b.textContent = primo ? "Scelgo per primo" : "Sceglie per primo l'avversario";
+  b.setAttribute("aria-pressed", String(primo));
+  b.classList.toggle("on", primo);
+}
+
 function updateSetupUI() {
   const box = document.getElementById("setup");
   const traits = document.getElementById("traits-wrap");
@@ -1051,8 +1043,7 @@ function updateSetupUI() {
   const sum = box.querySelector("#setup-summary");
   if (sum) {
     const dove = state.map ? `${state.mode} · ${state.map.name}` : state.mode || "nessuna modalità";
-    const chi = state.firstTeam === "A" ? "inizia Blu" : "inizia Rossa";
-    const io = `gioco in ${state.myTeam === "A" ? "Blu" : "Rossa"}`;
+    const chi = state.firstTeam === state.myTeam ? "scelgo per primo" : "sceglie prima l'avversario";
     // Il filtro potenza cambia parecchio i consigli: se è attivo va detto
     // qui, altrimenti uno non capisce perché certi brawler non compaiono.
     const pw = filtroAttivo()
@@ -1063,7 +1054,7 @@ function updateSetupUI() {
       : "";
     sum.textContent = box.open
       ? "Impostazioni partita — tocca per chiudere"
-      : `${dove} · ${chi} · ${io}${pw} · tocca per cambiare`;
+      : `${dove} · ${chi}${pw} · tocca per cambiare`;
   }
 }
 
@@ -1082,6 +1073,20 @@ function populateMapSelect() {
   mapSelect.disabled = mapsForMode.length === 0;
   state.map = null;
   renderMapNotes();
+}
+
+// L'immagine della mappa al centro del palco. Non è decorazione: la mappa si
+// sceglie da una tendina di nomi che si somigliano, e vederla è il modo più
+// rapido per accorgersi di aver selezionato quella sbagliata.
+function renderMapArt() {
+  const el = document.getElementById("map-art");
+  if (!el) return;
+  const key = state.map ? `${state.map.mode}|${state.map.name}` : null;
+  const src = key && typeof MAP_IMGS !== "undefined" ? MAP_IMGS[key] : null;
+  el.innerHTML = src
+    ? `<img src="${src}" alt="Mappa ${state.map.name}" loading="lazy" decoding="async" /><span>${state.map.name}</span>`
+    : "";
+  el.hidden = !src;
 }
 
 function renderMapNotes() {
@@ -1205,18 +1210,16 @@ document.addEventListener("DOMContentLoaded", () => {
   buildSequence();
   render();
 
-  document.getElementById("apply-config").addEventListener("click", applyConfig);
-  document.getElementById("first-team").addEventListener("change", (e) => {
-    state.firstTeam = e.target.value === "B" ? "B" : "A";
+  document.getElementById("first-pick").addEventListener("click", () => {
+    state.firstTeam = state.firstTeam === "A" ? "B" : "A";
     resetDraft();
   });
-  document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
-  const mine = document.getElementById("my-team");
-  mine.value = state.myTeam;
-  mine.addEventListener("change", (e) => {
-    state.myTeam = e.target.value === "B" ? "B" : "A";
-    render();
+  const ban = document.getElementById("use-bans");
+  ban.value = String(state.bansPerTeam);
+  ban.addEventListener("change", (e) => {
+    state.bansPerTeam = Number(e.target.value) || 0;
+    resetDraft();
   });
 
   const pw = document.getElementById("min-power");

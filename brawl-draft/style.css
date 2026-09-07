@@ -900,3 +900,89 @@ footer details[open] summary { margin-bottom: 8px; }
   .stage .slot-row { margin: 2px 0; }
   .stage-side .slot-row.bans { grid-column: 2; }
 }
+
+/* ---- Meno controlli, meno errori --------------------------------------
+   "Chi inizia" e "io gioco in" erano due menu, e bastava sbagliarne uno per
+   rendere sbagliato ogni suggerimento successivo senza accorgersene. Ora
+   sono un interruttore solo: gli Alleati sono sempre i miei, e l'unica cosa
+   da dire è se scelgo per primo. */
+#first-pick {
+  font-weight: 700;
+  border-color: var(--border);
+}
+#first-pick.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 194, 61, 0.1);
+}
+.turn-actions button.quiet { color: var(--text-dim); }
+
+/* Toccare una faccia già in campo la toglie: si vede che è tornabile. */
+.brawler-card.used {
+  opacity: 0.42;
+  filter: grayscale(0.85);
+  cursor: pointer;
+}
+.brawler-card.used::after {
+  content: "tocca per togliere";
+  display: block;
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.brawler-card.used .card-score, .brawler-card.used .card-bar { display: none; }
+.stage .slot.filled { cursor: pointer; }
+.stage .slot.filled:hover .ritratto { outline: 2px solid var(--bad); outline-offset: 1px; }
+
+/* La mappa al centro del palco, come in MetaPick. Serve a confermare a
+   colpo d'occhio di aver scelto la mappa giusta: i nomi si somigliano,
+   il disegno no. */
+.map-art { text-align: center; margin-bottom: 8px; }
+.map-art img {
+  display: block;
+  margin: 0 auto 4px;
+  max-height: 128px;
+  width: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.map-art span {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 800px) {
+  .map-art img { max-height: 88px; }
+}
+
+/* ---- Palco compatto ---------------------------------------------------
+   Pick e ban di una squadra stanno sulla STESSA riga: erano due righe per
+   lato, cioè quattro fasce di caselle vuote che spingevano i consigli sotto
+   la piega. I ban restano riconoscibili perché sono più piccoli e spenti. */
+@media (max-width: 800px) {
+  .stage-side {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    padding-top: 5px;
+  }
+  .stage-side .slot-row { display: inline-flex; margin: 1px 0; }
+  .stage-side .slot-row.bans { grid-column: auto; margin-left: 6px; }
+  .stage-label { font-size: 0.6rem; }
+  .stage .slot .ritratto.mini, .stage .slot.empty { width: 27px; height: 27px; }
+  .stage .slot-row.bans .ritratto.mini, .stage .slot-row.bans .slot.empty { width: 20px; height: 20px; }
+  .stage .slot-row.bans .slot-placeholder { font-size: 0; }
+  .map-art img { max-height: 74px; }
+  .map-art { margin-bottom: 5px; }
+  .stage-center .turn-banner { margin-bottom: 6px; font-size: 0.8rem; padding: 7px 6px; }
+  h1 { display: none; }
+  /* La provenienza dei dati si legge una volta, non a ogni draft. */
+  .map-notes { display: none; }
+}
+
+/* Il pannello dei consigli non ha più bisogno di ripetere modalità e mappa:
+   stanno nel riassunto in alto e nell'immagine del palco. */
+#suggestions-title { margin-bottom: 6px; }
+.slot-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.slot-wrap .slot-row { margin: 0; }

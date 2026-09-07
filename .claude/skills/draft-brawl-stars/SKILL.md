@@ -98,6 +98,8 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non fidarti della scheda aperta di default su una pagina che ne ha due.
 - Non far girare `renderGrid` prima di `renderSuggestions`: è quest'ultima a calcolare `_classifica`, che la griglia legge per il punteggio sulle carte. Al contrario, la griglia mostra i punteggi del turno prima.
 - Non scrivere il tag del giocatore in nessun file del repo: è pubblico.
+- Quando riscrivi un blocco di `app.js` per intervallo di testo, controlla cosa c'era in mezzo: una riscrittura ha cancellato `ritratto()` e l'eccezione interrompeva `render()` a metà, il che sembrava un bug del modello dei turni.
+- Nei generatori, per le chiavi stringa usa `json.dumps`, mai `repr()` + `.replace("'", '\"')`: su `Belle's Rock` produce JavaScript non valido.
 - Non toccare l'interfaccia per "renderla più veloce" senza aver prima misurato se è lenta: il render completo costa ~11ms con CPU rallentata 4x. Se l'utente dice "è lenta", quasi sempre parla dei gesti, non dei millisecondi.
 - Non chiudere Annulla e Ricomincia dentro le impostazioni: servono durante il draft.
 - `node script/build-brawl-draft.js` va lanciato dalla radice del repo. Se hai fatto `cd brawl-draft`, usa il percorso assoluto: lo script regge, il percorso relativo no.
@@ -121,6 +123,17 @@ Scrive `brawl-draft/profilo.js` con i soli livelli di potenza. **Il tag non ci f
 `node script/fetch-ritratti.js` scarica i ritratti dal CDN pubblico di Brawlify e scrive `brawl-draft/ritratti.js` (data URI, 96px WebP, ~378 KB per 106 brawler). **Incorporati e non collegati**: la pagina pubblicata non carica immagini da altri siti, e non dà nemmeno errore — semplicemente non compaiono. Vince e Cosmo non hanno immagine sul CDN: l'app mostra le iniziali.
 
 **Trappola già pagata:** ricreare 108 `<img>` con data URI a ogni render porta il ridisegno da 11ms a 66ms, perché il browser ridecodifica ogni immagine — e la ricerca ridisegna a ogni lettera. Le carte del roster si creano **una volta** e si riordinano (`_carte` in app.js): 2,6ms. Non tornare a ricostruirle.
+
+## Il modello dei turni è a CASELLE, non a pila
+
+Ogni turno della sequenza ha un `k` che dice quale casella di quella squadra occupa; `currentTurn()` è la prima casella vuota. Da qui viene gratis il comportamento che serve: **ritoccare un brawler lo toglie**, anche se sta a metà draft, e il turno torna sulla casella liberata senza smuovere il resto. Non tornare a un modello ad accodamento: l'errore vero è toccare la faccia sbagliata al terzo turno e accorgersene al quinto.
+
+## Meno controlli è una funzione, non estetica
+
+Ogni controllo che si può impostare al contrario è un modo per avere consigli **sicuri e sbagliati** senza che si veda. Già tolti, non reintrodurli:
+- i due menu "chi inizia" + "io gioco in" → un interruttore solo; **gli Alleati sono sempre l'utente**;
+- il campo di testo con l'ordine dei pick (`A,B,B,A,A,B`): l'ordine 1-2-2-1 è fisso;
+- filtro per classe e menu dell'ordinamento: il roster si ordina sempre per quanto un brawler vale adesso.
 
 ## Il vincolo dell'interfaccia: 22 secondi a pick
 
