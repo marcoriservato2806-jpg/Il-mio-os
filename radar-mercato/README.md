@@ -3,6 +3,10 @@
 Fase 1 (MVP gratuito) del sistema di early-warning per movimenti anomali in borsa:
 vedi la ricerca che ha preceduto questo codice per il perché delle scelte.
 
+**Vuoi un link vero da aprire senza terminale?** Vedi [DEPLOY.md](./DEPLOY.md)
+(deploy gratuito su Render + Vercel, solo click). Le istruzioni qui sotto sono
+per chi vuole farla girare sul proprio computer.
+
 Un punteggio composito 0-100 per ogni titolo seguito, calcolato da regole esplicite
 (niente ML ancora) su cinque fonti, tutte gratuite:
 

@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     def watchlist_symbols(self) -> list[str]:
         return [s.strip().upper() for s in self.watchlist_default.split(",") if s.strip()]
 
+    @property
+    def cors_origins(self) -> list[str]:
+        """CORS_ORIGIN accetta una o più origini separate da virgola, utile quando la stessa
+        API serve sia il frontend in locale (localhost) sia quello pubblicato (es. Vercel)."""
+        return [o.strip() for o in self.cors_origin.split(",") if o.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
