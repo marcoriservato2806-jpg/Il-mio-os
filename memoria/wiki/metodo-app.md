@@ -8,6 +8,11 @@ perché, per ritrovarlo leggendo la memoria.
 Vedi anche [[app-draft-classificata]] (il caso concreto),
 [[fonti-brawl-stars]] (le fonti), [[errori-trovati]] (gli errori).
 
+Per **come** si tiene questa memoria e cosa fare quando salta fuori un
+errore c'è la skill `memoria-di-lavoro`, e il controllo
+`node script/check-memoria.js` che verifica che l'indice non punti nel vuoto,
+che nessun collegamento sia morto e che il registro sia in ordine.
+
 ## Il filo
 
 **Un'app che sbaglia con sicurezza è peggio di un'app che non risponde.**
