@@ -161,6 +161,8 @@
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
     <br /><br />
+    <strong>Ritratti.</strong> I brawler si mostrano con la faccia e non solo col nome: riconoscere un'immagine è più veloce che leggere, ed è tutto quello che conta con 22 secondi di timer. Le 106 immagini sono <em>dentro</em> il file (data URI, 96px WebP, 378 KB in tutto) e non collegate: una pagina pubblicata non carica immagini da altri siti, quindi collegate non si vedrebbero e nemmeno darebbero errore. Sono immagini di Supercell, prese dal CDN pubblico di Brawlify. Vince e Cosmo non ne hanno ancora una: per loro restano le iniziali, invece di un riquadro vuoto che sembrerebbe un guasto. <strong>Costo tenuto sotto controllo:</strong> ricreare 108 immagini a ogni ridisegno portava il render da 11ms a 66ms — con la ricerca che ridisegna a ogni lettera si sarebbe sentito. Le carte ora si creano una volta e si riordinano: 2,6ms, cioè meno di prima che ci fossero i ritratti.
+    <br /><br />
     <strong>Interfaccia — cosa è stato cambiato e perché.</strong> Il draft dà <strong>22 secondi a pick</strong>, quindi il costo vero non è il calcolo ma i gesti. Misurato prima: sul telefono la pagina era alta <strong>2947px</strong> (3,5 schermate), i consigli stavano a 888px e la casella di ricerca a <strong>2052px</strong> — per registrare un pick avversario servivano duemila pixel di scorrimento e ritorno. E il roster era ordinato per classe, quindi Wendy era la 95esima carta. Ora la pagina è <strong>1305px</strong> e tutto quello che si tocca sta nella prima schermata: turno a 129px, ricerca a 251px, consigli a 358px. Il roster è ordinato per <strong>quanto ogni brawler viene giocato su questa mappa</strong> — la pick rate misurata sulle stesse partite delle win rate — così chi cerchi è quasi sempre nelle prime file. Le impostazioni si richiudono da sole quando scegli la mappa, e la legenda e la provenienza dei dati stanno in sezioni apribili invece che fisse in cima. <strong>Il codice non era lento:</strong> un render completo costa 17ms con la CPU rallentata quattro volte. Era lento l'inserimento, ed è quello che è stato corretto.
     <br /><br />
     <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
@@ -174,6 +176,7 @@
   </footer>
 </div>
 
+<script src="ritratti.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

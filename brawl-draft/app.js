@@ -507,6 +507,18 @@ function applyConfig() {
   resetDraft();
 }
 
+// Il ritratto del brawler. Riconoscere una faccia è più veloce che leggere
+// un nome, ed è tutto quello che serve quando hai 22 secondi. Vince e Cosmo
+// non hanno ancora un'immagine sul CDN: per loro restano le iniziali, invece
+// di un riquadro vuoto che sembra un errore.
+function ritratto(name, extra) {
+  const src = typeof BRAWLER_IMGS !== "undefined" ? BRAWLER_IMGS[name] : null;
+  const cls = "ritratto" + (extra ? " " + extra : "");
+  if (src) return `<img class="${cls}" src="${src}" alt="" loading="lazy" decoding="async" width="48" height="48" />`;
+  const iniziali = name.replace(/[^A-Za-z0-9 -]/g, "").split(/[ -]/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return `<span class="${cls} ritratto-vuoto">${iniziali}</span>`;
+}
+
 function renderSlots(team) {
   const bansEl = document.getElementById(`bans-${team}`);
   const picksEl = document.getElementById(`picks-${team}`);
@@ -532,7 +544,7 @@ function makeSlot(name, phase) {
   if (name) {
     const cls = classOf(name);
     div.style.borderColor = CLASS_COLORS[cls] || "#666";
-    div.innerHTML = `<span class="slot-name">${name}</span><span class="slot-class">${cls || ""}</span>`;
+    div.innerHTML = `${ritratto(name, "mini")}<span class="slot-name">${name}</span><span class="slot-class">${cls || ""}</span>`;
   } else {
     div.innerHTML = `<span class="slot-placeholder">${phase === "ban" ? "ban" : "pick"}</span>`;
   }
@@ -598,6 +610,26 @@ function visibleBrawlers() {
   return list.filter((b) => !used.has(b.name)).concat(list.filter((b) => used.has(b.name)));
 }
 
+// Le carte del roster si creano UNA VOLTA e poi si riordinano.
+//
+// Ricostruirle a ogni render costava 58ms invece di 6: con i ritratti dentro
+// il file, ogni <img> ricreata fa ridecodificare l'immagine al browser, e il
+// render gira a ogni lettera che scrivi nella ricerca. Riappendere nodi che
+// esistono già non ridecodifica niente.
+const _carte = new Map();
+
+function cartaDi(b) {
+  let card = _carte.get(b.name);
+  if (card) return card;
+  card = document.createElement("div");
+  card.className = "brawler-card";
+  card.style.borderColor = CLASS_COLORS[b.class] || "#666";
+  card.innerHTML = `${ritratto(b.name)}<div class="brawler-name">${b.name}</div><div class="brawler-class">${b.class}</div>`;
+  card.addEventListener("click", () => pickOrBan(b.name));
+  _carte.set(b.name, card);
+  return card;
+}
+
 function renderGrid() {
   const grid = document.getElementById("brawler-grid");
   const used = usedNames();
@@ -620,24 +652,18 @@ function renderGrid() {
   }
 
   // Il roster sta sotto i suggerimenti, quindi tenerlo aperto non sposta
-  // niente di quello che serve in alto: è aperto di default, così chi
-  // preferisce toccare invece di scrivere non paga un tocco in più.
-  // Scrivendo nella ricerca si riapre comunque, se lo avevi chiuso.
+  // niente di quello che serve in alto: è aperto di default. Scrivendo nella
+  // ricerca si riapre comunque, se lo avevi chiuso.
   const box = document.getElementById("roster-box");
   if (box && state.search) box.open = true;
 
   const frag = document.createDocumentFragment();
   for (const b of list) {
-    const card = document.createElement("div");
+    const card = cartaDi(b);
     const isUsed = used.has(b.name);
-    card.className = "brawler-card" + (isUsed ? " used" : "");
-    card.style.borderColor = CLASS_COLORS[b.class] || "#666";
-    card.innerHTML = `<div class="brawler-name">${b.name}</div><div class="brawler-class">${b.class}</div>`;
-    if (!isUsed && turn) {
-      card.classList.add("clickable");
-      card.title = turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
-      card.addEventListener("click", () => pickOrBan(b.name));
-    }
+    card.classList.toggle("used", isUsed);
+    card.classList.toggle("clickable", !isUsed && !!turn);
+    card.title = !turn ? "" : turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
     frag.appendChild(card);
   }
   grid.replaceChildren(frag);
@@ -782,6 +808,7 @@ function renderSuggestions() {
       // L'ordine resta forza × quanto viene scelto davvero, ed è scritto
       // sopra; il numero mostrato è la cosa che si capisce senza spiegazioni.
       row.innerHTML = `
+        ${ritratto(s.name, "mini")}
         <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span></span></span>
         <span class="sugg-class">${s.class}</span>
         <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
@@ -831,6 +858,7 @@ function renderSuggestions() {
     if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     row.innerHTML = `
+      ${ritratto(s.name, "mini")}
       <span class="sugg-name">${s.name}${badge}${chips || floorChip ? `<span class="chip-row">${chips}${floorChip}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>

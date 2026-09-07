@@ -100,6 +100,18 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non chiudere Annulla e Ricomincia dentro le impostazioni: servono durante il draft.
 - `node script/build-brawl-draft.js` va lanciato dalla radice del repo. Se hai fatto `cd brawl-draft`, usa il percorso assoluto: lo script regge, il percorso relativo no.
 
+## Profilo del giocatore
+
+`node script/fetch-profilo-brawl.js <tag>` legge dal tracker pubblico di brawlplanet quali brawler possiede un profilo, con livello, rank e trofei. Niente chiave, niente login.
+
+**Non esiste una via dal vivo dentro la pagina pubblicata.** L'API ufficiale di Supercell vuole una chiave legata a un IP fisso (in una pagina sarebbe in chiaro e l'IP non combacerebbe), e le capability degli artifact (artifact, db, downloads, mcp, room, sample) non aprono la rete verso siti arbitrari — `mcp` raggiunge solo i connettori claude.ai dell'utente, e per Brawl Stars non ce n'è. Quindi è sempre una fotografia da rilanciare, mai un collegamento.
+
+## Ritratti
+
+`node script/fetch-ritratti.js` scarica i ritratti dal CDN pubblico di Brawlify e scrive `brawl-draft/ritratti.js` (data URI, 96px WebP, ~378 KB per 106 brawler). **Incorporati e non collegati**: la pagina pubblicata non carica immagini da altri siti, e non dà nemmeno errore — semplicemente non compaiono. Vince e Cosmo non hanno immagine sul CDN: l'app mostra le iniziali.
+
+**Trappola già pagata:** ricreare 108 `<img>` con data URI a ogni render porta il ridisegno da 11ms a 66ms, perché il browser ridecodifica ogni immagine — e la ricerca ridisegna a ogni lettera. Le carte del roster si creano **una volta** e si riordinano (`_carte` in app.js): 2,6ms. Non tornare a ricostruirle.
+
 ## Il vincolo dell'interfaccia: 22 secondi a pick
 
 Ogni pixel di scorrimento fra il consiglio e il punto dove si registra la mossa è tempo perso. Regole già pagate:

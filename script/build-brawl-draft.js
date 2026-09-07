@@ -22,6 +22,7 @@ const html = read("index.html");
 const css = read("style.css");
 const data = read("data.js");
 const app = read("app.js");
+const ritratti = read("ritratti.js");
 
 // Prende solo il contenuto del body: la pagina pubblicata viene già avvolta
 // in doctype/html/head/body dall'host, quindi ripeterli romperebbe tutto.
@@ -42,6 +43,8 @@ ${css}
 ${body}
 
 <script>
+${ritratti}
+
 ${data}
 
 ${app}
@@ -62,6 +65,7 @@ const checks = [
   ["contiene le mappe", out.includes("const MAPS")],
   ["contiene la logica", out.includes("function computeSuggestions")],
   ["contiene il markup", out.includes('id="brawler-grid"')],
+  ["contiene i ritratti", out.includes("const BRAWLER_IMGS")],
 ];
 let ok = true;
 for (const [label, pass] of checks) {
