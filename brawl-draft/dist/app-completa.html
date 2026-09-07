@@ -599,15 +599,177 @@ footer details[open] summary { margin-bottom: 8px; }
 
 .floor-chip.mid { border-color: rgba(255, 194, 61, 0.45); color: var(--accent); }
 
+/* ---- Velocità di inserimento ------------------------------------------
+   Il draft dà 22 secondi a pick. Ogni pixel di scroll fra il consiglio e il
+   punto dove si registra la mossa è tempo perso, e prima ce n'erano 2000.
+   Da qui in giù è tutto in funzione di questo. */
+
+/* Il setup è una linguetta chiusa, non una parete. */
+.setup {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.setup > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+}
+.setup > summary::-webkit-details-marker { display: none; }
+.setup > summary::before { content: "⚙ "; opacity: 0.7; }
+.setup[open] > summary { color: var(--text); border-bottom: 1px solid var(--border); }
+.setup .config-bar { margin: 10px; border: none; background: transparent; padding: 0 4px; }
+
+/* Il roster sta dentro il pannello dei suggerimenti, subito sotto: si
+   registra la mossa avversaria senza uscire da dove stai già guardando. */
+.picker { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* La ricerca sta SOPRA i suggerimenti, non sotto il roster. È la cosa che
+   si tocca più spesso — ogni ban e ogni pick avversario passa di qui — e
+   sotto i suggerimenti finiva fuori schermo sul telefono. */
+.picker-top { margin-top: 0; padding-top: 0; border-top: none; margin-bottom: 10px; }
+
+/* Il roster completo serve solo se non vuoi scrivere: chiuso di default,
+   si apre da solo appena scrivi qualcosa nella ricerca. */
+.roster-box { margin: 8px 0 4px; }
+.roster-box > summary {
+  cursor: pointer;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+.roster-box > summary::-webkit-details-marker { display: none; }
+.roster-box > summary::before { content: "▸ "; }
+.roster-box[open] > summary::before { content: "▾ "; }
+.picker .filters { margin-bottom: 6px; }
+.picker-hint {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  min-height: 1em;
+}
+.picker-hint strong { color: var(--accent); }
+
+/* Carte più basse: prima erano 6 per schermo, così ne entrano il doppio. */
+.brawler-card { padding: 5px 4px; }
+.brawler-name { font-size: 0.76rem; }
+.brawler-class { font-size: 0.6rem; }
+.brawler-grid {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  max-height: 300px;
+}
+
+.meta-panel > summary { cursor: pointer; }
+.meta-panel > summary::-webkit-details-marker { display: none; }
+.meta-panel > summary::before { content: "▸ "; }
+.meta-panel[open] > summary::before { content: "▾ "; }
+
+@media (max-width: 800px) {
+  /* Una colonna sola: i suggerimenti e il roster sono la stessa cosa ormai. */
+  .main-grid { grid-template-columns: 1fr; }
+  .side-panel { order: 0; }
+  .brawler-grid {
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    max-height: 232px;
+  }
+  .brawler-card { padding: 7px 4px; }
+  /* La ricerca è la cosa che si tocca di più: sta per prima e larga. */
+  .picker .filters { flex-wrap: wrap; gap: 6px; }
+  .picker .filters input { flex: 1 1 100%; order: -1; }
+  .picker .filters select { flex: 1 1 45%; font-size: 0.8rem; }
+  /* Le due squadre sotto: si guardano, non si toccano. */
+  .boards { order: 2; }
+}
+
+/* La legenda spiega bene i numeri ma è lunga: durante il draft sta chiusa.
+   Si legge una volta, non a ogni pick. */
+.legend-box > summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  padding: 8px 0 0;
+}
+.legend-box > summary::-webkit-details-marker { display: none; }
+.legend-box > summary::before { content: "▸ "; }
+.legend-box[open] > summary::before { content: "▾ "; }
+
+/* Le caselle delle squadre: a inizio draft sono 12 riquadri vuoti che si
+   mangiavano 310px sopra la piega, cioè spingevano giù proprio i
+   suggerimenti. Ridotte a una fascia sottile: servono a ricordare cosa è
+   già in campo, non a essere il centro della schermata. */
+.boards .slot { min-height: 26px; min-width: 0; font-size: 0.62rem; padding: 1px 2px; }
+.boards .slot-class { display: none; }
+.boards .slot-placeholder { font-size: 0.55rem; opacity: 0.5; }
+.boards .panel-title { font-size: 0.6rem; margin: 0 0 3px; }
+.boards .slot-row { gap: 3px; margin-bottom: 5px; }
+.boards .team-panel { padding: 7px 8px; }
+.boards .team-panel h2 { font-size: 0.78rem; margin-bottom: 5px; }
+
+/* La provenienza dei dati è un controllo, non una lettura da fare a ogni
+   pick: una riga, apribile. */
+.map-notes { padding: 5px 10px; }
+.map-notes details > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.74rem;
+}
+.map-notes details > summary::-webkit-details-marker { display: none; }
+.map-notes details > summary::before { content: "▸ dati mappa: "; opacity: 0.7; }
+.map-notes details[open] > summary::before { content: "▾ dati mappa: "; }
+.map-notes details span { display: block; margin-top: 4px; font-size: 0.74rem; }
+
+/* Le caselle delle squadre stanno SOTTO i suggerimenti: si guardano ogni
+   tanto per ricordare cosa è in campo, non si toccano a ogni turno. Prima
+   stavano in mezzo, fra il banner del turno e i consigli. */
+.boards { margin-top: 14px; }
+
+@media (max-width: 800px) {
+  /* Durante un draft il titolo non serve a niente: il posto lo prendono
+     i consigli. Resta leggibile, smette di occupare mezza schermata. */
+  h1 { font-size: 1rem; margin-bottom: 2px; }
+  .subtitle { display: none; }
+  .setup > summary { padding: 8px 12px; font-size: 0.78rem; }
+}
+
+/* Il marcatore delle sezioni apribili: senza list-style Chrome ne disegna
+   uno suo E il nostro, e si vedeva "▼ ▸". */
+.roster-box > summary,
+.legend-box > summary,
+.meta-panel > summary,
+.map-notes details > summary { list-style: none; }
+
+/* Su desktop c'è spazio in più a destra: ci va la situazione del draft e
+   la legenda, così la colonna dei consigli resta stretta e leggibile. */
+.aside { align-self: start; }
+.aside .team-counter { margin-top: 0; padding-top: 0; border-top: none; }
+@media (max-width: 800px) {
+  .aside { margin-top: 12px; }
+}
+
+/* Annulla e Ricomincia servono DURANTE il draft — un tocco sbagliato con il
+   timer che corre è la norma — quindi stanno accanto al turno. Erano dentro
+   le impostazioni, che ora si richiudono da sole: diventavano irraggiungibili
+   proprio quando servivano. Trovato dal test in browser, non rileggendo. */
+.turn-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: -8px 0 12px;
+}
+.turn-actions button { font-size: 0.76rem; padding: 5px 12px; }
+
 </style>
 
 <div class="container">
   <h1>Assistente Draft — Brawl Stars Classificata</h1>
-  <p class="subtitle">
-    Gestisci ban e pick della partita e ricevi suggerimenti basati sulle classi già scelte dalle due squadre.
-    Formato di ban/pick regolabile qui sotto: i rank più bassi non hanno ban, da Diamante in su sì — controlla il tuo rank attuale e imposta di conseguenza.
-  </p>
+  <p class="subtitle">Ban e pick della Classificata, con i numeri della mappa che stai giocando.</p>
 
+  <details id="setup" class="setup" open>
+    <summary id="setup-summary">Impostazioni partita</summary>
   <div class="config-bar">
     <label for="first-team">Chi inizia</label>
     <select id="first-team">
@@ -622,8 +784,6 @@ footer details[open] summary { margin-bottom: 8px; }
     <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
 
     <button id="apply-config">Applica e ricomincia</button>
-    <button id="undo-btn">Annulla ultima mossa</button>
-    <button id="reset-btn">Reset draft</button>
   </div>
 
   <div class="config-bar">
@@ -633,13 +793,67 @@ footer details[open] summary { margin-bottom: 8px; }
     <label for="map-select">Mappa</label>
     <select id="map-select"></select>
 
-    <label>Caratteristiche mappa (se non è in elenco)</label>
-    <div class="trait-list" id="map-traits"></div>
+    <div id="traits-wrap" hidden>
+      <label>Caratteristiche mappa (se non è in elenco)</label>
+      <div class="trait-list" id="map-traits"></div>
+    </div>
   </div>
+  </details>
 
   <p id="map-notes" class="map-notes" hidden></p>
 
   <div id="turn-banner" class="turn-banner"></div>
+
+  <div class="turn-actions">
+    <button id="undo-btn" title="Scorciatoia: Backspace">↩ Annulla</button>
+    <button id="reset-btn">Ricomincia</button>
+  </div>
+
+  <div class="main-grid">
+    <div class="side-panel">
+      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
+      <div id="context-line" class="context-line"></div>
+      <div class="picker picker-top">
+        <div class="filters">
+          <input type="search" id="search-box" placeholder="Scrivi 2 lettere, poi Invio" autocomplete="off" autocorrect="off" spellcheck="false" />
+          <select id="grid-order" aria-label="Ordine del roster">
+            <option value="played">Più giocati qui</option>
+            <option value="az">A-Z</option>
+            <option value="class">Per classe</option>
+          </select>
+          <select id="class-filter"></select>
+        </div>
+        <p id="picker-hint" class="picker-hint"></p>
+      </div>
+      <div id="suggestions"></div>
+      <details id="roster-box" class="roster-box" open>
+        <summary>Sfoglia tutto il roster</summary>
+        <div class="brawler-grid" id="brawler-grid"></div>
+      </details>
+    </div>
+
+    <div class="aside">
+      <div id="team-counter" class="team-counter" hidden></div>
+      <details class="legend-box"><summary>Cosa vogliono dire i numeri, e le scorciatoie</summary>
+      <p class="legend">
+        <strong>Per andare veloce.</strong> Scrivi due lettere nella casella e premi <strong>Invio</strong>: prende il primo della lista (l'indizio sotto la casella ti dice chi, prima che tu confermi). I tasti <strong>1-8</strong> prendono dal consiglio corrispondente, <strong>/</strong> mette il cursore nella ricerca, <strong>Backspace</strong> annulla l'ultima mossa. Il roster è ordinato per <em>quanto un brawler viene giocato su questa mappa</em>, quindi chi ti serve è quasi sempre nelle prime file.
+      </p>
+      <p class="legend">
+        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
+        <br />
+        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
+        <br />
+        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
+        <br />
+        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
+        <br />
+        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
+      </p>
+      </details>
+    </div>
+  </div>
 
   <div class="boards">
     <div class="team-panel a">
@@ -658,39 +872,8 @@ footer details[open] summary { margin-bottom: 8px; }
     </div>
   </div>
 
-  <div class="main-grid">
-    <div>
-      <p class="panel-title">Roster</p>
-      <div class="filters">
-        <select id="class-filter"></select>
-        <input type="text" id="search-box" placeholder="Cerca brawler..." />
-      </div>
-      <div class="brawler-grid" id="brawler-grid"></div>
-    </div>
-
-    <div class="side-panel">
-      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
-      <div id="context-line" class="context-line"></div>
-      <div id="suggestions"></div>
-      <div id="team-counter" class="team-counter" hidden></div>
-      <p class="legend">
-        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
-        <br />
-        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
-        <br />
-        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
-        <br />
-        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
-        <br />
-        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
-        <br />
-        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
-      </p>
-    </div>
-  </div>
-
-  <div class="meta-panel">
-    <p class="panel-title">Dati meta</p>
+  <details class="meta-panel">
+    <summary class="panel-title">Dati meta (facoltativo)</summary>
     <p class="meta-hint">
       Win rate reali su Classificata (BrawlMetrics, letti il 6/9/2026), attivi di base senza
       nessuna azione richiesta. "Tutti i ranghi" è la media Bronze→Pro, adatta alla maggior parte
@@ -710,7 +893,7 @@ footer details[open] summary { margin-bottom: 8px; }
       <button id="meta-clear">Cancella</button>
     </div>
     <p id="meta-status" class="meta-status"></p>
-  </div>
+  </details>
 
   <footer>
     <details>
@@ -734,6 +917,8 @@ footer details[open] summary { margin-bottom: 8px; }
     <strong>La matrice per classe ora è calibrata sui dati, non scritta a mano</strong> — e in più punti smentisce l'euristica che c'era prima: davo il Tank favorito contro l'Assassin (+1), le misure dicono −5,96. Confermano invece Assassin contro Artiglieria (+7,30) e Artiglieria contro Controller (+7,90). Due cautele applicate: le stime sono dimezzate, perché le coppie misurate sono gli estremi di ogni brawler e quindi esagerano; e le celle con meno di 5 osservazioni non usano un numero traballante ma un modello additivo sui margini di classe. Da lì esce il risultato più utile di tutta l'analisi: <strong>conta molto più chi affronti che chi sei</strong>. Da attaccante le classi si equivalgono (fra −0,78 e +0,56); da bersaglio no — l'artiglieria è preda facile (+6,48), Assassin (−4,04) e Support (−3,66) sono i bersagli più duri.
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
+    <br /><br />
+    <strong>Interfaccia — cosa è stato cambiato e perché.</strong> Il draft dà <strong>22 secondi a pick</strong>, quindi il costo vero non è il calcolo ma i gesti. Misurato prima: sul telefono la pagina era alta <strong>2947px</strong> (3,5 schermate), i consigli stavano a 888px e la casella di ricerca a <strong>2052px</strong> — per registrare un pick avversario servivano duemila pixel di scorrimento e ritorno. E il roster era ordinato per classe, quindi Wendy era la 95esima carta. Ora la pagina è <strong>1305px</strong> e tutto quello che si tocca sta nella prima schermata: turno a 129px, ricerca a 251px, consigli a 358px. Il roster è ordinato per <strong>quanto ogni brawler viene giocato su questa mappa</strong> — la pick rate misurata sulle stesse partite delle win rate — così chi cerchi è quasi sempre nelle prime file. Le impostazioni si richiudono da sole quando scegli la mappa, e la legenda e la provenienza dei dati stanno in sezioni apribili invece che fisse in cima. <strong>Il codice non era lento:</strong> un render completo costa 17ms con la CPU rallentata quattro volte. Era lento l'inserimento, ed è quello che è stato corretto.
     <br /><br />
     <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
     <br /><br />
@@ -1698,6 +1883,7 @@ const state = {
   picks: { A: [], B: [] },
   filterClass: "ALL",
   search: "",
+  gridOrder: "played", // "played" | "az" | "class" — vedi renderGrid
   mode: null, // una di MODES, o null = nessuna modalità selezionata
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
   map: null, // riferimento a un oggetto di MAPS, o null
@@ -2139,6 +2325,10 @@ function pickOrBan(name) {
     state.picks[turn.team].push(name);
   }
   state.turnIndex++;
+  // La ricerca si svuota PRIMA di ridisegnare: svuotandola dopo, l'indizio
+  // sotto la casella restava fermo sul testo vecchio ("Nessun brawler con
+  // questo nome") anche se la casella era già vuota.
+  clearSearch();
   render();
 }
 
@@ -2237,18 +2427,80 @@ function renderTurnBanner() {
   el.className = "turn-banner active " + (turn.team === "A" ? "team-a" : "team-b");
 }
 
-function renderGrid() {
-  const grid = document.getElementById("brawler-grid");
-  grid.innerHTML = "";
-  const used = usedNames();
-  const turn = currentTurn();
+// Ordina il roster per QUANTO VIENE GIOCATO su questa mappa, non per classe.
+//
+// Era il problema più grosso dell'interfaccia. Con l'ordine per classe i 16
+// Tank stanno davanti e Wendy (Support) è la 95esima carta: per registrare
+// un pick avversario bisognava scorrere quasi tutto il roster, con 22
+// secondi di timer. Ordinando per pick rate della mappa — un dato che
+// abbiamo già, misurato sulle stesse partite delle win rate — il brawler
+// che serve sta quasi sempre nelle prime file, perché è proprio la
+// probabilità che qualcuno lo scelga qui.
+function gridOrderedBrawlers() {
+  const list = BRAWLERS.slice();
+  if (state.gridOrder === "az") return list.sort((a, b) => a.name.localeCompare(b.name, "it"));
+  if (state.gridOrder === "class") return list; // ordine del roster, che è per classe
+  return list.sort((a, b) => useRateOf(b.name).use - useRateOf(a.name).use);
+}
 
-  const list = BRAWLERS.filter((b) => {
+// Ricerca: prima chi INIZIA con quello che hai scritto, poi chi lo contiene.
+// Con "bo" vuoi Bo davanti a Bibi, e "sh" deve dare Shelly e Shade prima di
+// Ash. Restituisce la lista già ordinata per pertinenza.
+function searchRank(list, q) {
+  const s2 = q.trim().toLowerCase();
+  if (!s2) return list;
+  const score = (n) => {
+    const l = n.toLowerCase();
+    if (l === s2) return 0;
+    if (l.startsWith(s2)) return 1;
+    if (l.includes(" " + s2) || l.includes("-" + s2)) return 2;
+    return l.includes(s2) ? 3 : 99;
+  };
+  return list.map((b) => ({ b, r: score(b.name) })).filter((x) => x.r < 99)
+    .sort((x, y) => x.r - y.r).map((x) => x.b);
+}
+
+// I brawler che la ricerca e i filtri lasciano passare, nell'ordine mostrato.
+// Serve anche a Invio, che prende il primo della lista.
+function visibleBrawlers() {
+  const used = usedNames();
+  let list = gridOrderedBrawlers().filter((b) => {
     if (state.filterClass !== "ALL" && b.class !== state.filterClass) return false;
-    if (state.search && !b.name.toLowerCase().includes(state.search.toLowerCase())) return false;
     return true;
   });
+  list = searchRank(list, state.search);
+  return list.filter((b) => !used.has(b.name)).concat(list.filter((b) => used.has(b.name)));
+}
 
+function renderGrid() {
+  const grid = document.getElementById("brawler-grid");
+  const used = usedNames();
+  const turn = currentTurn();
+  const list = visibleBrawlers();
+
+  const hint = document.getElementById("picker-hint");
+  if (hint) {
+    if (!turn) hint.textContent = "Draft completato.";
+    else if (state.search) {
+      const first = list.find((b) => !used.has(b.name));
+      hint.innerHTML = first
+        ? `Invio → <strong>${first.name}</strong>`
+        : "Nessun brawler con questo nome.";
+    } else {
+      hint.textContent = turn.phase === "ban"
+        ? "Tocca chi è stato bannato. I tasti 1-8 prendono dai suggerimenti."
+        : "Tocca chi è stato scelto. I tasti 1-8 prendono dai suggerimenti.";
+    }
+  }
+
+  // Il roster sta sotto i suggerimenti, quindi tenerlo aperto non sposta
+  // niente di quello che serve in alto: è aperto di default, così chi
+  // preferisce toccare invece di scrivere non paga un tocco in più.
+  // Scrivendo nella ricerca si riapre comunque, se lo avevi chiuso.
+  const box = document.getElementById("roster-box");
+  if (box && state.search) box.open = true;
+
+  const frag = document.createDocumentFragment();
   for (const b of list) {
     const card = document.createElement("div");
     const isUsed = used.has(b.name);
@@ -2260,9 +2512,11 @@ function renderGrid() {
       card.title = turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
       card.addEventListener("click", () => pickOrBan(b.name));
     }
-    grid.appendChild(card);
+    frag.appendChild(card);
   }
+  grid.replaceChildren(frag);
 }
+
 
 // ---- ANALISI DEL MOMENTO DEL DRAFT --------------------------------------
 // L'ordine dei pick in Classificata è 1-2-2-1. Chi sceglie per primo vede
@@ -2391,7 +2645,7 @@ function renderSuggestions() {
     }
     el.innerHTML =
       `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
-      `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare, oppure salta: i ban che hai già inserito restano validi.</p>`;
+      `<p class="hint">Forza (su ${bans[0].source}) × quanto viene scelto davvero.</p>`;
     bans.forEach((s, i) => {
       const row = document.createElement("div");
       row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -2468,6 +2722,7 @@ function render() {
   renderSlots("B");
   renderGrid();
   renderSuggestions();
+  updateSetupUI();
   document.getElementById("undo-btn").disabled = state.turnIndex === 0;
 }
 
@@ -2485,10 +2740,85 @@ function initFilters() {
     renderGrid();
   });
 
-  document.getElementById("search-box").addEventListener("input", (e) => {
+  const orderSelect = document.getElementById("grid-order");
+  if (orderSelect) {
+    orderSelect.value = state.gridOrder;
+    orderSelect.addEventListener("change", (e) => {
+      state.gridOrder = e.target.value;
+      renderGrid();
+    });
+  }
+
+  const box = document.getElementById("search-box");
+  box.addEventListener("input", (e) => {
     state.search = e.target.value;
     renderGrid();
   });
+
+  // Invio prende il primo della lista. Due lettere e Invio bastano per
+  // registrare un pick: è la strada più corta che esista senza staccare le
+  // mani dalla tastiera, e sul telefono la tastiera ha già il tasto invio.
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const used = usedNames();
+      const first = visibleBrawlers().find((b) => !used.has(b.name));
+      if (first && currentTurn()) { e.preventDefault(); pickOrBan(first.name); }
+    } else if (e.key === "Escape") {
+      clearSearch();
+    }
+  });
+}
+
+// Dopo ogni mossa la ricerca si svuota da sola: altrimenti al turno dopo
+// trovi ancora filtrato il nome precedente e devi cancellarlo a mano,
+// che sotto timer è esattamente il tipo di attrito da togliere.
+function clearSearch() {
+  state.search = "";
+  const box = document.getElementById("search-box");
+  if (box) box.value = "";
+}
+
+// Scorciatoie da tastiera. Nel draft vero il tempo è 22 secondi a pick:
+// "1" per prendere il consiglio in cima è la mossa più veloce possibile.
+function initKeyboard() {
+  document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    const inField = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT");
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === "/" && !inField) {
+      e.preventDefault();
+      const box = document.getElementById("search-box");
+      if (box) { box.focus(); box.select(); }
+      return;
+    }
+    if (inField) return;
+
+    if (e.key >= "1" && e.key <= "8") {
+      const rows = document.querySelectorAll("#suggestions .suggestion-row");
+      const row = rows[Number(e.key) - 1];
+      if (row) { e.preventDefault(); row.click(); }
+      return;
+    }
+    if (e.key === "Backspace") { e.preventDefault(); undoLast(); }
+  });
+}
+
+// Il setup (chi inizia, ban, modalità, mappa) serve una volta a inizio
+// partita, ma occupava 600px fissi in cima: i suggerimenti finivano sotto la
+// piega e il roster due schermate più giù. Scelta la mappa si richiude da
+// solo, e il riassunto resta nella linguetta. Riaprirlo è un tocco.
+function updateSetupUI() {
+  const box = document.getElementById("setup");
+  const traits = document.getElementById("traits-wrap");
+  if (traits) traits.hidden = !!state.map;
+  if (!box) return;
+  const sum = box.querySelector("#setup-summary");
+  if (sum) {
+    const dove = state.map ? `${state.mode} · ${state.map.name}` : state.mode || "nessuna modalità";
+    const chi = state.firstTeam === "A" ? "inizia Blu" : "inizia Rossa";
+    sum.textContent = box.open ? "Impostazioni partita — tocca per chiudere" : `${dove} · ${chi} · tocca per cambiare`;
+  }
 }
 
 function populateMapSelect() {
@@ -2517,14 +2847,18 @@ function renderMapNotes() {
   }
   el.hidden = false;
   const m = state.map;
-  let provenance;
-  if (m.winRates) {
-    const conf = mapConfidence(m);
-    provenance = `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite · aggiornati ${m.updated} · affidabilità ${confidenceLabel(conf)}`;
-  } else {
-    provenance = "Dati mappa: nessuna win rate verificata per questa mappa — sotto ci sono solo nomi citati dalle fonti, pesano poco nei suggerimenti.";
-  }
-  el.innerHTML = `<strong>${provenance}</strong>${m.notes ? "<br />" + m.notes : ""}`;
+  // Prima erano due righe fisse in cima, ~120px sempre occupati. La
+  // provenienza serve a controllare l'app, non a giocare: una riga sola,
+  // il resto si apre se lo cerchi.
+  const conf = m.winRates ? confidenceLabel(mapConfidence(m)) : "nessun dato";
+  const breve = m.winRates
+    ? `${Math.round(m.sample / 1000)}k partite · affidabilità ${conf}`
+    : "nessuna win rate verificata per questa mappa";
+  const esteso = m.winRates
+    ? `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite di Classificata · aggiornati ${m.updated} · affidabilità ${conf}.`
+    : "Nessuna win rate verificata: i suggerimenti qui si appoggiano alla modalità.";
+  el.innerHTML =
+    `<details><summary>${breve}</summary><span>${esteso}${m.notes ? " " + m.notes : ""}</span></details>`;
 }
 
 function initModeAndMap() {
@@ -2547,6 +2881,7 @@ function initModeAndMap() {
     const found = MAPS.find((m) => m.mode === state.mode && m.name === e.target.value);
     state.map = found || null;
     renderMapNotes();
+    if (state.map) document.getElementById("setup").open = false;
     render();
   });
   populateMapSelect();
@@ -2618,6 +2953,7 @@ function initMetaPanel() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initFilters();
+  initKeyboard();
   initModeAndMap();
   initMetaPanel();
   buildSequence();
@@ -2630,6 +2966,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
+  document.getElementById("setup").addEventListener("toggle", updateSetupUI);
 });
 
 </script>

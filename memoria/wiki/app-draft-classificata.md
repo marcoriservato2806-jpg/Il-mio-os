@@ -51,3 +51,32 @@ Il lavoro sui dati è meccanico, quindi vive negli script e non nelle mani:
 | `script/build-brawl-draft.js` | Bundle in un file solo per l'artifact. **Si lancia dalla radice del repo, non da `brawl-draft/`.** |
 
 Aggiornare i dati sono due comandi, non un pomeriggio. Vedi [[fonti-brawl-stars]] per come si è scelta la fonte e [[errori-trovati]] per cosa non rifare.
+
+## L'interfaccia: il vincolo è il timer (7/9)
+
+Il draft dà **22 secondi a pick**. Il costo vero non è il calcolo, sono i gesti. Prima di cambiare qualcosa va misurato quale dei due è il collo di bottiglia: qui il codice faceva un render completo in **17ms** con la CPU rallentata quattro volte, cioè non era lui.
+
+Quello che era lento, misurato sul telefono (390×844):
+
+| | prima | dopo |
+|---|---|---|
+| altezza pagina | 2947px (3,5 schermate) | 1567px |
+| banner del turno | 595px | 129px |
+| casella di ricerca | **2052px** | 281px |
+| consigli | 888px | 388px |
+
+Registrare un pick avversario voleva dire scorrere duemila pixel e tornare su. E il roster era ordinato **per classe**: i 16 Tank davanti, Wendy 95esima.
+
+### I principi che ne sono usciti
+
+1. **Ordina il roster per quanto un brawler viene giocato QUI**, non per classe o alfabeticamente. La pick rate della mappa ce l'avevamo già: è letteralmente la probabilità che ti serva quella carta.
+2. **Quello che si tocca sta sopra quello che si legge.** La ricerca è passata sopra i consigli; le caselle delle squadre, che si guardano e basta, sono scese sotto.
+3. **Quello che serve una volta si richiude.** Impostazioni, provenienza dei dati, legenda: sezioni apribili, non pareti fisse in cima.
+4. **Ma i comandi del draft non si nascondono mai.** Annulla e Ricomincia servono *durante*: stanno accanto al turno. (Erano finiti dentro le impostazioni che si richiudono — lo ha trovato il test in browser, non la rilettura.)
+5. **La strada più corta è la tastiera**: due lettere + Invio, tasti 1-8 per i consigli, `/` per la ricerca, Backspace per annullare. La ricerca si svuota da sola dopo ogni mossa.
+
+### Cosa fanno gli altri
+
+- **brawlplanet** (draft helper): filtra il pool ai brawler che possiedi collegando il tag giocatore. Buona idea, non copiata: richiede l'API giocatori. Se servisse, la versione senza rete è farglieli spuntare una volta e tenerli in localStorage.
+- **PL Prodigy**: hotkey per le due azioni frequenti (`/` cambia turno, backtick resetta) e una vista "come la vede l'avversario".
+- **Draftly / uDrafter** (League of Legends): ricerca per nome + filtro ruolo, aggiornamento istantaneo senza ricaricare.

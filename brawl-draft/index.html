@@ -9,11 +9,10 @@
 <body>
 <div class="container">
   <h1>Assistente Draft — Brawl Stars Classificata</h1>
-  <p class="subtitle">
-    Gestisci ban e pick della partita e ricevi suggerimenti basati sulle classi già scelte dalle due squadre.
-    Formato di ban/pick regolabile qui sotto: i rank più bassi non hanno ban, da Diamante in su sì — controlla il tuo rank attuale e imposta di conseguenza.
-  </p>
+  <p class="subtitle">Ban e pick della Classificata, con i numeri della mappa che stai giocando.</p>
 
+  <details id="setup" class="setup" open>
+    <summary id="setup-summary">Impostazioni partita</summary>
   <div class="config-bar">
     <label for="first-team">Chi inizia</label>
     <select id="first-team">
@@ -28,8 +27,6 @@
     <input type="text" id="pick-pattern" value="A,B,B,A,A,B" />
 
     <button id="apply-config">Applica e ricomincia</button>
-    <button id="undo-btn">Annulla ultima mossa</button>
-    <button id="reset-btn">Reset draft</button>
   </div>
 
   <div class="config-bar">
@@ -39,13 +36,67 @@
     <label for="map-select">Mappa</label>
     <select id="map-select"></select>
 
-    <label>Caratteristiche mappa (se non è in elenco)</label>
-    <div class="trait-list" id="map-traits"></div>
+    <div id="traits-wrap" hidden>
+      <label>Caratteristiche mappa (se non è in elenco)</label>
+      <div class="trait-list" id="map-traits"></div>
+    </div>
   </div>
+  </details>
 
   <p id="map-notes" class="map-notes" hidden></p>
 
   <div id="turn-banner" class="turn-banner"></div>
+
+  <div class="turn-actions">
+    <button id="undo-btn" title="Scorciatoia: Backspace">↩ Annulla</button>
+    <button id="reset-btn">Ricomincia</button>
+  </div>
+
+  <div class="main-grid">
+    <div class="side-panel">
+      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
+      <div id="context-line" class="context-line"></div>
+      <div class="picker picker-top">
+        <div class="filters">
+          <input type="search" id="search-box" placeholder="Scrivi 2 lettere, poi Invio" autocomplete="off" autocorrect="off" spellcheck="false" />
+          <select id="grid-order" aria-label="Ordine del roster">
+            <option value="played">Più giocati qui</option>
+            <option value="az">A-Z</option>
+            <option value="class">Per classe</option>
+          </select>
+          <select id="class-filter"></select>
+        </div>
+        <p id="picker-hint" class="picker-hint"></p>
+      </div>
+      <div id="suggestions"></div>
+      <details id="roster-box" class="roster-box" open>
+        <summary>Sfoglia tutto il roster</summary>
+        <div class="brawler-grid" id="brawler-grid"></div>
+      </details>
+    </div>
+
+    <div class="aside">
+      <div id="team-counter" class="team-counter" hidden></div>
+      <details class="legend-box"><summary>Cosa vogliono dire i numeri, e le scorciatoie</summary>
+      <p class="legend">
+        <strong>Per andare veloce.</strong> Scrivi due lettere nella casella e premi <strong>Invio</strong>: prende il primo della lista (l'indizio sotto la casella ti dice chi, prima che tu confermi). I tasti <strong>1-8</strong> prendono dal consiglio corrispondente, <strong>/</strong> mette il cursore nella ricerca, <strong>Backspace</strong> annulla l'ultima mossa. Il roster è ordinato per <em>quanto un brawler viene giocato su questa mappa</em>, quindi chi ti serve è quasi sempre nelle prime file.
+      </p>
+      <p class="legend">
+        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
+        <br />
+        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
+        <br />
+        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
+        <br />
+        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
+        <br />
+        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
+        <br />
+        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
+      </p>
+      </details>
+    </div>
+  </div>
 
   <div class="boards">
     <div class="team-panel a">
@@ -64,39 +115,8 @@
     </div>
   </div>
 
-  <div class="main-grid">
-    <div>
-      <p class="panel-title">Roster</p>
-      <div class="filters">
-        <select id="class-filter"></select>
-        <input type="text" id="search-box" placeholder="Cerca brawler..." />
-      </div>
-      <div class="brawler-grid" id="brawler-grid"></div>
-    </div>
-
-    <div class="side-panel">
-      <p class="panel-title" id="suggestions-title">Suggerimenti per la squadra di turno</p>
-      <div id="context-line" class="context-line"></div>
-      <div id="suggestions"></div>
-      <div id="team-counter" class="team-counter" hidden></div>
-      <p class="legend">
-        <strong>Il numero grande è sempre una percentuale di vittorie</strong>, in tutte e due le fasi. Nei <strong>ban</strong> è quanto vince l'avversario se gli lasci quel brawler. Nei <strong>pick</strong> è quanto vinci tu prendendolo, su questa mappa e contro questi avversari — il caso <em>normale</em>. 55% è buono, 65% ottimo, sotto il 50% parti in svantaggio. Tocca il numero per vedere da cosa è composto.
-        <br />
-        Nella fase ban l'ordine <em>non</em> segue solo la percentuale: tiene conto anche di <span class="echip meas neg">3.1% lo prende</span>, cioè quanto spesso quel brawler viene scelto davvero. Bannare un mostro che non prende nessuno è un ban buttato.
-        <br />
-        <span class="floor-chip ok">peggio 56%</span> è il caso <strong>peggiore</strong>: quanto vinci se l'avversario prende la risposta migliore contro di te. Guarda sempre tutti e due — un 69% che scende a 45% è più fragile di un 65% che non scende sotto il 56%. Finché l'avversario ha ancora pick da fare, l'ordine tiene conto di entrambi.
-        <br />
-        <span class="echip meas pos">vs Rosa 72%</span> quanto vinci contro quel preciso avversario. Riquadro <strong>pieno</strong> = misurato su partite reali; <strong>contorno vuoto</strong> = previsione del modello.
-        <br />
-        <span class="badge trap">trappola</span> lo scelgono in tanti ma perde: popolarità alta, vittorie sotto la media. Evitalo, e non sprecarci un ban.
-        <br />
-        <span class="badge sleeper">sottovalutato</span> vince parecchio ma lo prende quasi nessuno — quindi quasi nessuno lo banna e te lo ritrovi libero.
-      </p>
-    </div>
-  </div>
-
-  <div class="meta-panel">
-    <p class="panel-title">Dati meta</p>
+  <details class="meta-panel">
+    <summary class="panel-title">Dati meta (facoltativo)</summary>
     <p class="meta-hint">
       Win rate reali su Classificata (BrawlMetrics, letti il 6/9/2026), attivi di base senza
       nessuna azione richiesta. "Tutti i ranghi" è la media Bronze→Pro, adatta alla maggior parte
@@ -116,7 +136,7 @@
       <button id="meta-clear">Cancella</button>
     </div>
     <p id="meta-status" class="meta-status"></p>
-  </div>
+  </details>
 
   <footer>
     <details>
@@ -140,6 +160,8 @@
     <strong>La matrice per classe ora è calibrata sui dati, non scritta a mano</strong> — e in più punti smentisce l'euristica che c'era prima: davo il Tank favorito contro l'Assassin (+1), le misure dicono −5,96. Confermano invece Assassin contro Artiglieria (+7,30) e Artiglieria contro Controller (+7,90). Due cautele applicate: le stime sono dimezzate, perché le coppie misurate sono gli estremi di ogni brawler e quindi esagerano; e le celle con meno di 5 osservazioni non usano un numero traballante ma un modello additivo sui margini di classe. Da lì esce il risultato più utile di tutta l'analisi: <strong>conta molto più chi affronti che chi sei</strong>. Da attaccante le classi si equivalgono (fra −0,78 e +0,56); da bersaglio no — l'artiglieria è preda facile (+6,48), Assassin (−4,04) e Support (−3,66) sono i bersagli più duri.
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
+    <br /><br />
+    <strong>Interfaccia — cosa è stato cambiato e perché.</strong> Il draft dà <strong>22 secondi a pick</strong>, quindi il costo vero non è il calcolo ma i gesti. Misurato prima: sul telefono la pagina era alta <strong>2947px</strong> (3,5 schermate), i consigli stavano a 888px e la casella di ricerca a <strong>2052px</strong> — per registrare un pick avversario servivano duemila pixel di scorrimento e ritorno. E il roster era ordinato per classe, quindi Wendy era la 95esima carta. Ora la pagina è <strong>1305px</strong> e tutto quello che si tocca sta nella prima schermata: turno a 129px, ricerca a 251px, consigli a 358px. Il roster è ordinato per <strong>quanto ogni brawler viene giocato su questa mappa</strong> — la pick rate misurata sulle stesse partite delle win rate — così chi cerchi è quasi sempre nelle prime file. Le impostazioni si richiudono da sole quando scegli la mappa, e la legenda e la provenienza dei dati stanno in sezioni apribili invece che fisse in cima. <strong>Il codice non era lento:</strong> un render completo costa 17ms con la CPU rallentata quattro volte. Era lento l'inserimento, ed è quello che è stato corretto.
     <br /><br />
     <strong>Chi inizia:</strong> in Classificata cambia a ogni partita, e sbagliare lato fa slittare tutti i turni di una posizione — cioè rende sbagliato ogni suggerimento successivo. Il menu in alto specchia l'intera sequenza.
     <br /><br />

@@ -96,3 +96,17 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non ripetere campione e data dentro `notes`: l'app li stampa già da sé leggendoli dai dati, e la copia in prosa è quella che resta indietro e mente. Le note descrivono **solo il terreno**.
 - Non cancellare una mappa sulla base di un articolo quando c'è un'API che risponde. Ring of Fire è stata tolta così, e c'era ancora.
 - Non fidarti della scheda aperta di default su una pagina che ne ha due.
+- Non toccare l'interfaccia per "renderla più veloce" senza aver prima misurato se è lenta: il render completo costa ~11ms con CPU rallentata 4x. Se l'utente dice "è lenta", quasi sempre parla dei gesti, non dei millisecondi.
+- Non chiudere Annulla e Ricomincia dentro le impostazioni: servono durante il draft.
+- `node script/build-brawl-draft.js` va lanciato dalla radice del repo. Se hai fatto `cd brawl-draft`, usa il percorso assoluto: lo script regge, il percorso relativo no.
+
+## Il vincolo dell'interfaccia: 22 secondi a pick
+
+Ogni pixel di scorrimento fra il consiglio e il punto dove si registra la mossa è tempo perso. Regole già pagate:
+
+1. **Il roster si ordina per pick rate della mappa**, non per classe: è la probabilità che ti serva quella carta.
+2. **Quello che si tocca sta sopra quello che si legge.**
+3. **Quello che serve una volta si richiude** (impostazioni, provenienza, legenda); **i comandi del draft mai.**
+4. Scorciatoie: due lettere + Invio, tasti 1-8, `/`, Backspace. La ricerca si svuota da sola dopo ogni mossa, e va svuotata PRIMA di ridisegnare.
+
+Per misurare: Playwright con `Emulation.setCPUThrottlingRate {rate:4}` e viewport 390×844, poi leggi `getBoundingClientRect().top + scrollY` degli elementi chiave e confronta con `innerHeight`.

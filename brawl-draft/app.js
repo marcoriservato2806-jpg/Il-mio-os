@@ -9,6 +9,7 @@ const state = {
   picks: { A: [], B: [] },
   filterClass: "ALL",
   search: "",
+  gridOrder: "played", // "played" | "az" | "class" — vedi renderGrid
   mode: null, // una di MODES, o null = nessuna modalità selezionata
   mapTraits: new Set(), // sottoinsieme di MAP_TRAITS attivo
   map: null, // riferimento a un oggetto di MAPS, o null
@@ -450,6 +451,10 @@ function pickOrBan(name) {
     state.picks[turn.team].push(name);
   }
   state.turnIndex++;
+  // La ricerca si svuota PRIMA di ridisegnare: svuotandola dopo, l'indizio
+  // sotto la casella restava fermo sul testo vecchio ("Nessun brawler con
+  // questo nome") anche se la casella era già vuota.
+  clearSearch();
   render();
 }
 
@@ -548,18 +553,80 @@ function renderTurnBanner() {
   el.className = "turn-banner active " + (turn.team === "A" ? "team-a" : "team-b");
 }
 
-function renderGrid() {
-  const grid = document.getElementById("brawler-grid");
-  grid.innerHTML = "";
-  const used = usedNames();
-  const turn = currentTurn();
+// Ordina il roster per QUANTO VIENE GIOCATO su questa mappa, non per classe.
+//
+// Era il problema più grosso dell'interfaccia. Con l'ordine per classe i 16
+// Tank stanno davanti e Wendy (Support) è la 95esima carta: per registrare
+// un pick avversario bisognava scorrere quasi tutto il roster, con 22
+// secondi di timer. Ordinando per pick rate della mappa — un dato che
+// abbiamo già, misurato sulle stesse partite delle win rate — il brawler
+// che serve sta quasi sempre nelle prime file, perché è proprio la
+// probabilità che qualcuno lo scelga qui.
+function gridOrderedBrawlers() {
+  const list = BRAWLERS.slice();
+  if (state.gridOrder === "az") return list.sort((a, b) => a.name.localeCompare(b.name, "it"));
+  if (state.gridOrder === "class") return list; // ordine del roster, che è per classe
+  return list.sort((a, b) => useRateOf(b.name).use - useRateOf(a.name).use);
+}
 
-  const list = BRAWLERS.filter((b) => {
+// Ricerca: prima chi INIZIA con quello che hai scritto, poi chi lo contiene.
+// Con "bo" vuoi Bo davanti a Bibi, e "sh" deve dare Shelly e Shade prima di
+// Ash. Restituisce la lista già ordinata per pertinenza.
+function searchRank(list, q) {
+  const s2 = q.trim().toLowerCase();
+  if (!s2) return list;
+  const score = (n) => {
+    const l = n.toLowerCase();
+    if (l === s2) return 0;
+    if (l.startsWith(s2)) return 1;
+    if (l.includes(" " + s2) || l.includes("-" + s2)) return 2;
+    return l.includes(s2) ? 3 : 99;
+  };
+  return list.map((b) => ({ b, r: score(b.name) })).filter((x) => x.r < 99)
+    .sort((x, y) => x.r - y.r).map((x) => x.b);
+}
+
+// I brawler che la ricerca e i filtri lasciano passare, nell'ordine mostrato.
+// Serve anche a Invio, che prende il primo della lista.
+function visibleBrawlers() {
+  const used = usedNames();
+  let list = gridOrderedBrawlers().filter((b) => {
     if (state.filterClass !== "ALL" && b.class !== state.filterClass) return false;
-    if (state.search && !b.name.toLowerCase().includes(state.search.toLowerCase())) return false;
     return true;
   });
+  list = searchRank(list, state.search);
+  return list.filter((b) => !used.has(b.name)).concat(list.filter((b) => used.has(b.name)));
+}
 
+function renderGrid() {
+  const grid = document.getElementById("brawler-grid");
+  const used = usedNames();
+  const turn = currentTurn();
+  const list = visibleBrawlers();
+
+  const hint = document.getElementById("picker-hint");
+  if (hint) {
+    if (!turn) hint.textContent = "Draft completato.";
+    else if (state.search) {
+      const first = list.find((b) => !used.has(b.name));
+      hint.innerHTML = first
+        ? `Invio → <strong>${first.name}</strong>`
+        : "Nessun brawler con questo nome.";
+    } else {
+      hint.textContent = turn.phase === "ban"
+        ? "Tocca chi è stato bannato. I tasti 1-8 prendono dai suggerimenti."
+        : "Tocca chi è stato scelto. I tasti 1-8 prendono dai suggerimenti.";
+    }
+  }
+
+  // Il roster sta sotto i suggerimenti, quindi tenerlo aperto non sposta
+  // niente di quello che serve in alto: è aperto di default, così chi
+  // preferisce toccare invece di scrivere non paga un tocco in più.
+  // Scrivendo nella ricerca si riapre comunque, se lo avevi chiuso.
+  const box = document.getElementById("roster-box");
+  if (box && state.search) box.open = true;
+
+  const frag = document.createDocumentFragment();
   for (const b of list) {
     const card = document.createElement("div");
     const isUsed = used.has(b.name);
@@ -571,9 +638,11 @@ function renderGrid() {
       card.title = turn.phase === "ban" ? "Clicca per bannare" : "Clicca per scegliere";
       card.addEventListener("click", () => pickOrBan(b.name));
     }
-    grid.appendChild(card);
+    frag.appendChild(card);
   }
+  grid.replaceChildren(frag);
 }
+
 
 // ---- ANALISI DEL MOMENTO DEL DRAFT --------------------------------------
 // L'ordine dei pick in Classificata è 1-2-2-1. Chi sceglie per primo vede
@@ -702,7 +771,7 @@ function renderSuggestions() {
     }
     el.innerHTML =
       `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
-      `<p class="hint">Ordinati per forza (win rate su ${bans[0].source}) × quanto vengono scelti davvero: togliere dal tavolo qualcosa che nessuno userebbe è un ban sprecato. Clicca per bannare, oppure salta: i ban che hai già inserito restano validi.</p>`;
+      `<p class="hint">Forza (su ${bans[0].source}) × quanto viene scelto davvero.</p>`;
     bans.forEach((s, i) => {
       const row = document.createElement("div");
       row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -779,6 +848,7 @@ function render() {
   renderSlots("B");
   renderGrid();
   renderSuggestions();
+  updateSetupUI();
   document.getElementById("undo-btn").disabled = state.turnIndex === 0;
 }
 
@@ -796,10 +866,85 @@ function initFilters() {
     renderGrid();
   });
 
-  document.getElementById("search-box").addEventListener("input", (e) => {
+  const orderSelect = document.getElementById("grid-order");
+  if (orderSelect) {
+    orderSelect.value = state.gridOrder;
+    orderSelect.addEventListener("change", (e) => {
+      state.gridOrder = e.target.value;
+      renderGrid();
+    });
+  }
+
+  const box = document.getElementById("search-box");
+  box.addEventListener("input", (e) => {
     state.search = e.target.value;
     renderGrid();
   });
+
+  // Invio prende il primo della lista. Due lettere e Invio bastano per
+  // registrare un pick: è la strada più corta che esista senza staccare le
+  // mani dalla tastiera, e sul telefono la tastiera ha già il tasto invio.
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const used = usedNames();
+      const first = visibleBrawlers().find((b) => !used.has(b.name));
+      if (first && currentTurn()) { e.preventDefault(); pickOrBan(first.name); }
+    } else if (e.key === "Escape") {
+      clearSearch();
+    }
+  });
+}
+
+// Dopo ogni mossa la ricerca si svuota da sola: altrimenti al turno dopo
+// trovi ancora filtrato il nome precedente e devi cancellarlo a mano,
+// che sotto timer è esattamente il tipo di attrito da togliere.
+function clearSearch() {
+  state.search = "";
+  const box = document.getElementById("search-box");
+  if (box) box.value = "";
+}
+
+// Scorciatoie da tastiera. Nel draft vero il tempo è 22 secondi a pick:
+// "1" per prendere il consiglio in cima è la mossa più veloce possibile.
+function initKeyboard() {
+  document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    const inField = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT");
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === "/" && !inField) {
+      e.preventDefault();
+      const box = document.getElementById("search-box");
+      if (box) { box.focus(); box.select(); }
+      return;
+    }
+    if (inField) return;
+
+    if (e.key >= "1" && e.key <= "8") {
+      const rows = document.querySelectorAll("#suggestions .suggestion-row");
+      const row = rows[Number(e.key) - 1];
+      if (row) { e.preventDefault(); row.click(); }
+      return;
+    }
+    if (e.key === "Backspace") { e.preventDefault(); undoLast(); }
+  });
+}
+
+// Il setup (chi inizia, ban, modalità, mappa) serve una volta a inizio
+// partita, ma occupava 600px fissi in cima: i suggerimenti finivano sotto la
+// piega e il roster due schermate più giù. Scelta la mappa si richiude da
+// solo, e il riassunto resta nella linguetta. Riaprirlo è un tocco.
+function updateSetupUI() {
+  const box = document.getElementById("setup");
+  const traits = document.getElementById("traits-wrap");
+  if (traits) traits.hidden = !!state.map;
+  if (!box) return;
+  const sum = box.querySelector("#setup-summary");
+  if (sum) {
+    const dove = state.map ? `${state.mode} · ${state.map.name}` : state.mode || "nessuna modalità";
+    const chi = state.firstTeam === "A" ? "inizia Blu" : "inizia Rossa";
+    sum.textContent = box.open ? "Impostazioni partita — tocca per chiudere" : `${dove} · ${chi} · tocca per cambiare`;
+  }
 }
 
 function populateMapSelect() {
@@ -828,14 +973,18 @@ function renderMapNotes() {
   }
   el.hidden = false;
   const m = state.map;
-  let provenance;
-  if (m.winRates) {
-    const conf = mapConfidence(m);
-    provenance = `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite · aggiornati ${m.updated} · affidabilità ${confidenceLabel(conf)}`;
-  } else {
-    provenance = "Dati mappa: nessuna win rate verificata per questa mappa — sotto ci sono solo nomi citati dalle fonti, pesano poco nei suggerimenti.";
-  }
-  el.innerHTML = `<strong>${provenance}</strong>${m.notes ? "<br />" + m.notes : ""}`;
+  // Prima erano due righe fisse in cima, ~120px sempre occupati. La
+  // provenienza serve a controllare l'app, non a giocare: una riga sola,
+  // il resto si apre se lo cerchi.
+  const conf = m.winRates ? confidenceLabel(mapConfidence(m)) : "nessun dato";
+  const breve = m.winRates
+    ? `${Math.round(m.sample / 1000)}k partite · affidabilità ${conf}`
+    : "nessuna win rate verificata per questa mappa";
+  const esteso = m.winRates
+    ? `Dati mappa: ${m.sample.toLocaleString("it-IT")} partite di Classificata · aggiornati ${m.updated} · affidabilità ${conf}.`
+    : "Nessuna win rate verificata: i suggerimenti qui si appoggiano alla modalità.";
+  el.innerHTML =
+    `<details><summary>${breve}</summary><span>${esteso}${m.notes ? " " + m.notes : ""}</span></details>`;
 }
 
 function initModeAndMap() {
@@ -858,6 +1007,7 @@ function initModeAndMap() {
     const found = MAPS.find((m) => m.mode === state.mode && m.name === e.target.value);
     state.map = found || null;
     renderMapNotes();
+    if (state.map) document.getElementById("setup").open = false;
     render();
   });
   populateMapSelect();
@@ -929,6 +1079,7 @@ function initMetaPanel() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initFilters();
+  initKeyboard();
   initModeAndMap();
   initMetaPanel();
   buildSequence();
@@ -941,4 +1092,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("undo-btn").addEventListener("click", undoLast);
   document.getElementById("reset-btn").addEventListener("click", resetDraft);
+  document.getElementById("setup").addEventListener("toggle", updateSetupUI);
 });

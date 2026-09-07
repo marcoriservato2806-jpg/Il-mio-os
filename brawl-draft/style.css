@@ -596,3 +596,166 @@ footer details[open] summary { margin-bottom: 8px; }
 .context-line.weak span { border-style: dashed; }
 
 .floor-chip.mid { border-color: rgba(255, 194, 61, 0.45); color: var(--accent); }
+
+/* ---- Velocità di inserimento ------------------------------------------
+   Il draft dà 22 secondi a pick. Ogni pixel di scroll fra il consiglio e il
+   punto dove si registra la mossa è tempo perso, e prima ce n'erano 2000.
+   Da qui in giù è tutto in funzione di questo. */
+
+/* Il setup è una linguetta chiusa, non una parete. */
+.setup {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.setup > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+}
+.setup > summary::-webkit-details-marker { display: none; }
+.setup > summary::before { content: "⚙ "; opacity: 0.7; }
+.setup[open] > summary { color: var(--text); border-bottom: 1px solid var(--border); }
+.setup .config-bar { margin: 10px; border: none; background: transparent; padding: 0 4px; }
+
+/* Il roster sta dentro il pannello dei suggerimenti, subito sotto: si
+   registra la mossa avversaria senza uscire da dove stai già guardando. */
+.picker { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* La ricerca sta SOPRA i suggerimenti, non sotto il roster. È la cosa che
+   si tocca più spesso — ogni ban e ogni pick avversario passa di qui — e
+   sotto i suggerimenti finiva fuori schermo sul telefono. */
+.picker-top { margin-top: 0; padding-top: 0; border-top: none; margin-bottom: 10px; }
+
+/* Il roster completo serve solo se non vuoi scrivere: chiuso di default,
+   si apre da solo appena scrivi qualcosa nella ricerca. */
+.roster-box { margin: 8px 0 4px; }
+.roster-box > summary {
+  cursor: pointer;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+.roster-box > summary::-webkit-details-marker { display: none; }
+.roster-box > summary::before { content: "▸ "; }
+.roster-box[open] > summary::before { content: "▾ "; }
+.picker .filters { margin-bottom: 6px; }
+.picker-hint {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  min-height: 1em;
+}
+.picker-hint strong { color: var(--accent); }
+
+/* Carte più basse: prima erano 6 per schermo, così ne entrano il doppio. */
+.brawler-card { padding: 5px 4px; }
+.brawler-name { font-size: 0.76rem; }
+.brawler-class { font-size: 0.6rem; }
+.brawler-grid {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  max-height: 300px;
+}
+
+.meta-panel > summary { cursor: pointer; }
+.meta-panel > summary::-webkit-details-marker { display: none; }
+.meta-panel > summary::before { content: "▸ "; }
+.meta-panel[open] > summary::before { content: "▾ "; }
+
+@media (max-width: 800px) {
+  /* Una colonna sola: i suggerimenti e il roster sono la stessa cosa ormai. */
+  .main-grid { grid-template-columns: 1fr; }
+  .side-panel { order: 0; }
+  .brawler-grid {
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    max-height: 232px;
+  }
+  .brawler-card { padding: 7px 4px; }
+  /* La ricerca è la cosa che si tocca di più: sta per prima e larga. */
+  .picker .filters { flex-wrap: wrap; gap: 6px; }
+  .picker .filters input { flex: 1 1 100%; order: -1; }
+  .picker .filters select { flex: 1 1 45%; font-size: 0.8rem; }
+  /* Le due squadre sotto: si guardano, non si toccano. */
+  .boards { order: 2; }
+}
+
+/* La legenda spiega bene i numeri ma è lunga: durante il draft sta chiusa.
+   Si legge una volta, non a ogni pick. */
+.legend-box > summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  padding: 8px 0 0;
+}
+.legend-box > summary::-webkit-details-marker { display: none; }
+.legend-box > summary::before { content: "▸ "; }
+.legend-box[open] > summary::before { content: "▾ "; }
+
+/* Le caselle delle squadre: a inizio draft sono 12 riquadri vuoti che si
+   mangiavano 310px sopra la piega, cioè spingevano giù proprio i
+   suggerimenti. Ridotte a una fascia sottile: servono a ricordare cosa è
+   già in campo, non a essere il centro della schermata. */
+.boards .slot { min-height: 26px; min-width: 0; font-size: 0.62rem; padding: 1px 2px; }
+.boards .slot-class { display: none; }
+.boards .slot-placeholder { font-size: 0.55rem; opacity: 0.5; }
+.boards .panel-title { font-size: 0.6rem; margin: 0 0 3px; }
+.boards .slot-row { gap: 3px; margin-bottom: 5px; }
+.boards .team-panel { padding: 7px 8px; }
+.boards .team-panel h2 { font-size: 0.78rem; margin-bottom: 5px; }
+
+/* La provenienza dei dati è un controllo, non una lettura da fare a ogni
+   pick: una riga, apribile. */
+.map-notes { padding: 5px 10px; }
+.map-notes details > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.74rem;
+}
+.map-notes details > summary::-webkit-details-marker { display: none; }
+.map-notes details > summary::before { content: "▸ dati mappa: "; opacity: 0.7; }
+.map-notes details[open] > summary::before { content: "▾ dati mappa: "; }
+.map-notes details span { display: block; margin-top: 4px; font-size: 0.74rem; }
+
+/* Le caselle delle squadre stanno SOTTO i suggerimenti: si guardano ogni
+   tanto per ricordare cosa è in campo, non si toccano a ogni turno. Prima
+   stavano in mezzo, fra il banner del turno e i consigli. */
+.boards { margin-top: 14px; }
+
+@media (max-width: 800px) {
+  /* Durante un draft il titolo non serve a niente: il posto lo prendono
+     i consigli. Resta leggibile, smette di occupare mezza schermata. */
+  h1 { font-size: 1rem; margin-bottom: 2px; }
+  .subtitle { display: none; }
+  .setup > summary { padding: 8px 12px; font-size: 0.78rem; }
+}
+
+/* Il marcatore delle sezioni apribili: senza list-style Chrome ne disegna
+   uno suo E il nostro, e si vedeva "▼ ▸". */
+.roster-box > summary,
+.legend-box > summary,
+.meta-panel > summary,
+.map-notes details > summary { list-style: none; }
+
+/* Su desktop c'è spazio in più a destra: ci va la situazione del draft e
+   la legenda, così la colonna dei consigli resta stretta e leggibile. */
+.aside { align-self: start; }
+.aside .team-counter { margin-top: 0; padding-top: 0; border-top: none; }
+@media (max-width: 800px) {
+  .aside { margin-top: 12px; }
+}
+
+/* Annulla e Ricomincia servono DURANTE il draft — un tocco sbagliato con il
+   timer che corre è la norma — quindi stanno accanto al turno. Erano dentro
+   le impostazioni, che ora si richiudono da sole: diventavano irraggiungibili
+   proprio quando servivano. Trovato dal test in browser, non rileggendo. */
+.turn-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: -8px 0 12px;
+}
+.turn-actions button { font-size: 0.76rem; padding: 5px 12px; }
