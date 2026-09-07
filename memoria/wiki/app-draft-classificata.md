@@ -60,10 +60,10 @@ Quello che era lento, misurato sul telefono (390×844):
 
 | | prima | dopo |
 |---|---|---|
-| altezza pagina | 2947px (3,5 schermate) | 1567px |
-| banner del turno | 595px | 129px |
-| casella di ricerca | **2052px** | 281px |
-| consigli | 888px | 388px |
+| altezza pagina | 2947px (3,5 schermate) | 1317px |
+| banner del turno | 595px | 173px |
+| casella di ricerca | **2052px** | 376px |
+| consigli | 888px | 440px |
 
 Registrare un pick avversario voleva dire scorrere duemila pixel e tornare su. E il roster era ordinato **per classe**: i 16 Tank davanti, Wendy 95esima.
 
@@ -80,3 +80,11 @@ Registrare un pick avversario voleva dire scorrere duemila pixel e tornare su. E
 - **brawlplanet** (draft helper): filtra il pool ai brawler che possiedi collegando il tag giocatore. Buona idea, non copiata: richiede l'API giocatori. Se servisse, la versione senza rete è farglieli spuntare una volta e tenerli in localStorage.
 - **PL Prodigy**: hotkey per le due azioni frequenti (`/` cambia turno, backtick resetta) e una vista "come la vede l'avversario".
 - **Draftly / uDrafter** (League of Legends): ricerca per nome + filtro ruolo, aggiornamento istantaneo senza ricaricare.
+
+## Il metodo generale è uscito da qui
+
+Quello che di questo lavoro vale anche per altre app sta nella skill
+`costruire-app`: come scegliere fra fonti che si contraddicono, perché due
+fonti non si mescolano mai nello stesso numero, i vincoli di una pagina
+pubblicata, come si progetta un'interfaccia perché non induca errori, e i
+controlli da fare prima di consegnare. Questa pagina resta il caso concreto.
