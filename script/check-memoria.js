@@ -86,7 +86,21 @@ if (fs.existsSync(skillDir)) {
   }
 }
 
-// 6. Avvisi, non errori: i file di contesto ancora al loro stato di modello.
+// 6. L'hook di fine turno deve esserci ed essere eseguibile: e' lui a far
+//    girare questo controllo senza che nessuno se lo debba ricordare. Se
+//    sparisce, la memoria torna a dipendere dalla mia buona volonta'.
+const hook = R("script/hook-memoria.sh");
+const conf = R(".claude/settings.json");
+if (!fs.existsSync(hook)) male("manca script/hook-memoria.sh: il controllo non parte piu' da solo a fine turno");
+else if (!(fs.statSync(hook).mode & 0o111)) male("script/hook-memoria.sh non e' eseguibile");
+if (!fs.existsSync(conf)) male("manca .claude/settings.json: l'hook non e' collegato");
+else {
+  const c = JSON.parse(fs.readFileSync(conf, "utf8"));
+  const cmd = JSON.stringify(c.hooks && c.hooks.Stop || []);
+  if (!cmd.includes("hook-memoria")) male(".claude/settings.json non collega piu' l'hook di fine turno");
+}
+
+// 7. Avvisi, non errori: i file di contesto ancora al loro stato di modello.
 //    Non è un difetto, è una cosa da sapere — se sono vuoti, io su quegli
 //    argomenti non so niente e devo dirlo invece di dedurlo.
 for (const f of ["azienda", "persone", "tool", "obiettivi", "regime-fiscale"]) {
