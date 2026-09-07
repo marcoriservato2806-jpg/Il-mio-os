@@ -11,6 +11,11 @@
   <h1>Assistente Draft — Brawl Stars Classificata</h1>
   <p class="subtitle">Ban e pick della Classificata, con i numeri della mappa che stai giocando.</p>
 
+  <div class="topbar">
+    <div id="turn-banner" class="turn-banner"></div>
+    <button id="reset-btn" type="button" title="Ricomincia il draft da capo">Reset</button>
+  </div>
+
   <details id="setup" class="setup" open>
     <summary id="setup-summary">Impostazioni partita</summary>
   <div class="config-bar">
@@ -52,10 +57,8 @@
     </div>
     <div class="stage-center">
       <div id="map-art" class="map-art"></div>
-      <div id="turn-banner" class="turn-banner"></div>
       <div class="turn-actions">
         <button id="first-pick" type="button" aria-pressed="true">Scelgo per primo</button>
-        <button id="reset-btn" type="button" class="quiet">Svuota</button>
       </div>
     </div>
     <div class="stage-side enemies" id="side-theirs">
@@ -71,6 +74,7 @@
         <div class="filters">
           <input type="search" id="search-box" placeholder="Cerca un brawler…" autocomplete="off" autocorrect="off" spellcheck="false" />
         </div>
+        <div id="search-results" class="search-results" hidden></div>
         <p id="picker-hint" class="picker-hint"></p>
       </div>
       <div id="suggestions"></div>
@@ -151,6 +155,10 @@
     <strong>La matrice per classe ora è calibrata sui dati, non scritta a mano</strong> — e in più punti smentisce l'euristica che c'era prima: davo il Tank favorito contro l'Assassin (+1), le misure dicono −5,96. Confermano invece Assassin contro Artiglieria (+7,30) e Artiglieria contro Controller (+7,90). Due cautele applicate: le stime sono dimezzate, perché le coppie misurate sono gli estremi di ogni brawler e quindi esagerano; e le celle con meno di 5 osservazioni non usano un numero traballante ma un modello additivo sui margini di classe. Da lì esce il risultato più utile di tutta l'analisi: <strong>conta molto più chi affronti che chi sei</strong>. Da attaccante le classi si equivalgono (fra −0,78 e +0,56); da bersaglio no — l'artiglieria è preda facile (+6,48), Assassin (−4,04) e Support (−3,66) sono i bersagli più duri.
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
+    <br /><br />
+    <strong>Reset sempre raggiungibile.</strong> Il tasto per ricominciare stava dentro il palco, che scorre via: appena scendevi alla griglia finiva a <strong>−185px</strong>, cioè fuori schermo — proprio nel momento in cui serve, perché è mentre scegli che ti accorgi di aver sbagliato. Ora sta in una barra fissa in cima, insieme al turno, che è l'altra cosa che non deve mai sparire.
+    <br /><br />
+    <strong>La ricerca mostra i candidati mentre scrivi.</strong> Prima l'unica risposta a quello che digitavi era una riga di testo, e i risultati veri stavano nella griglia a <strong>850px</strong>, sotto la piega: toccava scrivere il nome intero e sperare. Ora scrivendo <em>una sola lettera</em> compaiono fino a sei candidati subito sotto la casella — faccia, classe e punteggio — e si toccano. Il primo è marcato <em>Invio</em>, così sai cosa prendi premendo senza dover leggere una spiegazione. La ricerca mette i prefissi per primi, quindi "bo" dà Bo prima di Bolt e Bonnie, e segnala quali non puoi schierare.
     <br /><br />
     <strong>Meno controlli, meno errori.</strong> C'erano due menu — "chi inizia" e "io gioco in" — e bastava impostarne uno al contrario per rendere sbagliato ogni suggerimento successivo <em>senza che si vedesse</em>: l'app avrebbe consigliato con sicurezza i pick della squadra sbagliata. Ora gli <strong>Alleati sei sempre tu</strong> e resta un solo interruttore: <em>scelgo per primo</em>, sì o no. Sparito anche il campo "ordine pick" dove si poteva scrivere <code>A,B,B,A,A,B</code>: l'ordine 1-2-2-1 è fisso, e quel campo era solo un modo per rompere tutti i turni con una virgola di troppo. Via anche il filtro per classe e il menu dell'ordinamento: il roster è sempre ordinato per quanto un brawler vale <em>adesso</em>, che è la cosa giusta in ogni caso.
     <br /><br />

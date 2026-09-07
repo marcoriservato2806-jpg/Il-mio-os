@@ -986,3 +986,97 @@ footer details[open] summary { margin-bottom: 8px; }
 #suggestions-title { margin-bottom: 6px; }
 .slot-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
 .slot-wrap .slot-row { margin: 0; }
+
+/* ---- Barra fissa: turno e Reset sempre raggiungibili -------------------
+   Il tasto per ricominciare stava dentro il palco, che scorre via: appena
+   si scendeva alla griglia finiva a -185px, cioe' fuori schermo proprio
+   quando serve (ti accorgi di aver sbagliato mentre stai scegliendo). Ora
+   resta incollato in cima insieme al turno, che e' l'altra cosa che non
+   deve mai sparire. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 8px;
+  margin-bottom: 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.topbar .turn-banner { flex: 1; margin: 0; padding: 8px 10px; font-size: 0.86rem; }
+.topbar #reset-btn {
+  flex: none;
+  font-weight: 700;
+  color: var(--bad);
+  border-color: rgba(255, 122, 122, 0.45);
+  padding: 8px 14px;
+}
+.topbar #reset-btn:hover:not(:disabled) { background: rgba(255, 122, 122, 0.12); }
+
+/* ---- Risultati della ricerca, dove stai gia' guardando ----------------
+   Prima l'unica risposta era una riga di testo, e i risultati veri stavano
+   a 850px, fuori schermo: toccava scrivere il nome intero. */
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 6px 0 4px;
+  max-height: 264px;
+  overflow-y: auto;
+}
+.sr-riga {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.sr-riga:hover { background: #302b3d; }
+.sr-riga.primo { border-color: var(--accent); background: rgba(255, 194, 61, 0.1); }
+.sr-nome { font-weight: 600; }
+.sr-classe { color: var(--text-dim); font-size: 0.68rem; }
+.sr-punti { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.sr-riga .ritratto.mini { width: 30px; height: 30px; }
+/* "Invio" sta accanto al nome, non in una colonna sua: da solo finiva a capo
+   e allungava la prima riga. */
+.sr-invio {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 194, 61, 0.45);
+  border-radius: 4px;
+  font-size: 0.54rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  vertical-align: middle;
+}
+.sr-fuori {
+  font-size: 0.58rem;
+  color: var(--bad);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.sr-vuoto { margin: 4px 2px; font-size: 0.76rem; color: var(--text-dim); }
+
+@media (max-width: 800px) {
+  .topbar { padding: 5px 0 6px; }
+  .topbar .turn-banner { font-size: 0.78rem; padding: 7px 8px; }
+  .topbar #reset-btn { padding: 7px 12px; font-size: 0.78rem; }
+  .search-results { max-height: 232px; }
+}
+
+/* La barra fissa copre i primi pixel della pagina: senza questo, saltare a
+   un elemento (o toccarne uno appena sotto il bordo) lo lascia mezzo
+   nascosto sotto la barra. */
+html { scroll-padding-top: 64px; }
