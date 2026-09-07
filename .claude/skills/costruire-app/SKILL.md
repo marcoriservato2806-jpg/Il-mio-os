@@ -117,7 +117,13 @@ correzione: 2,6ms, meno di prima che le immagini esistessero.
 ## 6. Dati personali e repository pubblici
 
 Prima di scrivere un identificativo in un file, **controlla se il repository è
-pubblico**. Nel caso reale il tag del giocatore è rimasto fuori e nel file
+pubblico**. E attenzione al passo falso: **una regola scritta per proteggere un
+identificativo non deve contenere l'identificativo.** Il controllo "questo tag
+non deve finire nel file pubblicato" conteneva il tag in chiaro, dentro uno
+script di un repo pubblico: cerca la *forma* del dato sensibile, non il valore.
+Poi **prova il controllo facendolo fallire di proposito**: la prima versione
+della forma era troppo corta e lasciava passare proprio il dato da proteggere,
+e senza quella prova sarebbe passata per buona. Nel caso reale il tag del giocatore è rimasto fuori e nel file
 sono finiti solo i dati non identificanti, con un controllo nella build che
 fallisce se l'identificativo ricompare. Se noti dati personali esposti,
 diccelo una volta con chiarezza e vai avanti.

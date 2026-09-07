@@ -70,7 +70,15 @@ const checks = [
   ["contiene il markup", out.includes('id="brawler-grid"')],
   ["contiene i ritratti", out.includes("const BRAWLER_IMGS")],
   ["contiene il profilo", out.includes("const PROFILO_POTENZA")],
-  ["il tag del giocatore non finisce nel file", !/#?2UJC2U28G2/i.test(out)],
+  // Nessun tag giocatore nel file pubblicato. Il controllo cerca la FORMA di
+  // un tag, non un tag preciso: scriverne uno qui dentro lo metterebbe in
+  // chiaro in un repository pubblico — che e' esattamente quello che questa
+  // riga deve impedire, ed e' l'errore che ha fatto la prima versione.
+  // I tag Brawl Stars usano solo queste 14 lettere e cifre, in maiuscolo, e
+  // arrivano a 10 caratteri: la prima versione si fermava a 9 e lasciava
+  // passare proprio il tag da proteggere. Verificato che non scatti sui
+  // colori esadecimali del CSS, che sono minuscoli.
+  ["nessun tag giocatore nel file", !/#[0289PYLQGRJCUV]{4,12}(?![0-9A-Za-z])/.test(out)],
 ];
 let ok = true;
 for (const [label, pass] of checks) {

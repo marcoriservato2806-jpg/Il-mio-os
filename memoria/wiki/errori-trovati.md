@@ -49,3 +49,12 @@ Avevo confrontato brawlmetrics (Classificata) con brawlplanet **scheda trofei**,
 | Pick rate con code infinite a schermo (`6.783333333333334%`) | test in browser | La divisione per 6 (per portare la pick rate di mappa sulla scala di `USE_RATES`) va arrotondata alla fonte, non a schermo. |
 
 **Il solito:** tutti e tre trovati dal test in browser o da uno script di controllo. **Nessuno rileggendo il codice.**
+
+## Il controllo che causava il problema che doveva impedire (7/9)
+
+| Errore | Come è emerso | Correzione |
+|---|---|---|
+| Il controllo "il tag del giocatore non finisce nel file pubblicato" conteneva **il tag scritto in chiaro**, dentro uno script di un repository **pubblico** | verifica dopo il merge su main: `git grep` del tag | Il controllo cerca ora la **forma** di un tag (`#[0289PYLQGRJCUV]{4,12}`), non un tag preciso. |
+| La prima versione della forma si fermava a 9 caratteri e **lasciava passare proprio il tag da proteggere** (ne ha 10) | provato di proposito aggiungendo il tag al file e verificando che scattasse | Portata a 12. |
+
+**La lezione, che vale oltre questo caso:** una regola scritta per proteggere un segreto non deve contenere il segreto. E un controllo di sicurezza va **provato facendolo fallire** — scritto e mai messo alla prova, questo passava senza accorgersi di niente.
