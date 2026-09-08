@@ -743,8 +743,12 @@ function edgeCasellaVuota(candidato, minacce) {
     if (quale === null || e < quale.edge) quale = { enemy: t, wr: p.wr, edge: e, measured: p.measured };
     if (e < peggio) peggio = e;
   }
-  const q = quotaRisposta();
-  return { valore: media * (1 - q) + peggio * q, media, peggio, minacciaPeggiore: quale };
+  // Il valore di una casella vuota e' l'ASPETTATIVA PURA, senza pessimismo.
+  // Il pessimismo si applica una volta sola, a livello di squadra, in
+  // computeSuggestions: applicarlo anche qui lo contava due volte, ed e'
+  // esattamente il difetto che l'utente ha visto — Damian primo per base,
+  // primo per matchup e primo per media (55,6 contro 53,7), terzo nella lista.
+  return { valore: media, media, peggio, minacciaPeggiore: quale };
 }
 
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames, minacce, caselleVuote) {
@@ -858,7 +862,14 @@ function computeSuggestions() {
   // Quanto pesa il caso peggiore. Zero se l'avversario non ha piu' pick: a
   // squadra avversaria completa non esiste nessuna risposta che possa ancora
   // arrivare, e tenerne conto sarebbe pessimismo inventato.
-  const q = enemyLeft > 0 ? quotaRisposta() : 0;
+  //
+  // E scala con QUANTE caselle gli restano. La quota di base descrive
+  // l'avversario con tutte e tre le scelte ancora da fare: con una sola
+  // casella libera ha una sola occasione di trovare la risposta, non tre.
+  // Se ogni scelta ha probabilita' p di essere la risposta e la quota su tre
+  // scelte e' Q, allora Q = 1-(1-p)^3, quindi su k scelte vale 1-(1-Q)^(k/3).
+  // Con Q=0,4: 0,40 con tre caselle, 0,29 con due, 0,16 con una.
+  const q = enemyLeft > 0 ? 1 - Math.pow(1 - quotaRisposta(), enemyLeft / 3) : 0;
 
   const mieiPick = filtroAttivo() && own === state.myTeam;
   const candidates = BRAWLERS
@@ -1430,8 +1441,26 @@ function renderSuggestions() {
       : "";
     // Contro ciascun avversario si mostra la percentuale, non il residuo:
     // "vs Rosa 72%" si capisce, "+13.5" no.
+    // Il riquadrino porta DUE numeri, e il secondo e' quello che conta.
+    //
+    // "vs Nita 78%" e' la percentuale di vittorie vera, verificabile sulle
+    // fonti — ma comprende anche il fatto che tu sia in generale piu' forte di
+    // Nita, che e' GIA' dentro la base del punteggio. Quello che sposta il
+    // punteggio e' di quanto sei sopra il normale per quella coppia.
+    //
+    // Senza il secondo numero la lista sembrava sbagliata, e la segnalazione
+    // e' arrivata: un pick con "vs Bolt 53% · vs Nita 78%" sotto uno con
+    // "vs Bolt 29% · vs Nita 59%". Il colore ora segue lo scarto, non la
+    // percentuale assoluta, per la stessa ragione.
     const chips = (s.perEnemy || [])
-      .map((p) => `<span class="echip ${p.measured ? "meas" : "est"} ${p.wr >= 50 ? "pos" : "neg"}" title="${p.measured ? "matchup misurato su partite reali" : "previsione: differenza di forza + classe"}">vs ${p.enemy} ${Math.round(p.wr)}%</span>`)
+      .map((p) => {
+        const sc = Math.round(p.edge);
+        // il colore segue il numero MOSTRATO, non quello prima
+        // dell'arrotondamento: un "+0" rosso e' un numero che non torna
+        return `<span class="echip ${p.measured ? "meas" : "est"} ${sc > 0 ? "pos" : sc < 0 ? "neg" : "pari"}" title="${
+          p.measured ? "Matchup misurato su partite reali" : "Previsione: differenza di forza + classe + quanto e' scomodo da affrontare"
+        }: vinci il ${Math.round(p.wr * 10) / 10}% contro ${p.enemy}. Il ${sc >= 0 ? "+" : ""}${sc} è quanto questo è sopra o sotto il normale per questa coppia, ed è la parte che sposta il punteggio — il resto è forza generale, già contata nella base.">vs ${p.enemy} ${Math.round(p.wr)}% <b>${sc >= 0 ? "+" : ""}${sc}</b></span>`;
+      })
       .join("");
     // Il riquadrino diventa un avviso quando il caso peggiore è molto più
     // basso della media: è lì che un pick apparentemente ottimo è fragile.
@@ -1459,7 +1488,7 @@ function renderSuggestions() {
     // fino a lui: un totale che non torna con le sue righe non e' verificabile.
     if (s.q > 0 && s.media !== undefined) {
       parts.push(`= media ${Math.round(s.media * 10) / 10}%`);
-      parts.push(`mostrato: ${Math.round((1 - s.q) * 100)}% della media + ${Math.round(s.q * 100)}% del caso peggiore (${s.floor}%), perché l'avversario ha ancora pick da fare`);
+      parts.push(`mostrato: ${Math.round((1 - s.q) * 100)}% della media + ${Math.round(s.q * 100)}% del caso peggiore (${s.floor}%), perché all'avversario resta${s.vuote > 1 ? "no " + s.vuote + " scelte" : " una scelta"} per trovare la risposta`);
     }
     row.innerHTML = `
       ${ritratto(s.name, "mini")}

@@ -30,13 +30,14 @@ for (const map of a.MAPS) for (const [nE, nO] of [[0,0],[1,0],[2,1],[3,2]]) {
   const used = a.usedNames();
   const minacce = a.likelyEnemyPicks(8);
   const ownClasses = pos.own.map(a.classOf);
+  const vuote = 3 - pos.en.length;
   const cand = a.BRAWLERS.filter(b => !used.has(b.name) && a.schierabile(b.name)).map(b => {
-    const s = a.scoreCandidate(b.name, b.class, ownClasses, pos.en.map(a.classOf), pos.en, minacce, 3 - pos.en.length);
-    const risk = minacce.length ? a.residualRisk(b.name, minacce) : null;
+    const s = a.scoreCandidate(b.name, b.class, ownClasses, pos.en.map(a.classOf), pos.en, minacce, vuote);
+    const risk = s.futuro ? s.futuro.minacciaPeggiore : null;
     const worst = Math.min(s.perEnemy.length ? Math.min(...s.perEnemy.map(p=>p.edge)) : 0, risk ? risk.edge : 0);
     return { name: b.name, media: s.total, peggio: Math.max(5, Math.min(95, s.base + worst)) };
   });
-  if (cand.length > 10) stati.push({ mappa: map.name, nE, cand });
+  if (cand.length > 10) stati.push({ mappa: map.name, nE, vuote, cand });
 }
 
 console.log(`stati di draft: ${stati.length}\n`);
@@ -46,7 +47,9 @@ const perQ = {};
 for (const q of [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.75, 1]) {
   let sMedia = 0, sPeggio = 0, sotto = 0, cambia = 0;
   for (const st of stati) {
-    const ord = [...st.cand].sort((x,y) => (y.media*(1-q)+y.peggio*q) - (x.media*(1-q)+x.peggio*q));
+    // la quota scala con le caselle avversarie ancora libere, come nell'app
+    const qe = st.vuote > 0 ? 1 - Math.pow(1 - q, st.vuote / 3) : 0;
+    const ord = [...st.cand].sort((x,y) => (y.media*(1-qe)+y.peggio*qe) - (x.media*(1-qe)+x.peggio*qe));
     const base = [...st.cand].sort((x,y) => y.media - x.media)[0];
     sMedia += ord[0].media; sPeggio += ord[0].peggio;
     if (ord[0].peggio < 50) sotto++;

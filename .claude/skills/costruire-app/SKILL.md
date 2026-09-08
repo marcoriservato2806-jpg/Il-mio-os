@@ -217,6 +217,47 @@ approssimazione all'effetto individuale. Quando aggiungi un predittore più
 fine, **ri-stima i coefficienti di quelli vecchi insieme al nuovo** invece di
 sommarli: tenere il vecchio peso significa contare due volte.
 
+### Se un fattore compare in due punti della catena, cercalo nell'altro
+
+Corollario del doppio conteggio, e ci sono cascato una seconda volta il giorno
+dopo averlo scritto. Avevo introdotto una quota di pessimismo, applicata a
+livello di singolo elemento; poi, misurando che discriminava poco, l'ho
+applicata di nuovo a livello di aggregato — senza togliere la prima. Il
+risultato: l'elemento migliore su **ogni** componente (base, interazioni, media)
+finiva terzo nella lista. L'ha visto l'utente in una schermata, non io in un
+test aggregato, perché in aggregato la metrica migliorava lo stesso.
+
+Due regole:
+
+1. **Prima di aggiungere un fattore, cercalo lungo tutta la catena.** Se il
+   punteggio passa per più stadi, un peso messo in due stadi si moltiplica.
+2. **Un parametro di rischio deve scalare con le occasioni che restano.** Una
+   quota tarata su "tutte le scelte ancora da fare" non vale identica quando ne
+   resta una: se ogni occasione ha probabilità p e la quota su n occasioni è Q,
+   su k occasioni vale 1−(1−Q)^(k/n). Applicarla piatta è pessimismo inventato
+   proprio nel momento in cui l'incertezza è minima.
+
+E la lezione più utile: **le metriche aggregate non vedono l'incoerenza di una
+singola riga.** Aggiungi ai controlli una schermata concreta e guardala — qui
+sarebbe bastato leggere sei righe con i loro componenti a fianco.
+
+### Mostra la trasformazione, non solo il numero
+
+Se il punteggio usa una *trasformazione* di un valore (centrato, normalizzato,
+scontato), mostrare solo il valore grezzo rende la classifica incomprensibile:
+la riga con i numeri visibilmente più alti finisce sotto, e chi legge conclude
+che lo strumento sbaglia. È successo esattamente così.
+
+La soluzione non è nascondere il valore grezzo — è verificabile sulle fonti e
+serve — ma **mostrare i due numeri insieme**, con il secondo che è quello che
+la classifica usa: `vs Nita 78% +5`. Due caratteri in più e la riga si spiega
+da sola. E fai seguire al **colore** la quantità che decide l'ordine, non
+quella che si legge per prima.
+
+Dettaglio che sembra un cavillo e non lo è: **il colore deve seguire il numero
+arrotondato che mostri**, non il valore pieno. Un `+0` colorato di rosso è un
+numero che non torna, e mina la fiducia in tutto il resto della schermata.
+
 ### Un numero che calcoli e mostri ma non usi è un numero che non hai
 
 Il caso peggiore era calcolato per ogni candidato, mostrato in un riquadrino, e

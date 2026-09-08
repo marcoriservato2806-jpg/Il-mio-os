@@ -490,6 +490,12 @@ footer details[open] summary { margin-bottom: 8px; }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* Il secondo numero del riquadrino (lo scarto dal normale) e' quello che
+   sposta il punteggio: si distingue senza gridare. */
+.echip b { font-weight: 800; opacity: 0.85; }
+/* Scarto nullo: ne' un vantaggio ne' uno svantaggio, e non deve sembrarlo. */
+.echip.meas.pari { background: rgba(255, 255, 255, 0.07); color: var(--text-dim); }
+.echip.est.pari { border: 1px solid var(--border); color: var(--text-dim); }
 .echip.meas.pos { background: rgba(87, 217, 154, 0.16); color: var(--good); }
 .echip.meas.neg { background: rgba(255, 122, 122, 0.16); color: var(--bad); }
 .echip.est.pos { border: 1px solid rgba(87, 217, 154, 0.4); color: var(--good); }
