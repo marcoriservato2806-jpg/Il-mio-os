@@ -143,6 +143,10 @@ button {
 }
 
 button:hover:not(:disabled) { background: #302b3d; }
+/* Niente attesa del doppio tocco per lo zoom su quello che si tocca di
+   corsa: sul telefono il browser aspetta ~300ms prima di decidere che era
+   un tocco solo, e in un draft da 22 secondi si sentono. */
+button, .brawler-card, .suggestion-row, .sr-riga, .slot.filled, .trait-chip { touch-action: manipulation; }
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: default; }
 
@@ -1002,20 +1006,43 @@ footer details[open] summary { margin-bottom: 8px; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0 8px;
+  padding: 14px 0 8px;
   margin-bottom: 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  /* Su iOS una barra appiccicata, durante lo scorrimento per inerzia, si
+     disegna nel posto giusto ma tiene la zona sensibile al tocco dov'era:
+     premi il tasto e risponde quello che ci sta sotto. Promuoverla a livello
+     suo tiene le due cose allineate. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 .topbar .turn-banner { flex: 1; margin: 0; padding: 8px 10px; font-size: 0.86rem; }
+/* Il bersaglio era 60x30px a 15px dal bordo alto dello schermo, cioe' meno
+   della meta' dei 44px minimi, nell'angolo dove i visualizzatori mettono la
+   loro barra: era il tocco a non arrivare, non il codice a non funzionare.
+   touch-action toglie anche l'attesa del doppio tocco per lo zoom. */
 .topbar #reset-btn {
   flex: none;
   font-weight: 700;
   color: var(--bad);
   border-color: rgba(255, 122, 122, 0.45);
   padding: 8px 14px;
+  min-height: 46px;
+  min-width: 84px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 122, 122, 0.25);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .topbar #reset-btn:hover:not(:disabled) { background: rgba(255, 122, 122, 0.12); }
+.topbar #reset-btn:active { background: rgba(255, 122, 122, 0.25); }
+/* Premuto a draft gia' vuoto lo schermo non cambia: senza questo non si
+   distingue "non ha fatto niente" da "non ha sentito il tocco". */
+.topbar #reset-btn.fatto {
+  color: var(--good);
+  border-color: rgba(87, 217, 154, 0.55);
+  background: rgba(87, 217, 154, 0.14);
+}
 
 /* ---- Risultati della ricerca, dove stai gia' guardando ----------------
    Prima l'unica risposta era una riga di testo, e i risultati veri stavano
@@ -1072,9 +1099,11 @@ footer details[open] summary { margin-bottom: 8px; }
 .sr-vuoto { margin: 4px 2px; font-size: 0.76rem; color: var(--text-dim); }
 
 @media (max-width: 800px) {
-  .topbar { padding: 5px 0 6px; }
+  /* Sul telefono il bersaglio non si stringe: e' il tasto che si preme di
+     corsa, con il timer che scorre. Resta 46px e staccato dal bordo alto. */
+  .topbar { padding: 14px 0 6px; }
   .topbar .turn-banner { font-size: 0.78rem; padding: 7px 8px; }
-  .topbar #reset-btn { padding: 7px 12px; font-size: 0.78rem; }
+  .topbar #reset-btn { padding: 7px 12px; font-size: 0.8rem; min-height: 46px; min-width: 84px; }
   .search-results { max-height: 232px; }
 }
 
@@ -1255,7 +1284,7 @@ html { scroll-padding-top: 64px; }
     <br /><br />
     <strong>Quando l'app tace.</strong> L'etichetta "counter di X" compare solo sugli abbinamenti misurati davvero. Sulle coppie stimate il punteggio tiene conto del modello ma nessuna etichetta appare: è la differenza fra sapere e stimare, e resta visibile.
     <br /><br />
-    <strong>Reset sempre raggiungibile.</strong> Il tasto per ricominciare stava dentro il palco, che scorre via: appena scendevi alla griglia finiva a <strong>−185px</strong>, cioè fuori schermo — proprio nel momento in cui serve, perché è mentre scegli che ti accorgi di aver sbagliato. Ora sta in una barra fissa in cima, insieme al turno, che è l'altra cosa che non deve mai sparire.
+    <strong>Reset sempre raggiungibile.</strong> Il tasto per ricominciare stava dentro il palco, che scorre via: appena scendevi alla griglia finiva a <strong>−185px</strong>, cioè fuori schermo — proprio nel momento in cui serve, perché è mentre scegli che ti accorgi di aver sbagliato. Ora sta in una barra fissa in cima, insieme al turno, che è l'altra cosa che non deve mai sparire. <strong>Corretto l'8/9:</strong> il tasto rispondeva — provato su otto scenari, draft a metà, draft completo, dopo "salta i ban", due volte di fila — ma il <em>bersaglio</em> era 60×30px a 15px dal bordo alto dello schermo, cioè meno della metà dei 44px minimi, e nell'angolo in alto a destra, dove i visualizzatori mettono la loro barra: era il tocco a non arrivare, non il codice a non funzionare. Ora è 84×46px, staccato dal bordo, e per un secondo dice <strong>Azzerato</strong>, perché premuto su un draft già vuoto lo schermo resta identico e non c'era modo di distinguere "non ha fatto niente" da "non ha sentito". Azzera anche la casella di ricerca e riporta la pagina in cima, dove stanno le caselle che si svuotano.
     <br /><br />
     <strong>La ricerca mostra i candidati mentre scrivi.</strong> Prima l'unica risposta a quello che digitavi era una riga di testo, e i risultati veri stavano nella griglia a <strong>850px</strong>, sotto la piega: toccava scrivere il nome intero e sperare. Ora scrivendo <em>una sola lettera</em> compaiono fino a sei candidati subito sotto la casella — faccia, classe e punteggio — e si toccano. Il primo è marcato <em>Invio</em>, così sai cosa prendi premendo senza dover leggere una spiegazione. La ricerca mette i prefissi per primi, quindi "bo" dà Bo prima di Bolt e Bonnie, e segnala quali non puoi schierare.
     <br /><br />
@@ -3125,11 +3154,36 @@ function skipBans() {
   render();
 }
 
-function resetDraft() {
+// Ricominciare da capo. Azzera anche la ricerca (restava scritta dentro la
+// casella, e i suoi risultati sotto, come se il draft precedente non fosse
+// finito) e riporta la pagina in cima: le caselle che si svuotano stanno in
+// alto, e se le guardi da 400px piu' giu' il reset sembra non aver fatto
+// niente.
+function resetDraft(opts) {
   state.bans = { A: [], B: [] };
   state.picks = { A: [], B: [] };
+  clearSearch();
   buildSequence();
   render();
+  if (opts && opts.conferma) confermaReset();
+}
+
+// La conferma non e' un vezzo: se premi Reset a draft gia' vuoto — o se il
+// tocco finisce a un pixel dal tasto — lo schermo resta identico nei due
+// casi, e non c'e' modo di sapere se il tasto ha risposto. Per un secondo
+// il tasto dice di si'.
+let _timerConferma = null;
+function confermaReset() {
+  const btn = document.getElementById("reset-btn");
+  if (!btn) return;
+  window.scrollTo({ top: 0, behavior: "auto" });
+  btn.classList.add("fatto");
+  btn.textContent = "Azzerato";
+  clearTimeout(_timerConferma);
+  _timerConferma = setTimeout(() => {
+    btn.classList.remove("fatto");
+    btn.textContent = "Reset";
+  }, 1100);
 }
 
 // L'ordine dei pick in Classificata è sempre 1-2-2-1: era un campo di testo
@@ -3839,7 +3893,13 @@ document.addEventListener("DOMContentLoaded", () => {
     state.firstTeam = state.firstTeam === "A" ? "B" : "A";
     resetDraft();
   });
-  document.getElementById("reset-btn").addEventListener("click", resetDraft);
+  // Delegato sul documento invece che sul singolo nodo: il tasto sta in una
+  // barra appiccicata in cima, e un ascoltatore legato al nodo si perde se
+  // quel nodo viene ricreato. Cosi' il Reset funziona comunque.
+  document.addEventListener("click", (e) => {
+    const t = e.target && e.target.closest ? e.target.closest("#reset-btn") : null;
+    if (t) resetDraft({ conferma: true });
+  });
   const ban = document.getElementById("use-bans");
   ban.value = String(state.bansPerTeam);
   ban.addEventListener("change", (e) => {

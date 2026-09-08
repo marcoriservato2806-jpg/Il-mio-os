@@ -187,6 +187,37 @@ Le regole che ne sono uscite:
    veloce che leggere. E l'immagine di ciò che si è selezionato da una tendina
    è il modo più rapido per accorgersi di aver scelto la cosa sbagliata.
 
+### "Non funziona": misura il bersaglio prima del codice
+
+Segnalazione: «premo Reset e non si resetta». La tentazione è riscrivere
+`resetDraft`. **Otto scenari in browser vero dicevano che azzerava sempre** —
+draft a metà, draft completo, dopo aver saltato i ban, con testo nella
+ricerca, due volte di fila. Il difetto stava altrove: il tasto era
+**60×30px a 15px dal bordo alto**, contro i **44px minimi**, nell'angolo in
+alto a destra dove i visualizzatori mettono la loro barra. Era il tocco a non
+arrivare.
+
+Quindi, in ordine:
+
+1. **Riproduci prima di spiegare.** Se non riesci a riprodurlo, dillo: è
+   un'informazione, non una sconfitta. Cambiare codice che funziona per una
+   causa mai vista aggiunge un difetto invece di toglierne uno.
+2. **Misura il bersaglio**: `getBoundingClientRect()` su tutte le larghezze
+   che l'utente usa. Sotto 44×44px, o a meno di ~20px dal bordo alto in una
+   pagina incorporata, il difetto è lì.
+3. `touch-action: manipulation` su tutto ciò che si tocca di corsa: toglie
+   l'attesa di ~300ms con cui il browser decide se era un doppio tocco.
+4. Una barra `position: sticky` su iOS, durante lo scorrimento per inerzia,
+   si disegna nel posto giusto ma **tiene la zona sensibile dov'era**:
+   promuovila a livello suo (`transform: translateZ(0)`).
+
+**E soprattutto: ogni comando il cui effetto può essere invisibile deve
+confermare.** Reset premuto su un draft già vuoto lascia lo schermo identico,
+quindi «non ha fatto niente» e «non ha sentito il tocco» erano
+indistinguibili — e finché lo sono, la segnalazione successiva non è
+diagnosticabile. Un secondo di "Azzerato" sul tasto separa i due casi, e la
+risposta dell'utente diventa una misura.
+
 ### Meno controlli è una funzione, non estetica
 
 **Ogni controllo che si può impostare al contrario è un modo per ottenere

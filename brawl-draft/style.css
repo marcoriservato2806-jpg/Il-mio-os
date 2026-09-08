@@ -141,6 +141,10 @@ button {
 }
 
 button:hover:not(:disabled) { background: #302b3d; }
+/* Niente attesa del doppio tocco per lo zoom su quello che si tocca di
+   corsa: sul telefono il browser aspetta ~300ms prima di decidere che era
+   un tocco solo, e in un draft da 22 secondi si sentono. */
+button, .brawler-card, .suggestion-row, .sr-riga, .slot.filled, .trait-chip { touch-action: manipulation; }
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: default; }
 
@@ -1000,20 +1004,43 @@ footer details[open] summary { margin-bottom: 8px; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0 8px;
+  padding: 14px 0 8px;
   margin-bottom: 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  /* Su iOS una barra appiccicata, durante lo scorrimento per inerzia, si
+     disegna nel posto giusto ma tiene la zona sensibile al tocco dov'era:
+     premi il tasto e risponde quello che ci sta sotto. Promuoverla a livello
+     suo tiene le due cose allineate. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 .topbar .turn-banner { flex: 1; margin: 0; padding: 8px 10px; font-size: 0.86rem; }
+/* Il bersaglio era 60x30px a 15px dal bordo alto dello schermo, cioe' meno
+   della meta' dei 44px minimi, nell'angolo dove i visualizzatori mettono la
+   loro barra: era il tocco a non arrivare, non il codice a non funzionare.
+   touch-action toglie anche l'attesa del doppio tocco per lo zoom. */
 .topbar #reset-btn {
   flex: none;
   font-weight: 700;
   color: var(--bad);
   border-color: rgba(255, 122, 122, 0.45);
   padding: 8px 14px;
+  min-height: 46px;
+  min-width: 84px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 122, 122, 0.25);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .topbar #reset-btn:hover:not(:disabled) { background: rgba(255, 122, 122, 0.12); }
+.topbar #reset-btn:active { background: rgba(255, 122, 122, 0.25); }
+/* Premuto a draft gia' vuoto lo schermo non cambia: senza questo non si
+   distingue "non ha fatto niente" da "non ha sentito il tocco". */
+.topbar #reset-btn.fatto {
+  color: var(--good);
+  border-color: rgba(87, 217, 154, 0.55);
+  background: rgba(87, 217, 154, 0.14);
+}
 
 /* ---- Risultati della ricerca, dove stai gia' guardando ----------------
    Prima l'unica risposta era una riga di testo, e i risultati veri stavano
@@ -1070,9 +1097,11 @@ footer details[open] summary { margin-bottom: 8px; }
 .sr-vuoto { margin: 4px 2px; font-size: 0.76rem; color: var(--text-dim); }
 
 @media (max-width: 800px) {
-  .topbar { padding: 5px 0 6px; }
+  /* Sul telefono il bersaglio non si stringe: e' il tasto che si preme di
+     corsa, con il timer che scorre. Resta 46px e staccato dal bordo alto. */
+  .topbar { padding: 14px 0 6px; }
   .topbar .turn-banner { font-size: 0.78rem; padding: 7px 8px; }
-  .topbar #reset-btn { padding: 7px 12px; font-size: 0.78rem; }
+  .topbar #reset-btn { padding: 7px 12px; font-size: 0.8rem; min-height: 46px; min-width: 84px; }
   .search-results { max-height: 232px; }
 }
 

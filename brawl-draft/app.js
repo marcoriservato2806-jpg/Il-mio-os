@@ -612,11 +612,36 @@ function skipBans() {
   render();
 }
 
-function resetDraft() {
+// Ricominciare da capo. Azzera anche la ricerca (restava scritta dentro la
+// casella, e i suoi risultati sotto, come se il draft precedente non fosse
+// finito) e riporta la pagina in cima: le caselle che si svuotano stanno in
+// alto, e se le guardi da 400px piu' giu' il reset sembra non aver fatto
+// niente.
+function resetDraft(opts) {
   state.bans = { A: [], B: [] };
   state.picks = { A: [], B: [] };
+  clearSearch();
   buildSequence();
   render();
+  if (opts && opts.conferma) confermaReset();
+}
+
+// La conferma non e' un vezzo: se premi Reset a draft gia' vuoto — o se il
+// tocco finisce a un pixel dal tasto — lo schermo resta identico nei due
+// casi, e non c'e' modo di sapere se il tasto ha risposto. Per un secondo
+// il tasto dice di si'.
+let _timerConferma = null;
+function confermaReset() {
+  const btn = document.getElementById("reset-btn");
+  if (!btn) return;
+  window.scrollTo({ top: 0, behavior: "auto" });
+  btn.classList.add("fatto");
+  btn.textContent = "Azzerato";
+  clearTimeout(_timerConferma);
+  _timerConferma = setTimeout(() => {
+    btn.classList.remove("fatto");
+    btn.textContent = "Reset";
+  }, 1100);
 }
 
 // L'ordine dei pick in Classificata è sempre 1-2-2-1: era un campo di testo
@@ -1326,7 +1351,13 @@ document.addEventListener("DOMContentLoaded", () => {
     state.firstTeam = state.firstTeam === "A" ? "B" : "A";
     resetDraft();
   });
-  document.getElementById("reset-btn").addEventListener("click", resetDraft);
+  // Delegato sul documento invece che sul singolo nodo: il tasto sta in una
+  // barra appiccicata in cima, e un ascoltatore legato al nodo si perde se
+  // quel nodo viene ricreato. Cosi' il Reset funziona comunque.
+  document.addEventListener("click", (e) => {
+    const t = e.target && e.target.closest ? e.target.closest("#reset-btn") : null;
+    if (t) resetDraft({ conferma: true });
+  });
   const ban = document.getElementById("use-bans");
   ban.value = String(state.bansPerTeam);
   ban.addEventListener("change", (e) => {

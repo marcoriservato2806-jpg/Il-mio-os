@@ -7,6 +7,7 @@ Elenco tenuto perché ognuno di questi è costato una verifica incrociata: ritro
 | Errore | Come è emerso | Correzione |
 |---|---|---|
 | ~~**Ring of Fire** rimossa dal gioco~~ **← era sbagliato, vedi sotto** | 404 sulla pagina mappa + un articolo del 2021 | **Correzione del 6/9 sera: la mappa c'è.** L'API di Brawlify la dà `disabled: false` e sta nel pool ranked di brawlplanet. Rimessa. |
+| **"Il reset non resetta"** — e invece resettava | otto scenari in browser vero: `resetDraft` azzerava sempre. Misurato il tasto: **60×30px a 15px dal bordo alto**, contro i 44px minimi, nell'angolo dove i visualizzatori mettono la loro barra | Bersaglio a 84×46px, staccato dal bordo, `touch-action: manipulation`, barra promossa a livello suo; e una conferma visibile ("Azzerato"), perché su un draft vuoto "non ha fatto niente" e "non ha sentito" erano indistinguibili. **Regola: quando una cosa "non funziona", misura prima il bersaglio del dito, poi il codice.** |
 | **Angelo** citato nei consigli mappa ma assente dal roster | script di coerenza nomi | Aggiunto (Marksman). |
 | **Sirius** assente dal roster | compariva nelle tabelle Ranked ma non fra i brawler | Aggiunto. |
 | **Sirius** classificato Damage Dealer | confronto classi con l'elenco completo di BrawlMetrics | È **Controller**. |
