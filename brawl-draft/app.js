@@ -197,6 +197,13 @@ function confidenceLabel(conf) {
 
 // Minaccia = quanto forte è un brawler sul contesto più specifico che
 // conosciamo (mappa > modalità > meta generale). Usata per suggerire i ban.
+// Nota sull'asimmetria, che è voluta e non una svista: qui la win rate NON
+// viene corretta per rarità, mentre in contextualWinRate sì. Il motivo è che
+// le due domande sono diverse. "Quanto renderebbe a me" → corretta, perché il
+// dato descrive chi quel brawler lo gioca apposta. "Quanto fa paura se lo
+// prende l'avversario" → grezza, perché se lo prende è probabilmente proprio
+// uno di quelli. Per i ban conta comunque poco: la priorità è già moltiplicata
+// per quanto viene scelto, quindi un raro finisce in fondo da solo.
 function threatOf(name) {
   if (state.map && state.map.winRates && state.map.winRates[name] !== undefined) {
     return { value: state.map.winRates[name], source: "mappa" };
@@ -368,28 +375,76 @@ function predictedWinRate(a, b) {
 // al punteggio sia all'analisi del rischio, e le due devono usare la stessa
 // base — altrimenti un brawler senza dati sembrerebbe solido in un posto e
 // mediocre nell'altro.
+// Quanto spesso questo brawler COMPARE in una partita, sulla scala in cui i
+// 106 sommano 600% (sei pick per partita). Serve alla correzione qui sotto,
+// e le due fonti vanno riportate alla stessa scala: le pick rate di mappa
+// sono già su 600, USE_RATES globale somma 100 e va moltiplicata per sei.
+function comparizioneSu600(name) {
+  const pr = state.map && state.map.pickRates ? state.map.pickRates[name] : undefined;
+  if (pr !== undefined) return pr;
+  if (USE_RATES[name] !== undefined) return USE_RATES[name] * 6;
+  return 0.5;
+}
+
+// CORREZIONE PER RARITÀ — la modifica più importante fatta a questa app.
+//
+// Il problema, segnalato dall'utente e poi misurato: Wendy usciva prima su 13
+// mappe su 33 e nei primi tre su 29, e lui perdeva trofei seguendola. La sua
+// pick rate media è 0,53%: viene scelta dieci volte meno della media.
+//
+// Quelle partite non sono un campione a caso, sono le partite di chi la
+// gioca apposta. Tre misure, tutte sui dati che abbiamo:
+//  - chi ha la sua stessa rarità (0,3-1%) vince in media il 45,8%; lei il
+//    61,8%, cioè SEDICI punti sopra i suoi pari;
+//  - nel complesso i dati non premiano affatto i rari, anzi: dal 42,3% della
+//    fascia più rara si sale al 51,8% della più giocata. Wendy è l'eccezione,
+//    non la regola;
+//  - un brawler davvero forte SU CERTE MAPPE varia fra modalità (Bolt 5,15 di
+//    scarto). Wendy vince ~62% ovunque, con scarto 2,88, sotto la media di
+//    3,61: il suo numero non segue la mappa, segue chi la usa.
+//
+// Quindi la win rate si tira verso il 50% — cioè verso "una partita normale"
+// — tanto più quanto meno quel brawler viene scelto. Non è sfiducia nel dato:
+// il dato è giusto, ma descrive un'altra popolazione di giocatori.
+//
+// p0 = 2 scelto misurando, non a occhio: la correlazione fra punteggio e
+// popolarità SCENDE da 0,40 a 0,14 (quindi non si finisce a consigliare
+// semplicemente i più giocati — anzi, il legame con la popolarità si riduce)
+// e resta 0,81 di correlazione col dato grezzo, cioè il segnale non si perde.
+const RARITA_P0 = 2;
+
+function correzioneRarita(name) {
+  const p = comparizioneSu600(name);
+  return p / (p + RARITA_P0); // 0,5% → 0,20   ·   5,7% (media) → 0,74   ·   20% → 0,91
+}
+
 function contextualWinRate(name) {
   const metaWr = state.customScores[name];
   const modeWr = state.mode && MODE_WIN_RATES[state.mode] ? MODE_WIN_RATES[state.mode][name] : undefined;
   const mapWr = state.map && state.map.winRates ? state.map.winRates[name] : undefined;
 
   const fallback = modeWr !== undefined ? modeWr : metaWr !== undefined ? metaWr : 50;
-  let base = fallback;
+  let grezza = fallback;
   let source = modeWr !== undefined ? "modalità" : metaWr !== undefined ? "meta" : "nessun dato";
   if (mapWr !== undefined) {
     const conf = mapConfidence(state.map);
-    base = mapWr * conf + fallback * (1 - conf);
+    grezza = mapWr * conf + fallback * (1 - conf);
     source = "mappa";
   } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(name)) {
-    base += 2; // citato dalle fonti come forte qui, ma senza numero: spinta piccola
+    grezza += 2; // citato dalle fonti come forte qui, ma senza numero: spinta piccola
   }
-  return { base, source };
+
+  const aff = correzioneRarita(name);
+  const base = 50 + (grezza - 50) * aff;
+  return { base, source, grezza, aff, pick: comparizioneSu600(name) };
 }
 
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
   const ctx = contextualWinRate(candidateName);
   const base = ctx.base;
   const baseSource = ctx.source;
+  const grezza = ctx.grezza;
+  const pick = ctx.pick;
 
   // Contro chi è già schierato: media dei matchup, in punti di win rate.
   const names = enemyNames || [];
@@ -434,6 +489,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     matchupAvg: r1(matchupAvg),
     synergy: r1(synergy),
     traits: r1(traits),
+    grezza: grezza === undefined ? undefined : r1(grezza),
+    pick,
     perEnemy,
   };
 }
@@ -448,8 +505,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
 // Vale solo per la MIA squadra. Per l'avversario il roster resta intero: lui
 // li avra' maxati, e comunque devo poter registrare quello che sceglie.
 function schierabile(name) {
-  if (typeof PROFILO_POTENZA === "undefined") return true; // nessun profilo collegato: nessun filtro
-  const p = PROFILO_POTENZA[name];
+  if (typeof PROFILO === "undefined") return true; // nessun profilo collegato: nessun filtro
+  const p = (PROFILO[name] || {}).potenza;
   if (p === undefined) return true; // brawler troppo nuovo per stare nella fotografia: non lo escludo
   return p >= state.minPower;
 }
@@ -458,7 +515,7 @@ function schierabile(name) {
 // profilo con la potenza vera, quindi un brawler escluso puo' essere in
 // realta' giocabile. Per questo l'esclusione si puo' spegnere.
 function filtroAttivo() {
-  return state.minPower > 0 && typeof PROFILO_POTENZA !== "undefined";
+  return state.minPower > 0 && typeof PROFILO !== "undefined";
 }
 
 function computeSuggestions() {
@@ -761,9 +818,7 @@ function renderGrid() {
       // L'elenco qui sopra dice gia' chi ha trovato e cosa prende Invio.
       hint.textContent = "";
     } else {
-      hint.textContent = turn.phase === "ban"
-        ? "Tocca chi è stato bannato. I tasti 1-8 prendono dai suggerimenti."
-        : "Tocca chi è stato scelto. I tasti 1-8 prendono dai suggerimenti.";
+      hint.textContent = turn.phase === "ban" ? "Tocca chi è stato bannato." : "Tocca chi è stato scelto.";
     }
   }
 
@@ -787,7 +842,7 @@ function renderGrid() {
     const mio = turn && turn.team === state.myTeam;
     const fuori = filtroAttivo() && !schierabile(b.name);
     card.classList.toggle("non-schierabile", !!(fuori && mio));
-    const pot = typeof PROFILO_POTENZA !== "undefined" ? PROFILO_POTENZA[b.name] : undefined;
+    const pot = typeof PROFILO !== "undefined" && PROFILO[b.name] ? PROFILO[b.name].potenza : undefined;
     if (fuori && mio && pot !== undefined) card.title = `Potenza ${pot}: non puoi schierarlo in Classificata (ne serve ${state.minPower}). Cliccabile lo stesso, per registrarlo se lo prende l'avversario.`;
 
     const punteggio = _classifica.get(b.name);
@@ -980,13 +1035,23 @@ function renderSuggestions() {
       s.risk || (s.perEnemy && s.perEnemy.length)
         ? `<span class="floor-chip ${floorClass}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
         : "";
+    // Quando il pick è raro, la correzione ha spostato parecchio il numero:
+    // va detto, altrimenti sembra che l'app "non veda" un brawler forte.
+    const raro = s.pick !== undefined && s.pick < 1.5;
+    const rarita = raro
+      ? `<span class="risk-chip warn" title="Lo sceglie solo lo ${s.pick.toFixed(1)}% delle squadre. Il dato grezzo dice ${Math.round(s.grezza)}%, ma è misurato su chi lo gioca apposta: per te vale circa ${Math.round(s.base)}%.">raro ${s.pick.toFixed(1)}%</span>`
+      : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
+    if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) {
+      parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
+    }
+    if (typeof PROFILO !== "undefined" && PROFILO[s.name]) parts.push(`tuoi trofei: ${PROFILO[s.name].trofei}`);
     if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
     if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     row.innerHTML = `
       ${ritratto(s.name, "mini")}
-      <span class="sugg-name">${s.name}${badge}${chips || floorChip ? `<span class="chip-row">${chips}${floorChip}</span>` : ""}</span>
+      <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita ? `<span class="chip-row">${chips}${floorChip}${rarita}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
@@ -1097,7 +1162,7 @@ function updateSetupUI() {
       // Conta solo quelli di cui SO la potenza. schierabile() lascia passare
       // anche i brawler assenti dalla fotografia (troppo nuovi), ma contarli
       // qui gonfierebbe il numero: direbbe 51 quando ne posso schierare 49.
-      ? ` · solo i miei da potenza ${state.minPower} in su (${BRAWLERS.filter((b) => PROFILO_POTENZA[b.name] >= state.minPower).length})`
+      ? ` · solo i miei da potenza ${state.minPower} in su (${BRAWLERS.filter((b) => (PROFILO[b.name] || {}).potenza >= state.minPower).length})`
       : "";
     sum.textContent = box.open
       ? "Impostazioni partita — tocca per chiudere"

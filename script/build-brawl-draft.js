@@ -69,7 +69,7 @@ const checks = [
   ["contiene la logica", out.includes("function computeSuggestions")],
   ["contiene il markup", out.includes('id="brawler-grid"')],
   ["contiene i ritratti", out.includes("const BRAWLER_IMGS")],
-  ["contiene il profilo", out.includes("const PROFILO_POTENZA")],
+  ["contiene il profilo", out.includes("const PROFILO ")],
   // Nessun tag giocatore nel file pubblicato. Il controllo cerca la FORMA di
   // un tag, non un tag preciso: scriverne uno qui dentro lo metterebbe in
   // chiaro in un repository pubblico — che e' esattamente quello che questa

@@ -76,14 +76,19 @@ if (!TAG) {
   const fs = require("fs");
   const path = require("path");
   const dest = path.join(__dirname, "..", "brawl-draft", "profilo.js");
+  // Oltre alla potenza servono i TROFEI per brawler: dicono cosa il
+  // proprietario gioca davvero. Consigliare un brawler forte ma che non ha
+  // mai toccato e' un buon modo per fargli perdere trofei, ed e' successo.
   const righe = posseduti
     .slice()
     .sort((a, b) => a.nome.localeCompare(b.nome, "it"))
-    .map((b) => `  ${JSON.stringify(b.nome)}: ${b.potenza},`)
+    .map((b) => `  ${JSON.stringify(b.nome)}: { potenza: ${b.potenza}, trofei: ${b.trofei} },`)
     .join("\n");
   fs.writeFileSync(dest, `// Livello di potenza dei brawler del proprietario dell'app.
 // GENERATO da script/fetch-profilo-brawl.js — non modificare a mano.
 // Letto il ${new Date().toISOString().slice(0, 10)} dal tracker pubblico di brawlplanet.
+//
+// Per ogni brawler: livello di potenza e trofei.
 //
 // PERCHÉ SERVE: in Classificata un brawler sotto POTENZA 9 non si può
 // schierare, e da Mythic in su ne serve uno a POTENZA 11. Un consiglio su un
@@ -92,7 +97,7 @@ if (!TAG) {
 //
 // Il tag del giocatore NON sta qui apposta: questo repository è pubblico.
 // È una fotografia: risbloccando o potenziando un brawler va rilanciato.
-const PROFILO_POTENZA = {
+const PROFILO = {
 ${righe}
 };
 `);

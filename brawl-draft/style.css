@@ -1080,3 +1080,24 @@ footer details[open] summary { margin-bottom: 8px; }
    un elemento (o toccarne uno appena sotto il bordo) lo lascia mezzo
    nascosto sotto la barra. */
 html { scroll-padding-top: 64px; }
+
+/* ---- Stretta finale sul telefono --------------------------------------
+   Ogni riga guadagnata e' una riga di consigli in piu' senza scorrere. */
+@media (max-width: 800px) {
+  /* Il titolo della sezione diceva una cosa che il banner del turno dice
+     gia': resta, piccolo, perche' separa comunque le due zone. */
+  #suggestions-title { font-size: 0.66rem; margin-bottom: 4px; }
+  .picker-hint { font-size: 0.66rem; margin-bottom: 5px; min-height: 0; }
+  .map-art img { max-height: 66px; }
+  .side-panel { padding: 10px; }
+
+  /* Le righe dei consigli: i riquadrini su una riga sola dove ci stanno,
+     cosi' le righe hanno tutte piu' o meno la stessa altezza e l'occhio
+     scorre la colonna dei numeri senza inciampi. */
+  .suggestion-row { padding: 7px 9px; }
+  .chip-row { gap: 3px; margin-top: 3px; }
+  .echip, .floor-chip, .risk-chip { font-size: 0.58rem; padding: 1px 5px; }
+  .badge { font-size: 0.55rem; }
+  .sugg-score { font-size: 0.92rem; }
+  .sugg-class { font-size: 0.64rem; }
+}
