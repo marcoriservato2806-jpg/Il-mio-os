@@ -76,6 +76,28 @@ Poi `node script/check-brawl-data.js`, che carica `data.js` e verifica:
 
 **La maggior parte degli errori trovati finora è emersa da questo script o da un test in browser vero, non rileggendo il codice.**
 
+E poi, dal repository, i controlli sul MODELLO — non sui dati. Girano fuori dal
+browser grazie a `script/carica-app.js`, che carica `data.js` e `app.js` in node
+con un DOM finto:
+
+```bash
+node script/verifica-scorciatoia.js   # la scorciatoia algebrica == versione ovvia (deve dare ~1e-15)
+node script/verifica-consigli.js 11   # cosa consiglia DAVVERO su 132 posizioni, col rango Mythic
+node script/misura-interazioni.js     # quanto pesa ogni pezzo del punteggio
+```
+
+`verifica-consigli.js` è la rete: se un cambiamento fa ricomparire un difetto
+vecchio (un nome che prende più del 20% delle prime posizioni, il primo
+consigliato che crolla sotto il 50% nel caso peggiore più di ~25 volte su 132,
+un pick raro consigliato spesso) si vede lì. Le calibrazioni si rifanno con
+`calibra-classi.js`, `calibra-favore-matchup.js`, `calibra-quota-risposta.js`,
+`misura-distorsione-matchup.js` e `misura-ban.js`: **ogni costante del modello ha
+lo script che l'ha prodotta, e va rifatto se i dati cambiano.**
+
+Prima di pubblicare, misura anche il ridisegno con la CPU rallentata quattro
+volte: il bilancio è **sotto i 20ms**, e ci si arriva. Se un cambiamento lo
+sfonda, la strada è l'algebra o una cache, non troncare i dati.
+
 Poi build e prova reale:
 ```bash
 node script/build-brawl-draft.js
@@ -93,6 +115,10 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 - Non ricercare la matrice completa dei matchup: **nessuna fonte la pubblica**, tutte danno 3 migliori e 3 peggiori per brawler. Il tetto è del dato, non della ricerca.
 - Non reintrodurre l'euristica di classe scritta a mano: è stata sostituita da `CLASS_EDGE`, calibrata sui dati, che la smentisce in più punti.
 - Non ordinare i pick per matchup nudo: premia i brawler senza dati. Usa la win rate nel contesto.
+- **Non sommare il vantaggio nei matchup senza centrarlo sul candidato**: la sua forza generale è già nella win rate di mappa, che è la base. Contarla due volte fa uscire sempre gli stessi nomi. Quello dell'avversario invece va contato.
+- **Non riportare `CLASS_EDGE_SHRINK` a 0,75**: quel valore è corretto solo *senza* il favore per brawler accanto. Con il favore nel modello, stimati insieme fuori campione, la classe vale 0,2.
+- Non ri-ordinare i ban in base a quanto sai rispondere alla minaccia: il divario è piccolo (57,3% contro 53,3%) e non esiste un giudice indipendente per validarlo — ogni giudice costruibile usa lo stesso modello dell'ordinamento. Il numero si mostra, l'ordine no.
+- Non troncare la distribuzione degli avversari possibili per andare più veloce: i primi venti coprono solo il 61% della probabilità. La velocità si prende con l'algebra (vedi `edgeCasellaVuota`).
 - Non ripetere campione e data dentro `notes`: l'app li stampa già da sé leggendoli dai dati, e la copia in prosa è quella che resta indietro e mente. Le note descrivono **solo il terreno**.
 - Non cancellare una mappa sulla base di un articolo quando c'è un'API che risponde. Ring of Fire è stata tolta così, e c'era ancora.
 - Non fidarti della scheda aperta di default su una pagina che ne ha due.

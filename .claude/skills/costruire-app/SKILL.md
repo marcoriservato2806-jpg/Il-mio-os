@@ -187,6 +187,83 @@ Le regole che ne sono uscite:
    veloce che leggere. E l'immagine di ciò che si è selezionato da una tendina
    è il modo più rapido per accorgersi di aver scelto la cosa sbagliata.
 
+### Prima di sommare un termine, chiedi se è già dentro la base
+
+Il difetto più costoso trovato su questa app non era un numero sbagliato: era
+un numero **contato due volte**. Il punteggio partiva dalla win rate misurata
+in quel contesto (la base) e ci sommava il vantaggio nei confronti diretti. Ma
+un soggetto che se la cava meglio *contro chiunque* ha, proprio per questo, una
+base più alta: la sua forza generale stava in tutti e due i termini. Il sintomo
+era esattamente quello che l'utente segnalava, «consiglia sempre gli stessi
+nomi» — e in una versione intermedia un solo nome prendeva il 21% delle
+posizioni, con i primi sei che erano i sei col valore più alto di quel termine.
+
+La correzione è **centrare**: il termine di interazione deve essere lo
+scostamento rispetto alla media del soggetto stesso, non il valore assoluto.
+Il termine relativo alla *controparte* invece resta, e non è doppio conteggio:
+la base è misurata contro una controparte media, e questa non è quella media.
+
+Come accorgersene senza aspettare la segnalazione: **somma il termine di
+interazione su tutte le controparti possibili.** Se non fa zero, quel termine
+sta spostando il livello, e il livello è già nella base. Un termine di
+interazione onesto è a media nulla per costruzione.
+
+Corollario che vale in generale: **un raggruppamento che sembra spiegare può
+star assorbendo un effetto più fine.** Qui la matrice per classe spiegava il
+19,8% della varianza; aggiunto un effetto per singolo soggetto, il peso della
+classe crollava da 0,75 a 0,19 e l'insieme arrivava al 53,9%. Le classi
+raggruppano soggetti, quindi le medie per classe stavano facendo da
+approssimazione all'effetto individuale. Quando aggiungi un predittore più
+fine, **ri-stima i coefficienti di quelli vecchi insieme al nuovo** invece di
+sommarli: tenere il vecchio peso significa contare due volte.
+
+### Un numero che calcoli e mostri ma non usi è un numero che non hai
+
+Il caso peggiore era calcolato per ogni candidato, mostrato in un riquadrino, e
+**ignorato dall'ordinamento**. Su 132 situazioni misurate, la prima scelta
+consigliata aveva un caso peggiore sotto la soglia di parità 50 volte, e ben
+sotto 13 volte. Chi legge una lista ordinata segue il primo elemento: se
+l'ordine non tiene conto di un rischio, mostrarlo accanto non protegge nessuno.
+
+Quando il peso da dare al rischio non è calibrabile — qui mancavano gli esiti
+reali, quindi non c'era un bersaglio — **misura il compromesso invece del
+peso**: fai variare il parametro e traccia quanto perdi sull'una e guadagni
+sull'altra. Il punto dove il cambio smette di convenire è una scelta
+difendibile, e si spiega in una riga. Qui: a 0,4 si lasciavano 0,17 punti di
+resa media per 0,76 di robustezza, oltre quattro guadagnati per uno perso;
+oltre 0,5 il cambio scendeva sotto tre.
+
+E dichiara l'assunzione **nel codice e a schermo**, distinta dalle misure: chi
+legge deve poter sapere quale numero è misurato e quale è deciso.
+
+### Ottimizza con l'algebra, non con l'approssimazione
+
+Tenere conto di tutte le controparti possibili significava valutare diecimila
+coppie per ridisegno: da 17 a 41ms con la CPU rallentata quattro volte. La
+tentazione è troncare (le prime venti controparti coprivano solo il 61% della
+probabilità: troncare avrebbe cambiato le risposte).
+
+La via giusta è guardare la formula. Sulle coppie *stimate* il termine si
+semplificava a «effetto del gruppo × effetto della controparte», cioè non
+dipendeva più dal singolo soggetto: la somma su cento controparti diventava una
+somma su sette gruppi, più una correzione sulle poche coppie davvero misurate.
+Con un indice delle coppie misurate per soggetto — senza, si torna a scorrere
+tutte le controparti e la scorciatoia non serve a niente — il costo è crollato.
+
+Due regole che ne restano:
+
+1. **Scrivi uno script che confronti la versione veloce con quella ovvia** su
+   tutti i casi reali. Qui la differenza massima su 3267 casi è 2,8·10⁻¹⁵, cioè
+   arrotondamento macchina: la scorciatoia non è un'approssimazione, ed è
+   dimostrato ogni volta che lo script gira.
+2. **Profila, non indovinare.** Il primo tentativo (memorizzare una funzione
+   che scandiva un array di 108 elementi) non cambiò niente di misurabile. Il
+   costo vero stava altrove, e due voci su tre le ha trovate il profilo: una
+   funzione che faceva il parsing di una data cento volte per ridisegno, e
+   dodici immagini incorporate ricreate a ogni tocco — la stessa trappola dei
+   data URI già trovata mesi prima su un altro pezzo della stessa pagina. **Una
+   trappola già documentata va cercata di nuovo in ogni punto che le somiglia.**
+
 ### "Non funziona": misura il bersaglio prima del codice
 
 Segnalazione: «premo Reset e non si resetta». La tentazione è riscrivere

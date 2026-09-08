@@ -152,9 +152,18 @@ function turniFatti() {
   return state.sequence.filter((t) => nomeDelTurno(t)).length;
 }
 
+// Era un BRAWLERS.find, cioe' una scansione di 108 elementi, e viene chiamata
+// due volte per ogni coppia valutata: con il valore atteso sulle caselle
+// avversarie vuote sono circa diecimila coppie per turno, quindi due milioni
+// di passi buttati. Con una mappa e' un accesso diretto.
+let _classi = null;
 function classOf(name) {
-  const b = BRAWLERS.find((x) => x.name === name);
-  return b ? b.class : null;
+  if (!_classi) {
+    _classi = new Map();
+    for (const b of BRAWLERS) _classi.set(b.name, b.class);
+  }
+  const c = _classi.get(name);
+  return c === undefined ? null : c;
 }
 
 // Quanto fidarsi dei dati di una mappa: due cose diverse la rovinano.
@@ -167,12 +176,21 @@ function classOf(name) {
 // l'altro passano poche settimane, e una win rate di prima di un
 // riequilibrio non è "mezza vera", è di un altro gioco. Ora un dato di più
 // di due mesi conta un ottavo, e il ripiego (modalità) prende il resto.
+// Memorizzata per mappa: veniva chiamata una volta per ciascuno dei 106
+// candidati a ogni ridisegno, e ogni chiamata faceva un new Date() con
+// parsing di stringa — cento parsing di data per tocco, per un numero che
+// cambia solo quando cambia la mappa.
+const _confidenza = new WeakMap();
 function mapConfidence(map) {
   if (!map || !map.winRates || !map.updated) return 0;
+  const memo = _confidenza.get(map);
+  if (memo !== undefined) return memo;
   const days = (Date.now() - new Date(map.updated + "T00:00:00Z").getTime()) / 86400000;
   const freshness = days <= 2 ? 1 : days <= 7 ? 0.9 : days <= 21 ? 0.7 : days <= 35 ? 0.45 : days <= 60 ? 0.25 : 0.12;
   const size = map.sample >= 500000 ? 1 : map.sample >= 100000 ? 0.9 : map.sample >= 30000 ? 0.75 : 0.6;
-  return freshness * size;
+  const conf = freshness * size;
+  _confidenza.set(map, conf);
+  return conf;
 }
 
 // Quanto spesso questo brawler viene davvero scelto QUI. La fonte delle
@@ -274,7 +292,34 @@ function pickFlag(name) {
 // computeBanSuggestions; lo legge la griglia.
 let _classifica = new Map();
 
+// La mia risposta migliore a una minaccia: fra i brawler che posso davvero
+// schierare e che sono ancora liberi, il migliore per resa nel contesto
+// contro di lei. Serve nella fase ban, dove l'app finora non guardava
+// affatto le interazioni: un ban speso su qualcosa che sai gia' gestire e'
+// un ban buttato.
+//
+// NON entra nell'ordinamento dei ban, e la scelta e' deliberata. Misurato
+// (`script/misura-ban.js`): rispondo alle tre minacce consigliate col 57,3%
+// e alla minaccia plausibile che gestisco peggio col 53,3% — un divario di
+// quattro punti, reale ma piccolo, e le minacce che promuoverebbe sono quasi
+// tutte rare, cioe' esattamente quelle che il termine di popolarita' demolisce
+// di proposito (bannare un mostro che nessuno prende e' un ban buttato).
+// Pesare quel divario vorrebbe dire scegliere un coefficiente che non ho modo
+// di calibrare. Quindi il numero si mostra e la decisione resta a chi gioca.
+function rispostaMigliore(minaccia) {
+  const used = usedNames();
+  let best = null, chi = null;
+  for (const b of BRAWLERS) {
+    if (b.name === minaccia || used.has(b.name)) continue;
+    if (!schierabile(b.name)) continue;
+    const v = contextualWinRate(b.name).base + edgeCentrato(b.name, minaccia);
+    if (best === null || v > best) { best = v; chi = b.name; }
+  }
+  return best === null ? null : { valore: Math.round(best), chi };
+}
+
 function computeBanSuggestions() {
+  _distAvversario = null; _aggr = null;
   const used = usedNames();
   const candidates = [];
   for (const b of BRAWLERS) {
@@ -292,7 +337,21 @@ function computeBanSuggestions() {
     // le due combaciano il peso torna pieno.
     const popWeight = u.source === "mappa" && t.source === "mappa" ? 1 : t.source === "mappa" ? 0.25 : t.source === "modalità" ? 0.6 : 1;
     const popularity = 1 + (Math.min(use, 4.5) / 3) * popWeight;
-    const priority = (t.value - 50) * popularity;
+    // LA CODA TRASCURABILE. Il fattore di popolarita' qui sopra non scende mai
+    // sotto 1, quindi non puo' demolire un win rate altissimo: su Out in the
+    // Open l'app metteva Wendy terza fra i ban con lo 0,05% di pick rate su
+    // quella mappa, cioe' un ban sprecato nel 99,95% delle partite.
+    //
+    // Non ho un modo per dire se un ORDINE di ban e' migliore di un altro: ogni
+    // giudice che potrei costruire usa lo stesso modello dell'ordinamento, e gli
+    // esiti delle partite non li ho. Quindi la formula resta quella che c'era.
+    // Questo pezzo non e' un modello, e' aritmetica: sotto lo 0,35% per casella
+    // (circa l'1% di probabilita' su tre caselle avversarie) la priorita' viene
+    // ridotta in proporzione alla probabilita' stessa. Sopra quella soglia non
+    // cambia niente per nessuno.
+    const SOGLIA_TRASCURABILE = 0.35;
+    const plausibile = Math.min(1, use / SOGLIA_TRASCURABILE);
+    const priority = (t.value - 50) * popularity * plausibile;
     candidates.push({
       name: b.name, class: b.class, wr: t.value, source: t.source,
       use, priority: Math.round(priority * 10) / 10,
@@ -300,7 +359,12 @@ function computeBanSuggestions() {
   }
   candidates.sort((a, b) => b.priority - a.priority);
   _classifica = new Map(candidates.map((c) => [c.name, c.wr]));
-  return candidates.slice(0, 6);
+  // La risposta migliore si calcola solo per le sei righe mostrate: su tutti
+  // e 106 sarebbero 106 x 49 confronti a ogni ridisegno, per un numero che
+  // nessuno legge sulle righe che non compaiono.
+  const mostrate = candidates.slice(0, 6);
+  for (const c of mostrate) c.risposta = rispostaMigliore(c.name);
+  return mostrate;
 }
 
 // Percentuale di vittorie di A contro B, se misurata. Le coppie valgono in
@@ -309,6 +373,37 @@ function rawMatchup(a, b) {
   if (MATCHUPS[a] && MATCHUPS[a][b] !== undefined) return MATCHUPS[a][b];
   if (MATCHUPS[b] && MATCHUPS[b][a] !== undefined) return 100 - MATCHUPS[b][a];
   return null;
+}
+
+// ---- IL DOPPIO CONTEGGIO, E COME SI TOGLIE ------------------------------
+//
+// Un brawler con favore alto vince di piu' contro chiunque. Ma "vince di piu'
+// contro chiunque" e' GIA' dentro la sua win rate di mappa, che e' la base del
+// punteggio. Sommarci anche il vantaggio grezzo significa contare due volte
+// lo stesso fatto — ed e' il difetto che faceva uscire sempre gli stessi nomi:
+// aggiunto il favore al modello, un solo brawler prendeva il 21% delle
+// posizioni e i primi sei erano esattamente i sei col favore piu' alto.
+//
+// Il vantaggio che conta nel punteggio e' quindi quello CENTRATO sul brawler
+// stesso: quanto se la cava contro QUESTO avversario meglio di quanto se la
+// cavi in media. Il favore dell'AVVERSARIO invece resta, e non e' un doppio
+// conteggio: la win rate di mappa e' misurata contro l'avversario medio, e un
+// avversario scomodo non e' l'avversario medio.
+//
+//   vantaggio_centrato(a,b) = residuo(a,b) - favore(a)
+//
+// Sulla coppia stimata si semplifica: 0,2*classe - favore(b).
+//
+// La conseguenza si vede a schermo: il numero grande resta una percentuale di
+// vittorie, ma un brawler forte in generale non guadagna piu' due volte per
+// essere forte in generale. Le percentuali per avversario ("vs Rosa 72%")
+// restano NON centrate, perche' quelle sono win rate verificabili sulle fonti.
+function edgeCentrato(a, b) {
+  const p = predictedWinRate(a, b);
+  const oa = BRAWLER_OVERALL[a];
+  const ob = BRAWLER_OVERALL[b];
+  const atteso = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
+  return p.wr - atteso - favoreMatchup(a);
 }
 
 // Il matchup VERO, tolta la parte spiegata dalla sola differenza di forza
@@ -325,6 +420,78 @@ function matchupEdge(a, b) {
   return actual - (50 + (oa - ob));
 }
 
+// ---- QUANTO E' SCOMODO DA AFFRONTARE, INDIPENDENTEMENTE DALLA CLASSE ----
+//
+// Il modello assumeva che, tolta la differenza di forza generale, il residuo
+// medio di ogni brawler fosse zero: nessuno sarebbe "genericamente scomodo".
+// Falso, e misurabile. `script/misura-distorsione-matchup.js`: la dispersione
+// dei residui medi per brawler ha varianza 7,14, di cui 4,21 spiegabile dal
+// solo rumore di campionamento — quindi il 41% e' segnale vero.
+//
+// Non e' un artefatto di come le fonti scelgono le coppie da pubblicare
+// (i 3 migliori e i 3 peggiori per brawler): dividendo le coppie di ogni
+// brawler in due meta' alternate, la media di una meta' predice quella
+// dell'altra con correlazione 0,91 e pendenza 1,04. Ed e' scollegato da
+// quante coppie sono state registrate (0,03), che e' la cosa che ci si
+// aspetterebbe se il campione favorisse i brawler piu' analizzati.
+//
+// Aggiunto al modello, FUORI CAMPIONE (una misurazione alla volta esclusa,
+// su 605 misurazioni uniche) la varianza spiegata dei residui passa dal
+// 19,8% al 53,9%. Effetto collaterale importante: il coefficiente della
+// matrice di classe crolla da 0,75 a 0,2, cioe' CLASS_EDGE stava in gran
+// parte facendo da approssimazione a questo — le classi raggruppano
+// brawler, quindi le medie per classe assorbivano un effetto per brawler.
+//
+// Cautela che resta: tutte le 605 misurazioni sono coppie ESTREME per
+// costruzione. Il modello e' validato su estremi, quindi la grandezza
+// potrebbe non trasferirsi identica a una coppia qualunque. Per questo il
+// valore di ogni brawler e' ristretto secondo quante coppie ha davvero:
+// n/(n+6), scelto misurando (k0=6 dava 54,1%, k0=3 il 53,5%, k0=25 il 51,4%).
+const FAVORE_K0 = 6;
+let _favore = null;
+// Per ogni brawler, con chi ha una coppia MISURATA. Serve alla scorciatoia in
+// edgeCasellaVuota: senza questo indice bisognava scorrere tutti e cento gli
+// avversari possibili per trovarne la decina misurata, e la scorciatoia
+// algebrica non serviva a niente (misurato: 14,9ms dei 40 del ridisegno).
+let _vicini = null;
+function viciniMisurati(name) {
+  if (!_vicini) {
+    _vicini = new Map();
+    const agg = (x, y) => {
+      let l = _vicini.get(x);
+      if (!l) { l = []; _vicini.set(x, l); }
+      if (!l.includes(y)) l.push(y);
+    };
+    for (const x of Object.keys(MATCHUPS)) {
+      for (const y of Object.keys(MATCHUPS[x])) { agg(x, y); agg(y, x); }
+    }
+  }
+  return _vicini.get(name) || [];
+}
+function favoreMatchup(name) {
+  if (!_favore) {
+    const somma = {}, conta = {};
+    const agg = (chi, v) => { somma[chi] = (somma[chi] || 0) + v; conta[chi] = (conta[chi] || 0) + 1; };
+    for (const x of Object.keys(MATCHUPS)) {
+      for (const y of Object.keys(MATCHUPS[x])) {
+        const ox = BRAWLER_OVERALL[x], oy = BRAWLER_OVERALL[y];
+        if (ox === undefined || oy === undefined) continue;
+        // una volta per coppia: la stessa misura scritta nei due versi
+        // conterebbe due volte e falserebbe il numero di osservazioni
+        if (MATCHUPS[y] && MATCHUPS[y][x] !== undefined && y < x) continue;
+        const res = MATCHUPS[x][y] - (50 + (ox - oy));
+        agg(x, res); agg(y, -res);
+      }
+    }
+    _favore = {};
+    for (const k of Object.keys(somma)) {
+      const n = conta[k];
+      _favore[k] = (somma[k] / n) * (n / (n + FAVORE_K0));
+    }
+  }
+  return _favore[name] || 0;
+}
+
 // Stima per le coppie mai misurate — cioè il 95% delle combinazioni, visto
 // che nessuna fonte pubblica la matrice completa. Usa la media dei residui
 // veri osservati fra quelle due classi (vedi CLASS_EDGE in data.js).
@@ -332,7 +499,14 @@ function matchupEdge(a, b) {
 // ESTREMI di ogni brawler, quindi le medie per classe sono più marcate di
 // quanto sarebbero su un campione casuale. Dimezzarle è il modo prudente di
 // usarle — meglio sottostimare un vantaggio che inventarne uno.
-const CLASS_EDGE_SHRINK = 0.5;
+// MISURATO fuori campione, non scelto a occhio. Da solo, il termine di classe
+// vuole 0,75 (`script/calibra-classi.js`: lo 0,5 di prima buttava via un
+// terzo dell'informazione). Ma stimato ASSIEME al favore per brawler
+// (`script/calibra-favore-matchup.js`) scende a 0,19: gran parte di quello che
+// la matrice di classe sembrava sapere era in realta' un effetto per brawler,
+// che le classi assorbivano perche' raggruppano brawler. Tenere 0,75 con il
+// favore accanto vorrebbe dire contare due volte lo stesso segnale.
+const CLASS_EDGE_SHRINK = 0.2;
 function classEdge(ca, cb) {
   const row = CLASS_EDGE[ca];
   const v = row ? row[cb] : undefined;
@@ -356,7 +530,7 @@ function predictedWinRate(a, b) {
   const oa = BRAWLER_OVERALL[a];
   const ob = BRAWLER_OVERALL[b];
   const gap = oa !== undefined && ob !== undefined ? oa - ob : 0;
-  const wr = 50 + gap + classEdge(classOf(a), classOf(b));
+  const wr = 50 + gap + classEdge(classOf(a), classOf(b)) + (favoreMatchup(a) - favoreMatchup(b));
   return { wr: Math.max(5, Math.min(95, wr)), measured: false };
 }
 
@@ -439,7 +613,141 @@ function contextualWinRate(name) {
   return { base, source, grezza, aff, pick: comparizioneSu600(name) };
 }
 
-function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
+// ---- LE CASELLE AVVERSARIE ANCORA VUOTE ---------------------------------
+//
+// La squadra avversaria ha SEMPRE tre caselle. Il punteggio contava solo
+// quelle gia' riempite, quindi al primo pick l'interazione valeva zero — e in
+// Classificata (1-2-2-1) SOLO l'ultimo pick della seconda squadra vede la
+// squadra avversaria al completo: cinque turni su sei si decidevano senza
+// che l'avversario pesasse per intero.
+//
+// Il caso peggiore era calcolato e mostrato nel riquadrino "peggio", ma non
+// entrava nell'ordinamento. Misurato su 99 posizioni di draft: il primo
+// consigliato scendeva sotto il 50% contro la risposta ovvia 28 volte su 99,
+// ed era in media solo il quarto-quinto piu' robusto della lista. A Leggenda
+// l'avversario quella risposta la trova.
+//
+// Ora ogni casella vuota vale per quello che ci puo' finire dentro:
+//   - con probabilita' misurata, cioe' la pick rate di mappa (i 106 brawler
+//     sommano 600% = sei caselle, quindi pickRate/600 e' la probabilita' che
+//     quel brawler occupi UNA casella), rinormalizzata su chi e' disponibile;
+//   - piu' una quota di caso peggiore, che rappresenta l'avversario che la
+//     risposta la cerca. Quella quota e' un'ASSUNZIONE dichiarata, non una
+//     misura: non ho gli esiti delle partite, quindi non c'e' niente su cui
+//     calibrarla. E' legata al rango scelto nelle impostazioni, perche' e'
+//     l'unica cosa che dice contro chi stai giocando.
+// 0,4 da Mythic in su (dove l'avversario drafta guardando la tua squadra),
+// 0,3 fino a Diamante. Entrambi dentro la parte buona della curva misurata.
+const QUOTA_RISPOSTA = { 11: 0.4, 9: 0.3, 0: 0.35 };
+function quotaRisposta() {
+  const q = QUOTA_RISPOSTA[state.minPower];
+  return q === undefined ? 0.3 : q;
+}
+
+// Probabilita' che una casella avversaria vuota sia occupata da ciascun
+// brawler ancora disponibile. Calcolata una volta per turno, non per
+// candidato: sono 106 candidati per 106 possibili avversari.
+let _distAvversario = null;
+function distribuzioneAvversario() {
+  if (_distAvversario) return _distAvversario;
+  const used = usedNames();
+  const righe = [];
+  let tot = 0;
+  for (const b of BRAWLERS) {
+    if (used.has(b.name)) continue;
+    const p = comparizioneSu600(b.name);
+    if (p <= 0) continue;
+    righe.push({ name: b.name, p });
+    tot += p;
+  }
+  for (const r of righe) r.p /= tot || 1;
+  _distAvversario = righe;
+  return righe;
+}
+
+// Il vantaggio di A contro B, centrato su A (vedi edgeCentrato).
+function edgeDi(a, b) {
+  return edgeCentrato(a, b);
+}
+
+// Aggregati per classe, calcolati una volta per turno. Servono alla
+// scorciatoia qui sotto.
+let _aggr = null;
+function aggregatiAvversario() {
+  if (_aggr) return _aggr;
+  const dist = distribuzioneAvversario();
+  const pClasse = new Map();
+  const pDi = new Map();
+  let sommaFav = 0;
+  for (const r of dist) {
+    const k = classOf(r.name);
+    pClasse.set(k, (pClasse.get(k) || 0) + r.p);
+    sommaFav += r.p * favoreMatchup(r.name);
+    pDi.set(r.name, r.p);
+  }
+  _aggr = { pClasse, pDi, sommaFav };
+  return _aggr;
+}
+
+// Quanto vale, per un candidato, una casella avversaria ANCORA VUOTA.
+//
+// La versione ovvia e' un ciclo su tutti i circa cento avversari possibili,
+// per ognuno dei 106 candidati: diecimila valutazioni di coppia per turno, che
+// col telefono quattro volte piu' lento portavano il ridisegno da 10 a 40ms —
+// e la lentezza e' la cosa di cui l'utente si era gia' lamentato.
+//
+// La scorciatoia viene dall'algebra, non da un'approssimazione. Su una coppia
+// STIMATA il vantaggio centrato si semplifica:
+//   wr        = 50 + (forza_c - forza_t) + classe(c,t) + favore(c) - favore(t)
+//   atteso    = 50 + (forza_c - forza_t)
+//   centrato  = wr - atteso - favore(c) = classe(c,t) - favore(t)
+// cioe' dipende solo dalle CLASSI dei due e dal favore dell'avversario. Quindi
+//   somma_t P(t) * centrato(c,t) = somma_classi P(classe) * classe(c,classe) - somma_t P(t)*favore(t)
+// che e' una somma su sette classi invece che su cento avversari. Restano da
+// correggere solo le coppie di c davvero MISURATE (in media una decina) e il
+// caso t == c. Da diecimila valutazioni a circa duemila.
+//
+// `script/verifica-scorciatoia.js` confronta questa versione con quella ovvia
+// su tutte le mappe: se un giorno divergono, la scorciatoia e' rotta.
+function edgeCasellaVuota(candidato, minacce) {
+  const { pClasse, pDi, sommaFav } = aggregatiAvversario();
+  const cc = classOf(candidato);
+  let media = -sommaFav;
+  for (const [k, p] of pClasse) media += p * classEdge(cc, k);
+  // il candidato non puo' stare in entrambe le squadre
+  const pSe = pDi.get(candidato);
+  if (pSe !== undefined) media -= pSe * (classEdge(cc, cc) - favoreMatchup(candidato));
+  // le coppie misurate: si toglie il termine stimato e si mette quello vero.
+  // Si scorrono i VICINI del candidato (una decina), non tutti gli avversari
+  // possibili: e' quello che rende utile la scorciatoia.
+  for (const t of viciniMisurati(candidato)) {
+    if (t === candidato) continue;
+    const p = pDi.get(t);
+    if (p === undefined) continue; // non e' fra gli avversari ancora disponibili
+    media -= p * (classEdge(cc, classOf(t)) - favoreMatchup(t));
+    media += p * edgeCentrato(candidato, t);
+  }
+  // Il caso peggiore si cerca fra le minacce PLAUSIBILI, non fra tutti e 106:
+  // il peggior matchup in assoluto e' spesso un brawler che nessuno prende.
+  //
+  // La minaccia peggiore si porta dietro anche il nome e la win rate, perche'
+  // servono al riquadrino "peggio" a schermo: prima le stesse otto minacce
+  // venivano scorse due volte, qui e in residualRisk, per gli stessi numeri.
+  let peggio = media;
+  let quale = null;
+  for (const t of minacce) {
+    if (t === candidato) continue;
+    const p = predictedWinRate(candidato, t);
+    const e = p.wr - (BRAWLER_OVERALL[candidato] !== undefined && BRAWLER_OVERALL[t] !== undefined
+      ? 50 + (BRAWLER_OVERALL[candidato] - BRAWLER_OVERALL[t]) : 50) - favoreMatchup(candidato);
+    if (quale === null || e < quale.edge) quale = { enemy: t, wr: p.wr, edge: e, measured: p.measured };
+    if (e < peggio) peggio = e;
+  }
+  const q = quotaRisposta();
+  return { valore: media * (1 - q) + peggio * q, media, peggio, minacciaPeggiore: quale };
+}
+
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames, minacce, caselleVuote) {
   const ctx = contextualWinRate(candidateName);
   const base = ctx.base;
   const baseSource = ctx.source;
@@ -450,14 +758,23 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
   const names = enemyNames || [];
   const perEnemy = names.map((en) => {
     const p = predictedWinRate(candidateName, en);
-    const oa = BRAWLER_OVERALL[candidateName];
-    const ob = BRAWLER_OVERALL[en];
-    const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
-    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: p.wr - expected, measured: p.measured };
+    // `wr` e' la win rate da mostrare (verificabile sulle fonti); `edge` e' il
+    // vantaggio CENTRATO, l'unico che puo' entrare nel punteggio senza
+    // contare due volte la forza generale del candidato.
+    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: edgeCentrato(candidateName, en), measured: p.measured };
   });
-  const matchupAvg = perEnemy.length
-    ? perEnemy.reduce((s, p) => s + p.edge, 0) / perEnemy.length
-    : 0;
+  // La media si fa su TUTTE E TRE le caselle avversarie, non solo su quelle
+  // piene: una sola casella conosciuta e' un terzo della storia, non tutta.
+  // Le vuote portano il valore atteso di chi ci puo' finire.
+  const vuote = caselleVuote === undefined ? Math.max(0, 3 - perEnemy.length) : caselleVuote;
+  const slotTotali = perEnemy.length + vuote;
+  let sommaEdge = perEnemy.reduce((s, p) => s + p.edge, 0);
+  let futuro = null;
+  if (vuote > 0) {
+    futuro = edgeCasellaVuota(candidateName, minacce || []);
+    sommaEdge += futuro.valore * vuote;
+  }
+  const matchupAvg = slotTotali > 0 ? sommaEdge / slotTotali : 0;
 
   // Composizione: tre volte la stessa classe è fragile, e una squadra senza
   // frontline o senza cure lo paga. Valori piccoli, in punti di win rate.
@@ -492,6 +809,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     grezza: grezza === undefined ? undefined : r1(grezza),
     pick,
     perEnemy,
+    vuote,
+    futuro: futuro ? { valore: r1(futuro.valore), media: r1(futuro.media), peggio: r1(futuro.peggio), minacciaPeggiore: futuro.minacciaPeggiore } : null,
   };
 }
 
@@ -532,22 +851,59 @@ function computeSuggestions() {
   const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
   const threats = enemyLeft > 0 ? likelyEnemyPicks(8) : [];
 
+  // La distribuzione di chi puo' ancora finire in una casella avversaria
+  // dipende da chi e' gia' fuori dal tavolo: va ricalcolata a ogni turno.
+  _distAvversario = null; _aggr = null;
+
+  // Quanto pesa il caso peggiore. Zero se l'avversario non ha piu' pick: a
+  // squadra avversaria completa non esiste nessuna risposta che possa ancora
+  // arrivare, e tenerne conto sarebbe pessimismo inventato.
+  const q = enemyLeft > 0 ? quotaRisposta() : 0;
+
   const mieiPick = filtroAttivo() && own === state.myTeam;
   const candidates = BRAWLERS
     .filter((b) => !used.has(b.name))
     .filter((b) => !mieiPick || schierabile(b.name))
     .map((b) => {
-    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames);
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames, threats, enemyLeft);
     // Il caso peggiore sta nella STESSA riga della media. Tenerli in due
     // classifiche separate obbligava a confrontarle a mano e non diceva
     // quale seguire — che è esattamente il dubbio che ha fatto sbagliare.
-    const risk = threats.length ? residualRisk(b.name, threats) : null;
+    // gia' calcolata dentro scoreCandidate: scorrere le stesse otto minacce
+    // una seconda volta costava 3,5ms per ridisegno
+    const risk = s.futuro ? s.futuro.minacciaPeggiore : threats.length ? residualRisk(b.name, threats) : null;
     const worstEdge = Math.min(
       s.perEnemy.length ? Math.min(...s.perEnemy.map((p) => p.edge)) : 0,
       risk ? risk.edge : 0
     );
+    // ora il caso peggiore e' anche DENTRO il punteggio, per la sua quota:
+    // il riquadrino "peggio" resta perche' dice quanto e' ripido lo scivolo,
+    // non perche' sia l'unica cosa che ne tiene conto
     const floor = Math.max(5, Math.min(95, s.base + worstEdge));
-    return { name: b.name, class: b.class, ...s, risk, floor: Math.round(floor) };
+
+    // IL CASO PEGGIORE ENTRA NEL PUNTEGGIO.
+    //
+    // Prima era calcolato, mostrato nel riquadrino "peggio" e ignorato
+    // dall'ordinamento. Misurato su 132 posizioni di draft: il primo
+    // consigliato crollava sotto il 50% contro la risposta migliore
+    // 38 volte su 132. A Leggenda quella risposta l'avversario la trova, e
+    // consigliare per la media e' consigliare per l'avversario distratto.
+    //
+    // Il punteggio e' quindi una miscela dei due numeri che l'app mostra
+    // entrambi: media (avversario qualunque) e pavimento (avversario che la
+    // risposta la cerca). La quota e' un'assunzione dichiarata — non ho gli
+    // esiti delle partite su cui calibrarla — ma il COMPROMESSO e' misurato
+    // (`script/calibra-quota-risposta.js`): a q=0,4 si lasciano 0,6 punti di
+    // resa media e i crolli sotto il 50% passano da 38 a 11 su 132, cioe' si
+    // guadagnano oltre quattro punti di pavimento per ogni punto di media
+    // perso. Oltre q=0,5 il cambio scende sotto tre e la media inizia a
+    // pesare: 0,4 e' il ginocchio della curva, non un numero tondo scelto.
+    //
+    // Zero quando l'avversario ha finito di scegliere: non c'e' piu' nessuna
+    // risposta che possa arrivare, e il rischio sarebbe inventato.
+    const media = s.total;
+    const total = q > 0 ? Math.round((media * (1 - q) + floor * q) * 10) / 10 : media;
+    return { name: b.name, class: b.class, ...s, risk, floor: Math.round(floor), media, total, q };
   });
 
   // L'ordine segue il numero mostrato, sempre. Ordinare per una miscela di
@@ -669,8 +1025,8 @@ function renderSlots(ruolo) {
   const totalBans = state.sequence.filter((s) => s.phase === "ban" && s.team === team).length;
   const totalPicks = state.sequence.filter((s) => s.phase === "pick" && s.team === team).length;
 
-  for (let i = 0; i < totalBans; i++) bansEl.appendChild(makeSlot(state.bans[team][i], "ban"));
-  for (let i = 0; i < totalPicks; i++) picksEl.appendChild(makeSlot(state.picks[team][i], "pick"));
+  for (let i = 0; i < totalBans; i++) bansEl.appendChild(makeSlot(state.bans[team][i], "ban", ruolo + i));
+  for (let i = 0; i < totalPicks; i++) picksEl.appendChild(makeSlot(state.picks[team][i], "pick", ruolo + i));
 
   const side = document.getElementById(`side-${ruolo}`);
   if (side) {
@@ -679,7 +1035,22 @@ function renderSlots(ruolo) {
   }
 }
 
-function makeSlot(name, phase) {
+// Le caselle del palco, in cache. Contengono un <img> con l'immagine
+// incorporata come data URI: ricrearle a ogni ridisegno significa far
+// ridecodificare al browser dodici immagini per tocco. E' la stessa trappola
+// che sulle carte del roster aveva portato il ridisegno da 11 a 66ms, e qui
+// era rimasta: 6,4ms dei 27 del ridisegno se ne andavano in questo.
+const _caselle = new Map();
+function makeSlot(name, phase, indice) {
+  const chiave = name ? phase + "|" + name : phase + "|vuota|" + indice;
+  const memo = _caselle.get(chiave);
+  if (memo) return memo;
+  const div = costruisciSlot(name, phase);
+  _caselle.set(chiave, div);
+  return div;
+}
+
+function costruisciSlot(name, phase) {
   const div = document.createElement("div");
   div.className = "slot " + (name ? "filled" : "empty") + " " + phase;
   if (name) {
@@ -930,11 +1301,17 @@ function residualRisk(candidateName, threats) {
     // "Wendy — peggio: Wendy 48%" e falsava il caso peggiore.
     if (t === candidateName) continue;
     const p = predictedWinRate(candidateName, t);
-    const oa = BRAWLER_OVERALL[candidateName];
-    const ob = BRAWLER_OVERALL[t];
-    const expected = oa !== undefined && ob !== undefined ? 50 + (oa - ob) : 50;
-    if (worst === null || p.wr < worst.wr) {
-      worst = { enemy: t, wr: p.wr, edge: p.wr - expected, measured: p.measured };
+    const expected = p.wr - edgeCentrato(candidateName, t);
+    // Si sceglie la minaccia col VANTAGGIO peggiore, non col win rate
+    // assoluto piu' basso. Il pavimento e' `base + vantaggio`, quindi e' il
+    // vantaggio a determinarlo: scegliendo per win rate assoluto, un brawler
+    // forte in generale sembrava solido anche dove non lo e'. Su Wendy contro
+    // Bull+Rosa il pavimento veniva 59% (minaccia R-T, vantaggio +8,3) invece
+    // di 48% (minaccia Emz, vantaggio -2,7): undici punti di ottimismo, ed
+    // esattamente sul pick che l'utente ha segnalato come consigliato troppo.
+    const edge = p.wr - expected;
+    if (worst === null || edge < worst.edge) {
+      worst = { enemy: t, wr: p.wr, edge, measured: p.measured };
     }
   }
   return worst;
@@ -1016,7 +1393,11 @@ function renderSuggestions() {
       // sopra; il numero mostrato è la cosa che si capisce senza spiegazioni.
       row.innerHTML = `
         ${ritratto(s.name, "mini")}
-        <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span></span></span>
+        <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span>${
+          s.risposta
+            ? `<span class="floor-chip ${s.risposta.valore < 52 ? "warn" : s.risposta.valore < 56 ? "mid" : "ok"}" title="Se glielo lasci, il tuo pick migliore contro di lui è ${s.risposta.chi} e vale circa ${s.risposta.valore}%. Sotto il 52% vuol dire che una risposta comoda non ce l'hai: è il ban che ti conviene di più. Sopra il 56% sai già gestirlo, e il ban rende meno.">rispondi ${s.risposta.valore}%</span>`
+            : ""
+        }</span></span>
         <span class="sugg-class">${s.class}</span>
         <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
       `;
@@ -1054,7 +1435,7 @@ function renderSuggestions() {
       .join("");
     // Il riquadrino diventa un avviso quando il caso peggiore è molto più
     // basso della media: è lì che un pick apparentemente ottimo è fragile.
-    const drop = s.total - s.floor;
+    const drop = (s.media === undefined ? s.total : s.media) - s.floor;
     const floorClass = s.floor < 50 || drop >= 12 ? "warn" : drop >= 7 ? "mid" : "ok";
     const floorChip =
       s.risk || (s.perEnemy && s.perEnemy.length)
@@ -1071,9 +1452,15 @@ function renderSuggestions() {
       parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
     }
     if (typeof PROFILO !== "undefined" && PROFILO[s.name]) parts.push(`tuoi trofei: ${PROFILO[s.name].trofei}`);
-    if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
+    if (s.matchupAvg) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}${s.vuote ? " (su 3 caselle, " + s.vuote + " ancora vuot" + (s.vuote > 1 ? "e" : "a") + ")" : ""}`);
     if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
+    // Il numero mostrato e' la miscela, quindi il dettaglio DEVE arrivare
+    // fino a lui: un totale che non torna con le sue righe non e' verificabile.
+    if (s.q > 0 && s.media !== undefined) {
+      parts.push(`= media ${Math.round(s.media * 10) / 10}%`);
+      parts.push(`mostrato: ${Math.round((1 - s.q) * 100)}% della media + ${Math.round(s.q * 100)}% del caso peggiore (${s.floor}%), perché l'avversario ha ancora pick da fare`);
+    }
     row.innerHTML = `
       ${ritratto(s.name, "mini")}
       <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita ? `<span class="chip-row">${chips}${floorChip}${rarita}</span>` : ""}</span>
