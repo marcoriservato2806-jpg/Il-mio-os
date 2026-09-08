@@ -59,6 +59,31 @@ potenza. Adattali al dominio: la forma è generale, gli esempi sono del caso.
    per consigliare. Qui era **+0,40**: chi è scelto di più vince di più, cioè
    nessuna inflazione.
 
+### Una media misurata su chi sceglie una cosa non vale per chi non la sceglierebbe
+
+La trappola più costosa trovata finora, e non è rumore statistico: il campione
+era grande e il numero corretto. Un'opzione scelta dallo 0,5% delle persone ha
+statistiche misurate **su quello 0,5%**, cioè su chi la sceglie apposta —
+tipicamente chi la sa usare. Presentarla a chi non è di quel gruppo è un
+consiglio sbagliato con un numero giusto dietro.
+
+**Come si riconosce:** confronta l'opzione con quelle della sua stessa rarità,
+non con tutte. E controlla se il suo vantaggio **varia col contesto**: un
+vantaggio reale dipende dalla situazione, uno che riflette *chi sceglie* resta
+uguale ovunque. Qui: 16 punti sopra i pari per rarità, e meno variabilità fra
+contesti della media.
+
+**Come si corregge:** tira il valore verso la media generale in proporzione a
+quanto l'opzione è rara — `valore = medio + (misurato − medio) × p/(p+p0)`.
+**Calibra p0 misurando**, non a occhio: la correlazione fra punteggio finale e
+popolarità deve *scendere* (altrimenti stai solo inseguendo la folla) e quella
+col dato grezzo deve restare alta (altrimenti hai buttato il segnale). Qui:
+0,40 → 0,14 e 0,81 conservato.
+
+**Attenzione all'asimmetria:** la correzione vale per «quanto renderebbe a
+me», non per «quanto vale in mano a chi l'ha scelta». Le due domande hanno
+risposte diverse e vanno tenute separate.
+
 E poi: **cerca l'eccezione e dichiarala.** Un personaggio era primo su 12
 mappe con lo 0,3% di scelte, contro la tendenza generale. Non era rumore ed
 era confermato da altre due fonti — ma quel numero è misurato su chi lo gioca

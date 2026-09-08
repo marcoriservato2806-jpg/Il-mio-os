@@ -1083,6 +1083,27 @@ footer details[open] summary { margin-bottom: 8px; }
    nascosto sotto la barra. */
 html { scroll-padding-top: 64px; }
 
+/* ---- Stretta finale sul telefono --------------------------------------
+   Ogni riga guadagnata e' una riga di consigli in piu' senza scorrere. */
+@media (max-width: 800px) {
+  /* Il titolo della sezione diceva una cosa che il banner del turno dice
+     gia': resta, piccolo, perche' separa comunque le due zone. */
+  #suggestions-title { font-size: 0.66rem; margin-bottom: 4px; }
+  .picker-hint { font-size: 0.66rem; margin-bottom: 5px; min-height: 0; }
+  .map-art img { max-height: 66px; }
+  .side-panel { padding: 10px; }
+
+  /* Le righe dei consigli: i riquadrini su una riga sola dove ci stanno,
+     cosi' le righe hanno tutte piu' o meno la stessa altezza e l'occhio
+     scorre la colonna dei numeri senza inciampi. */
+  .suggestion-row { padding: 7px 9px; }
+  .chip-row { gap: 3px; margin-top: 3px; }
+  .echip, .floor-chip, .risk-chip { font-size: 0.58rem; padding: 1px 5px; }
+  .badge { font-size: 0.55rem; }
+  .sugg-score { font-size: 0.92rem; }
+  .sugg-class { font-size: 0.64rem; }
+}
+
 </style>
 
 <div class="container">
@@ -1244,6 +1265,10 @@ html { scroll-padding-top: 64px; }
     <br /><br />
     <strong>La mappa si vede.</strong> Al centro del palco c'è il disegno della mappa che hai scelto. Non è decorazione: la mappa si sceglie da una tendina di nomi che si somigliano, e il disegno è il modo più rapido per accorgersi di aver selezionato quella sbagliata. Sono le 33 immagini del pool, incorporate come i ritratti (186 KB in tutto).
     <br /><br />
+    <strong>La correzione per rarità — la modifica più importante fatta a quest'app.</strong> Segnalazione dell'utente: «consiglia sempre Wendy su tutte le mappe, mi sembra irreale, e ho perso trofei». Misurato: <strong>Wendy usciva prima su 13 mappe su 33 e nei primi tre su 29</strong>, con una pick rate media dello <strong>0,53%</strong> — viene scelta dieci volte meno della media. Quelle partite non sono un campione a caso: sono le partite di chi la gioca apposta. Tre misure lo confermano. <em>Uno:</em> chi ha la sua stessa rarità (0,3-1% di scelte) vince in media il 45,8%, lei il 61,8% — <strong>sedici punti sopra i suoi pari</strong>. <em>Due:</em> nel complesso i dati non premiano affatto i brawler rari, anzi — si sale dal 42,3% della fascia più rara al 51,8% della più giocata: Wendy è l'eccezione, non la regola. <em>Tre, la prova decisiva:</em> un brawler davvero forte <em>su certe mappe</em> varia molto fra modalità (Bolt ha 5,15 di scarto); Wendy vince circa il 62% <em>ovunque</em>, con scarto 2,88, sotto la media di 3,61. <strong>Il suo numero non segue la mappa, segue chi la usa.</strong> Ora la win rate viene tirata verso il 50% — cioè verso «una partita normale» — tanto più quanto meno quel brawler viene scelto. Non è sfiducia nel dato: il dato è corretto, ma descrive un'altra popolazione di giocatori. <strong>Il parametro è stato scelto misurando, non a occhio:</strong> la correlazione fra punteggio e popolarità <em>scende</em> da 0,40 a 0,14 (quindi non si finisce a consigliare semplicemente i più giocati — al contrario, il legame con la popolarità si riduce) e resta 0,81 di correlazione col dato grezzo, cioè il segnale non va perso. Risultato: Wendy è passata da prima su 13 mappe a prima su nessuna, e ricompare solo quando è una <em>risposta mirata</em> — contro Bull, dove il matchup misurato le dà il 71%. Quando un pick è raro, la riga lo dice: <span class="risk-chip warn">raro 0.3%</span>.
+    <br /><br />
+    <strong>E i counter adesso si sentono.</strong> Misurato prima: il termine mappa spaziava <strong>31 punti</strong> fra il migliore e il peggiore, mentre un counter ne sposta tipicamente <strong>3,9</strong> — ed è la media su più avversari, quindi si annacquava ancora. In pratica la classifica rispondeva pochissimo a chi aveva scelto l'avversario. La correzione per rarità riduce lo spread della mappa da 23 a 14 punti sulle mappe tipiche, quindi il matchup passa da circa un sesto a quasi un terzo del margine: ora cambiare avversario cambia davvero i consigli. <strong>Un'asimmetria voluta:</strong> nella fase ban la win rate resta <em>grezza</em>, perché lì la domanda è diversa — «quanto fa paura se lo prende l'avversario», e se lo prende è probabilmente proprio uno che lo gioca.
+    <br /><br />
     <strong>Il tuo profilo, e i brawler che puoi davvero schierare.</strong> Questa è la cosa che cambia di più i consigli. In Classificata <strong>un brawler sotto potenza 9 non si può mettere in campo</strong>, e da Mythic in su ne serve uno a potenza 11 — è una regola del gioco, non una preferenza. Del profilo collegato risultano <strong>106 brawler posseduti ma solo 49 schierabili</strong> (36 a potenza 11): l'app stava consigliando pick impossibili da eseguire, che sotto timer è peggio che non consigliare niente. Ora i suggerimenti <em>per la tua squadra</em> tengono solo quelli che puoi schierare; il roster resta intero, perché l'avversario li avrà maxati e devi comunque poter registrare cosa sceglie. I brawler fuori soglia restano visibili, barrati e cliccabili. <strong>Da dove viene il dato:</strong> dal tracker pubblico di brawlplanet, letto col tag — l'API ufficiale di Supercell richiede una chiave legata a un IP fisso e non è utilizzabile da una pagina web. È una <em>fotografia</em>, non un collegamento dal vivo: quando potenzi un brawler va riletta. Due avvertenze oneste: i tre brawler maxati che Classificata regala ogni stagione non compaiono con la potenza vera, quindi qualcuno segnato come escluso potrebbe essere giocabile — per questo il filtro si può spegnere; e Vince e Cosmo non sono nella fotografia, quindi non vengono filtrati.
     <br /><br />
     <strong>Layout.</strong> Alleati a sinistra, avversari a destra, turno al centro; il roster con il punteggio e una barra su ogni faccia, ordinato per quanto vale <em>adesso</em> contro chi è già in campo. Le due fiancate sono "i miei" e "i loro", mai "Blu" e "Rossa": la squadra in cui giochi cambia a ogni partita, la posizione sullo schermo no — altrimenti si legge il palco al contrario proprio mentre si va di fretta.
@@ -1266,122 +1291,124 @@ html { scroll-padding-top: 64px; }
 <script>
 // Livello di potenza dei brawler del proprietario dell'app.
 // GENERATO da script/fetch-profilo-brawl.js — non modificare a mano.
-// Letto il 2026-09-07 dal tracker pubblico di brawlplanet.
+// Letto il 2026-09-08 dal tracker pubblico di brawlplanet.
+//
+// Per ogni brawler: livello di potenza e trofei.
 //
 // PERCHÉ SERVE: in Classificata un brawler sotto POTENZA 9 non si può
 // schierare, e da Mythic in su ne serve uno a POTENZA 11. Un consiglio su un
 // brawler che non puoi mettere in campo è peggio che inutile: fa perdere i
-// secondi che non hai. Qui ce ne sono 49 giocabili su 106, 36 a potenza 11.
+// secondi che non hai. Qui ce ne sono 50 giocabili su 106, 36 a potenza 11.
 //
 // Il tag del giocatore NON sta qui apposta: questo repository è pubblico.
 // È una fotografia: risbloccando o potenziando un brawler va rilanciato.
-const PROFILO_POTENZA = {
-  "8-Bit": 11,
-  "Alli": 1,
-  "Amber": 9,
-  "Angelo": 7,
-  "Ash": 1,
-  "Barley": 1,
-  "Bea": 10,
-  "Belle": 9,
-  "Berry": 1,
-  "Bibi": 1,
-  "Bo": 11,
-  "Bolt": 1,
-  "Bonnie": 1,
-  "Brock": 11,
-  "Bull": 9,
-  "Buster": 7,
-  "Buzz": 10,
-  "Byron": 1,
-  "Carl": 11,
-  "Charlie": 1,
-  "Chester": 11,
-  "Chuck": 1,
-  "Clancy": 6,
-  "Colette": 10,
-  "Colt": 11,
-  "Cordelius": 11,
-  "Crow": 11,
-  "Damian": 11,
-  "Darryl": 1,
-  "Doug": 1,
-  "Draco": 1,
-  "Dynamike": 6,
-  "Edgar": 11,
-  "El Primo": 5,
-  "Emz": 11,
-  "Eve": 1,
-  "Fang": 1,
-  "Finx": 1,
-  "Frank": 1,
-  "Gale": 10,
-  "Gene": 10,
-  "Gigi": 1,
-  "Glowy": 9,
-  "Gray": 11,
-  "Griff": 11,
-  "Grom": 1,
-  "Gus": 11,
-  "Hank": 1,
-  "Jacky": 1,
-  "Jae-Yong": 1,
-  "Janet": 1,
-  "Jessie": 1,
-  "Juju": 1,
-  "Kaze": 1,
-  "Kenji": 9,
-  "Kit": 11,
-  "Larry & Lawrie": 1,
-  "Leon": 11,
-  "Lily": 7,
-  "Lola": 1,
-  "Lou": 11,
-  "Lumi": 11,
-  "Maisie": 6,
-  "Mandy": 9,
-  "Max": 11,
-  "Meeple": 11,
-  "Meg": 1,
-  "Melodie": 1,
-  "Mico": 5,
-  "Mina": 11,
-  "Moe": 1,
-  "Mortis": 11,
-  "Mr. P": 1,
-  "Najia": 11,
-  "Nani": 1,
-  "Nita": 11,
-  "Nori": 11,
-  "Ollie": 1,
-  "Otis": 11,
-  "Pam": 1,
-  "Pearl": 5,
-  "Penny": 1,
-  "Pierce": 11,
-  "Piper": 11,
-  "Poco": 5,
-  "R-T": 1,
-  "Rico": 11,
-  "Rosa": 1,
-  "Ruffs": 1,
-  "Sam": 1,
-  "Sandy": 8,
-  "Shade": 11,
-  "Shelly": 10,
-  "Sirius": 11,
-  "Spike": 10,
-  "Sprout": 1,
-  "Squeak": 6,
-  "Starr Nova": 11,
-  "Stu": 11,
-  "Surge": 11,
-  "Tara": 11,
-  "Tick": 1,
-  "Trunk": 1,
-  "Wendy": 11,
-  "Willow": 1,
-  "Ziggy": 1,
+const PROFILO = {
+  "8-Bit": { potenza: 11, trofei: 1000 },
+  "Alli": { potenza: 1, trofei: 13 },
+  "Amber": { potenza: 9, trofei: 1000 },
+  "Angelo": { potenza: 7, trofei: 375 },
+  "Ash": { potenza: 9, trofei: 46 },
+  "Barley": { potenza: 1, trofei: 124 },
+  "Bea": { potenza: 10, trofei: 1362 },
+  "Belle": { potenza: 9, trofei: 1006 },
+  "Berry": { potenza: 1, trofei: 33 },
+  "Bibi": { potenza: 1, trofei: 171 },
+  "Bo": { potenza: 11, trofei: 2012 },
+  "Bolt": { potenza: 1, trofei: 10 },
+  "Bonnie": { potenza: 1, trofei: 46 },
+  "Brock": { potenza: 11, trofei: 2003 },
+  "Bull": { potenza: 9, trofei: 1005 },
+  "Buster": { potenza: 7, trofei: 53 },
+  "Buzz": { potenza: 10, trofei: 1006 },
+  "Byron": { potenza: 1, trofei: 0 },
+  "Carl": { potenza: 11, trofei: 1006 },
+  "Charlie": { potenza: 1, trofei: 0 },
+  "Chester": { potenza: 11, trofei: 1821 },
+  "Chuck": { potenza: 1, trofei: 0 },
+  "Clancy": { potenza: 6, trofei: 165 },
+  "Colette": { potenza: 10, trofei: 1057 },
+  "Colt": { potenza: 11, trofei: 1771 },
+  "Cordelius": { potenza: 11, trofei: 1176 },
+  "Crow": { potenza: 11, trofei: 2007 },
+  "Damian": { potenza: 11, trofei: 1357 },
+  "Darryl": { potenza: 1, trofei: 145 },
+  "Doug": { potenza: 1, trofei: 0 },
+  "Draco": { potenza: 1, trofei: 0 },
+  "Dynamike": { potenza: 6, trofei: 150 },
+  "Edgar": { potenza: 11, trofei: 1589 },
+  "El Primo": { potenza: 5, trofei: 248 },
+  "Emz": { potenza: 11, trofei: 2009 },
+  "Eve": { potenza: 1, trofei: 0 },
+  "Fang": { potenza: 1, trofei: 0 },
+  "Finx": { potenza: 1, trofei: 204 },
+  "Frank": { potenza: 1, trofei: 0 },
+  "Gale": { potenza: 10, trofei: 1011 },
+  "Gene": { potenza: 10, trofei: 1006 },
+  "Gigi": { potenza: 1, trofei: 0 },
+  "Glowy": { potenza: 9, trofei: 820 },
+  "Gray": { potenza: 11, trofei: 1012 },
+  "Griff": { potenza: 11, trofei: 1619 },
+  "Grom": { potenza: 1, trofei: 131 },
+  "Gus": { potenza: 11, trofei: 1428 },
+  "Hank": { potenza: 1, trofei: 42 },
+  "Jacky": { potenza: 1, trofei: 145 },
+  "Jae-Yong": { potenza: 1, trofei: 49 },
+  "Janet": { potenza: 1, trofei: 0 },
+  "Jessie": { potenza: 1, trofei: 145 },
+  "Juju": { potenza: 1, trofei: 0 },
+  "Kaze": { potenza: 1, trofei: 60 },
+  "Kenji": { potenza: 9, trofei: 1001 },
+  "Kit": { potenza: 11, trofei: 1192 },
+  "Larry & Lawrie": { potenza: 1, trofei: 206 },
+  "Leon": { potenza: 11, trofei: 2006 },
+  "Lily": { potenza: 7, trofei: 432 },
+  "Lola": { potenza: 1, trofei: 111 },
+  "Lou": { potenza: 11, trofei: 1042 },
+  "Lumi": { potenza: 11, trofei: 2012 },
+  "Maisie": { potenza: 6, trofei: 227 },
+  "Mandy": { potenza: 9, trofei: 415 },
+  "Max": { potenza: 11, trofei: 1017 },
+  "Meeple": { potenza: 11, trofei: 1095 },
+  "Meg": { potenza: 1, trofei: 0 },
+  "Melodie": { potenza: 1, trofei: 0 },
+  "Mico": { potenza: 5, trofei: 314 },
+  "Mina": { potenza: 11, trofei: 2003 },
+  "Moe": { potenza: 1, trofei: 0 },
+  "Mortis": { potenza: 11, trofei: 2005 },
+  "Mr. P": { potenza: 1, trofei: 10 },
+  "Najia": { potenza: 11, trofei: 2062 },
+  "Nani": { potenza: 1, trofei: 60 },
+  "Nita": { potenza: 11, trofei: 2012 },
+  "Nori": { potenza: 11, trofei: 1631 },
+  "Ollie": { potenza: 1, trofei: 0 },
+  "Otis": { potenza: 11, trofei: 1157 },
+  "Pam": { potenza: 1, trofei: 0 },
+  "Pearl": { potenza: 5, trofei: 282 },
+  "Penny": { potenza: 1, trofei: 204 },
+  "Pierce": { potenza: 11, trofei: 2007 },
+  "Piper": { potenza: 11, trofei: 1020 },
+  "Poco": { potenza: 5, trofei: 117 },
+  "R-T": { potenza: 1, trofei: 0 },
+  "Rico": { potenza: 11, trofei: 2010 },
+  "Rosa": { potenza: 1, trofei: 145 },
+  "Ruffs": { potenza: 1, trofei: 0 },
+  "Sam": { potenza: 1, trofei: 0 },
+  "Sandy": { potenza: 8, trofei: 302 },
+  "Shade": { potenza: 11, trofei: 1038 },
+  "Shelly": { potenza: 10, trofei: 1000 },
+  "Sirius": { potenza: 11, trofei: 2000 },
+  "Spike": { potenza: 10, trofei: 1120 },
+  "Sprout": { potenza: 1, trofei: 0 },
+  "Squeak": { potenza: 6, trofei: 251 },
+  "Starr Nova": { potenza: 11, trofei: 1060 },
+  "Stu": { potenza: 11, trofei: 1593 },
+  "Surge": { potenza: 11, trofei: 1422 },
+  "Tara": { potenza: 11, trofei: 1015 },
+  "Tick": { potenza: 1, trofei: 145 },
+  "Trunk": { potenza: 1, trofei: 36 },
+  "Wendy": { potenza: 11, trofei: 851 },
+  "Willow": { potenza: 1, trofei: 0 },
+  "Ziggy": { potenza: 1, trofei: 0 },
 };
 
 
@@ -2683,6 +2710,13 @@ function confidenceLabel(conf) {
 
 // Minaccia = quanto forte è un brawler sul contesto più specifico che
 // conosciamo (mappa > modalità > meta generale). Usata per suggerire i ban.
+// Nota sull'asimmetria, che è voluta e non una svista: qui la win rate NON
+// viene corretta per rarità, mentre in contextualWinRate sì. Il motivo è che
+// le due domande sono diverse. "Quanto renderebbe a me" → corretta, perché il
+// dato descrive chi quel brawler lo gioca apposta. "Quanto fa paura se lo
+// prende l'avversario" → grezza, perché se lo prende è probabilmente proprio
+// uno di quelli. Per i ban conta comunque poco: la priorità è già moltiplicata
+// per quanto viene scelto, quindi un raro finisce in fondo da solo.
 function threatOf(name) {
   if (state.map && state.map.winRates && state.map.winRates[name] !== undefined) {
     return { value: state.map.winRates[name], source: "mappa" };
@@ -2854,28 +2888,76 @@ function predictedWinRate(a, b) {
 // al punteggio sia all'analisi del rischio, e le due devono usare la stessa
 // base — altrimenti un brawler senza dati sembrerebbe solido in un posto e
 // mediocre nell'altro.
+// Quanto spesso questo brawler COMPARE in una partita, sulla scala in cui i
+// 106 sommano 600% (sei pick per partita). Serve alla correzione qui sotto,
+// e le due fonti vanno riportate alla stessa scala: le pick rate di mappa
+// sono già su 600, USE_RATES globale somma 100 e va moltiplicata per sei.
+function comparizioneSu600(name) {
+  const pr = state.map && state.map.pickRates ? state.map.pickRates[name] : undefined;
+  if (pr !== undefined) return pr;
+  if (USE_RATES[name] !== undefined) return USE_RATES[name] * 6;
+  return 0.5;
+}
+
+// CORREZIONE PER RARITÀ — la modifica più importante fatta a questa app.
+//
+// Il problema, segnalato dall'utente e poi misurato: Wendy usciva prima su 13
+// mappe su 33 e nei primi tre su 29, e lui perdeva trofei seguendola. La sua
+// pick rate media è 0,53%: viene scelta dieci volte meno della media.
+//
+// Quelle partite non sono un campione a caso, sono le partite di chi la
+// gioca apposta. Tre misure, tutte sui dati che abbiamo:
+//  - chi ha la sua stessa rarità (0,3-1%) vince in media il 45,8%; lei il
+//    61,8%, cioè SEDICI punti sopra i suoi pari;
+//  - nel complesso i dati non premiano affatto i rari, anzi: dal 42,3% della
+//    fascia più rara si sale al 51,8% della più giocata. Wendy è l'eccezione,
+//    non la regola;
+//  - un brawler davvero forte SU CERTE MAPPE varia fra modalità (Bolt 5,15 di
+//    scarto). Wendy vince ~62% ovunque, con scarto 2,88, sotto la media di
+//    3,61: il suo numero non segue la mappa, segue chi la usa.
+//
+// Quindi la win rate si tira verso il 50% — cioè verso "una partita normale"
+// — tanto più quanto meno quel brawler viene scelto. Non è sfiducia nel dato:
+// il dato è giusto, ma descrive un'altra popolazione di giocatori.
+//
+// p0 = 2 scelto misurando, non a occhio: la correlazione fra punteggio e
+// popolarità SCENDE da 0,40 a 0,14 (quindi non si finisce a consigliare
+// semplicemente i più giocati — anzi, il legame con la popolarità si riduce)
+// e resta 0,81 di correlazione col dato grezzo, cioè il segnale non si perde.
+const RARITA_P0 = 2;
+
+function correzioneRarita(name) {
+  const p = comparizioneSu600(name);
+  return p / (p + RARITA_P0); // 0,5% → 0,20   ·   5,7% (media) → 0,74   ·   20% → 0,91
+}
+
 function contextualWinRate(name) {
   const metaWr = state.customScores[name];
   const modeWr = state.mode && MODE_WIN_RATES[state.mode] ? MODE_WIN_RATES[state.mode][name] : undefined;
   const mapWr = state.map && state.map.winRates ? state.map.winRates[name] : undefined;
 
   const fallback = modeWr !== undefined ? modeWr : metaWr !== undefined ? metaWr : 50;
-  let base = fallback;
+  let grezza = fallback;
   let source = modeWr !== undefined ? "modalità" : metaWr !== undefined ? "meta" : "nessun dato";
   if (mapWr !== undefined) {
     const conf = mapConfidence(state.map);
-    base = mapWr * conf + fallback * (1 - conf);
+    grezza = mapWr * conf + fallback * (1 - conf);
     source = "mappa";
   } else if (state.map && state.map.bestPicks && state.map.bestPicks.includes(name)) {
-    base += 2; // citato dalle fonti come forte qui, ma senza numero: spinta piccola
+    grezza += 2; // citato dalle fonti come forte qui, ma senza numero: spinta piccola
   }
-  return { base, source };
+
+  const aff = correzioneRarita(name);
+  const base = 50 + (grezza - 50) * aff;
+  return { base, source, grezza, aff, pick: comparizioneSu600(name) };
 }
 
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames) {
   const ctx = contextualWinRate(candidateName);
   const base = ctx.base;
   const baseSource = ctx.source;
+  const grezza = ctx.grezza;
+  const pick = ctx.pick;
 
   // Contro chi è già schierato: media dei matchup, in punti di win rate.
   const names = enemyNames || [];
@@ -2920,6 +3002,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     matchupAvg: r1(matchupAvg),
     synergy: r1(synergy),
     traits: r1(traits),
+    grezza: grezza === undefined ? undefined : r1(grezza),
+    pick,
     perEnemy,
   };
 }
@@ -2934,8 +3018,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
 // Vale solo per la MIA squadra. Per l'avversario il roster resta intero: lui
 // li avra' maxati, e comunque devo poter registrare quello che sceglie.
 function schierabile(name) {
-  if (typeof PROFILO_POTENZA === "undefined") return true; // nessun profilo collegato: nessun filtro
-  const p = PROFILO_POTENZA[name];
+  if (typeof PROFILO === "undefined") return true; // nessun profilo collegato: nessun filtro
+  const p = (PROFILO[name] || {}).potenza;
   if (p === undefined) return true; // brawler troppo nuovo per stare nella fotografia: non lo escludo
   return p >= state.minPower;
 }
@@ -2944,7 +3028,7 @@ function schierabile(name) {
 // profilo con la potenza vera, quindi un brawler escluso puo' essere in
 // realta' giocabile. Per questo l'esclusione si puo' spegnere.
 function filtroAttivo() {
-  return state.minPower > 0 && typeof PROFILO_POTENZA !== "undefined";
+  return state.minPower > 0 && typeof PROFILO !== "undefined";
 }
 
 function computeSuggestions() {
@@ -3247,9 +3331,7 @@ function renderGrid() {
       // L'elenco qui sopra dice gia' chi ha trovato e cosa prende Invio.
       hint.textContent = "";
     } else {
-      hint.textContent = turn.phase === "ban"
-        ? "Tocca chi è stato bannato. I tasti 1-8 prendono dai suggerimenti."
-        : "Tocca chi è stato scelto. I tasti 1-8 prendono dai suggerimenti.";
+      hint.textContent = turn.phase === "ban" ? "Tocca chi è stato bannato." : "Tocca chi è stato scelto.";
     }
   }
 
@@ -3273,7 +3355,7 @@ function renderGrid() {
     const mio = turn && turn.team === state.myTeam;
     const fuori = filtroAttivo() && !schierabile(b.name);
     card.classList.toggle("non-schierabile", !!(fuori && mio));
-    const pot = typeof PROFILO_POTENZA !== "undefined" ? PROFILO_POTENZA[b.name] : undefined;
+    const pot = typeof PROFILO !== "undefined" && PROFILO[b.name] ? PROFILO[b.name].potenza : undefined;
     if (fuori && mio && pot !== undefined) card.title = `Potenza ${pot}: non puoi schierarlo in Classificata (ne serve ${state.minPower}). Cliccabile lo stesso, per registrarlo se lo prende l'avversario.`;
 
     const punteggio = _classifica.get(b.name);
@@ -3466,13 +3548,23 @@ function renderSuggestions() {
       s.risk || (s.perEnemy && s.perEnemy.length)
         ? `<span class="floor-chip ${floorClass}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
         : "";
+    // Quando il pick è raro, la correzione ha spostato parecchio il numero:
+    // va detto, altrimenti sembra che l'app "non veda" un brawler forte.
+    const raro = s.pick !== undefined && s.pick < 1.5;
+    const rarita = raro
+      ? `<span class="risk-chip warn" title="Lo sceglie solo lo ${s.pick.toFixed(1)}% delle squadre. Il dato grezzo dice ${Math.round(s.grezza)}%, ma è misurato su chi lo gioca apposta: per te vale circa ${Math.round(s.base)}%.">raro ${s.pick.toFixed(1)}%</span>`
+      : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
+    if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) {
+      parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
+    }
+    if (typeof PROFILO !== "undefined" && PROFILO[s.name]) parts.push(`tuoi trofei: ${PROFILO[s.name].trofei}`);
     if (s.perEnemy && s.perEnemy.length) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
     if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     row.innerHTML = `
       ${ritratto(s.name, "mini")}
-      <span class="sugg-name">${s.name}${badge}${chips || floorChip ? `<span class="chip-row">${chips}${floorChip}</span>` : ""}</span>
+      <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita ? `<span class="chip-row">${chips}${floorChip}${rarita}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
@@ -3583,7 +3675,7 @@ function updateSetupUI() {
       // Conta solo quelli di cui SO la potenza. schierabile() lascia passare
       // anche i brawler assenti dalla fotografia (troppo nuovi), ma contarli
       // qui gonfierebbe il numero: direbbe 51 quando ne posso schierare 49.
-      ? ` · solo i miei da potenza ${state.minPower} in su (${BRAWLERS.filter((b) => PROFILO_POTENZA[b.name] >= state.minPower).length})`
+      ? ` · solo i miei da potenza ${state.minPower} in su (${BRAWLERS.filter((b) => (PROFILO[b.name] || {}).potenza >= state.minPower).length})`
       : "";
     sum.textContent = box.open
       ? "Impostazioni partita — tocca per chiudere"

@@ -71,3 +71,19 @@ risposta onesta era "non lo so" — con il dato a due passi. Un indice che punta
 nel vuoto è peggio di un indice assente, perché fa sembrare che il dato non
 esista. Nessuna rilettura del codice lo avrebbe trovato: è saltato fuori solo
 andandolo a cercare apposta.
+
+## La win rate di un pick raro non è la tua win rate (8/9)
+
+| Errore | Come è emerso | Correzione |
+|---|---|---|
+| L'app consigliava **Wendy prima su 13 mappe su 33** (nei primi tre su 29), e l'utente perdeva trofei seguendola | segnalazione dell'utente dopo partite vere, poi misurata | La win rate viene tirata verso il 50% in proporzione a quanto poco quel brawler viene scelto. Wendy: prima su nessuna mappa, ricompare solo come risposta mirata. |
+| I counter erano di fatto ignorati | misurato: la mappa spaziava **31 punti**, un counter ne sposta **3,9**, mediati su più avversari | La correzione riduce lo spread mappa da 23 a 14, quindi il matchup passa da ~1/6 a ~1/3 del margine. |
+
+**Le tre misure che hanno inchiodato il problema**, tutte sui dati già in casa:
+1. chi ha la rarità di Wendy (0,3-1% di scelte) vince in media **45,8%**; lei **61,8%** — sedici punti sopra i suoi pari;
+2. i dati **non** premiano i rari in generale: si sale dal 42,3% della fascia più rara al 51,8% della più giocata. Wendy è l'eccezione;
+3. **la prova decisiva**: un brawler forte *su certe mappe* varia fra modalità (Bolt 5,15 di scarto). Wendy vince ~62% ovunque, scarto 2,88, **sotto** la media di 3,61. Il numero non segue la mappa, segue chi la usa.
+
+**Il parametro è stato calibrato misurando**, non a occhio: con p0=2 la correlazione fra punteggio e popolarità *scende* da 0,40 a 0,14 — cioè la correzione toglie un difetto invece di aggiungerne uno — e resta 0,81 col dato grezzo.
+
+**Asimmetria voluta:** nella fase ban la win rate resta grezza. «Quanto renderebbe a me» va corretto; «quanto fa paura se lo prende l'avversario» no, perché se lo prende è probabilmente proprio uno che lo gioca.
