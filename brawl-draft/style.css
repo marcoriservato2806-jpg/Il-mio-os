@@ -1176,3 +1176,18 @@ html { scroll-padding-top: 64px; }
   font-size: 0.78rem;
 }
 .hint.mappa-top strong { color: var(--team-a); }
+
+/* La risposta piu' forte all'avversario in campo, quando non e' fra i sei
+   consigliati. Sta sopra la piega perche' e' la domanda che si fa davvero
+   («contro questo chi prendo?») e il pannello counter, sul telefono, e' sotto
+   i suggerimenti: con 22 secondi non lo si scorre. */
+.hint.risposta {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border-left: 3px solid var(--good);
+  background: rgba(87, 217, 154, 0.08);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
+  font-size: 0.78rem;
+}
+.hint.risposta strong { color: var(--good); }

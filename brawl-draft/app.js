@@ -458,6 +458,43 @@ function wrReale(a, b) { return mxCella("wr", a, b, 0); }
 function sinergiaReale(a, b) { return mxCella("sinAdv", a, b, 1); }
 function sinergiaWrReale(a, b) { return mxCella("sinWr", a, b, 1); }
 
+// LA FORZA GENERALE, sulla scala giusta.
+//
+// Questa e' la correzione di un errore serio, trovato dalla segnalazione «al
+// primo pick non c'e' nessuno buono contro Amber». Il punteggio deve dire
+// quanto e' forte l'avversario che hai davanti rispetto a uno qualunque, e per
+// farlo usava BRAWLER_OVERALL, che viene da brawlmetrics ed e' la win rate di
+// CHI GIOCA quel brawler. Per un brawler raro e' gonfiata dalla selezione,
+// esattamente come le win rate di mappa che l'app corregge con
+// `correzioneRarita` — solo che qui la correzione non c'era.
+//
+// Numeri: BRAWLER_OVERALL dava Amber 64,9 contro una media di mappa di 50,3,
+// cioe' «affrontare Amber costa 14,6 punti». La win rate vera di Amber su
+// Pinball Dreams e' 48,8. E siccome il termine e' uguale per tutti i candidati,
+// non cambiava l'ordine: schiacciava TUTTA la lista di quasi cinque punti
+// (14,6 diviso le tre caselle avversarie), fino a far sembrare che contro Amber
+// non ci fosse niente di buono. Con Edgar, che e' popolare, l'errore aveva il
+// segno opposto: +9,7, cioe' un regalo.
+//
+// La forza sulla scala giusta si ricava dalla matrice stessa: il dato soddisfa
+// wr(a,b) = 50 + (forza_a - forza_b) + adv(a,b), e su tutte le modalita' il
+// residuo di quel modello additivo ha deviazione standard fra 0,41 e 0,48
+// punti. `script/fetch-matchup-matrix.js` la risolve e la scrive in `matrice.js`.
+// La scala che esce va da -17,3 (Angelo) a +12,5 (Wendy) punti in Brawl Ball,
+// con deviazione standard 5,7. E' verificata contro una misura indipendente: la
+// correlazione con la win rate di modalita' calcolata dalle tabelle di mappa e'
+// r = 0,991 con pendenza 0,98, cioe' la stessa scala a meno della costante
+// (forza + 47,0 = win rate di modalita'). BRAWLER_OVERALL invece dava Amber
+// 64,9 quando la sua win rate di modalita' vera e' 49,6.
+function forzaReale(name) {
+  const arr = mxArr("forza");
+  if (!arr) return null;
+  const i = mxPos(name);
+  if (i === undefined) return null;
+  const v = arr[i];
+  return v === MX_VUOTO ? null : v / MX_SCALA;
+}
+
 // Per le coppie che restano senza dato (dal 4% al 11% secondo la modalita'):
 // la media dei vantaggi VERI fra quelle due classi, in questa modalita'. Cosi'
 // il ripiego viene dalla stessa fonte del dato, invece che da un'altra.
@@ -564,7 +601,32 @@ function edgeCentrato(a, b) {
 // Sulle caselle ancora vuote vale zero per costruzione (la media dello scarto
 // sulla distribuzione e' nulla), quindi si applica solo a chi e' in campo.
 const _forzaTipica = new WeakMap();
+const _forzaTipicaMx = new Map();
 function forzaTipicaMappa() {
+  // Con la matrice: la forza media dell'avversario che incontri DAVVERO su
+  // questa mappa, pesata su quanto ognuno viene scelto qui.
+  const modo = mxModo();
+  if (modo && state.map && state.map.pickRates) {
+    const k = modo + "|" + state.map.name;
+    let v = _forzaTipicaMx.get(k);
+    if (v === undefined) {
+      let sp = 0, sf = 0;
+      for (const b of BRAWLERS) {
+        const f = forzaReale(b.name);
+        const p = state.map.pickRates[b.name];
+        if (f === null || p === undefined) continue;
+        sp += p; sf += p * f;
+      }
+      v = sp ? sf / sp : 0;
+      _forzaTipicaMx.set(k, v);
+    }
+    return v;
+  }
+  if (modo) {
+    // modalita' scelta ma mappa senza pick rate: media semplice, che per
+    // costruzione e' zero (la forza e' ricentrata), quindi il termine sparisce
+    return 0;
+  }
   if (!state.map || !state.map.pickRates) {
     // senza dati di mappa, la media semplice del roster
     let s = 0, n = 0;
@@ -587,7 +649,54 @@ function forzaTipicaMappa() {
 
 // Quanto ti costa (o ti rende) affrontare proprio LUI invece di un avversario
 // qualunque di questa mappa.
+// Quanto e' forte l'avversario RISPETTO AL TIPICO DI QUESTA MAPPA, in punti.
+// Due misure della stessa cosa, e nessuna delle due va scartata:
+//   - la MAPPA: la sua win rate qui meno la win rate tipica qui. Specifica, ma
+//     per un brawler che qui lo prende lo 0,1% e' rumore (Angelo su Hot Potato
+//     dava 22 punti contro 1,5).
+//   - la MODALITA': la forza ricavata dalla matrice, che sta su 8.000 coppie ed
+//     e' la stessa normalizzazione dei vantaggi. Stabile, meno specifica.
+// Concordano a r=0,886 e differiscono di 1,88 punti in media. Si miscelano in
+// proporzione a quanto e' misurato il dato di mappa — la stessa correzione per
+// rarita' che l'app usa per la base, con lo stesso p0. Regola della casa:
+// il dato incerto si miscela, non si scarta ne' si prende per buono.
+//
+// Per l'AVVERSARIO la win rate di mappa si prende GREZZA, non ristretta verso il
+// 50: la correzione per rarita' esiste perche' "quel numero e' misurato su chi
+// gioca quel brawler di mestiere, tu non lo riprodurrai". Ma l'avversario quel
+// brawler l'ha scelto, quindi e' probabilmente uno di quelli. Vale come peso
+// dell'incertezza, non come sconto sul valore.
+const _tipicoMappaWr = new WeakMap();
+function tipicoWinRateMappa() {
+  const memo = _tipicoMappaWr.get(state.map);
+  if (memo !== undefined) return memo;
+  let sp = 0, sw = 0;
+  for (const b of BRAWLERS) {
+    const w = state.map.winRates[b.name], p = state.map.pickRates[b.name];
+    if (w === undefined || p === undefined) continue;
+    sp += p; sw += p * w;
+  }
+  const v = sp ? sw / sp : 50;
+  _tipicoMappaWr.set(state.map, v);
+  return v;
+}
 function scartoForzaAvversario(nemico) {
+  const f = forzaReale(nemico);
+  if (f !== null) {
+    const dModo = f - forzaTipicaMappa();
+    let d = dModo;
+    if (state.map && state.map.winRates && state.map.pickRates) {
+      const w = state.map.winRates[nemico];
+      if (w !== undefined) {
+        const aff = correzioneRarita(nemico) * mapConfidence(state.map);
+        d = (w - tipicoWinRateMappa()) * aff + dModo * (1 - aff);
+      }
+    }
+    return -d;
+  }
+  // nessuna modalita' scelta: si torna a BRAWLER_OVERALL, che e' su un'altra
+  // scala e va bene solo perche' senza modalita' non c'e' nemmeno una mappa da
+  // cui partire
   const o = BRAWLER_OVERALL[nemico];
   if (o === undefined) return 0;
   return forzaTipicaMappa() - o;
@@ -715,9 +824,11 @@ function predictedWinRate(a, b) {
   // La win rate vera della coppia, in questa modalita'.
   const w = wrReale(a, b);
   if (w !== null) return { wr: w, measured: true };
+  // La differenza di forza, sulla scala della matrice quando c'e'.
+  const fa = forzaReale(a), fb = forzaReale(b);
   const oa = BRAWLER_OVERALL[a];
   const ob = BRAWLER_OVERALL[b];
-  const gap = oa !== undefined && ob !== undefined ? oa - ob : 0;
+  const gap = fa !== null && fb !== null ? fa - fb : oa !== undefined && ob !== undefined ? oa - ob : 0;
   // Il vantaggio della coppia e' misurato ma la win rate non (la fonte ha una
   // soglia di partite piu' alta per pubblicarla): la percentuale si ricostruisce
   // dal vantaggio vero piu' la differenza di forza. Il numero che sposta il
@@ -2033,6 +2144,39 @@ function renderSuggestions() {
         : `.`);
     el.appendChild(p);
   }
+  // LA RISPOSTA A CHI HAI DAVANTI, sopra la piega.
+  //
+  // Segnalazione, due volte: «al primo pick non c'e' nessuno buono contro
+  // Amber». I contro-Amber ci sono e l'app li conosce (in Brawl Ball Berry
+  // +9,8, Shelly +8,2, Leon +8,1), ma stavano solo nel pannello counter, che sul
+  // telefono e' SOTTO i suggerimenti: con 22 secondi di timer non lo si scorre.
+  // Se la risposta migliore non e' fra i sei consigliati, va detta qui, e va
+  // detto anche quanto vale come pick — perche' spesso e' uno specialista che
+  // sulla mappa non regge, e sapere entrambe le cose e' il punto.
+  const nemiciOra = state.picks[turn.team === "A" ? "B" : "A"].filter(Boolean);
+  if (nemiciOra.length > 0) {
+    const nomiSug = new Set(suggestions.map((s) => s.name));
+    const fuori = [];
+    for (const en of nemiciOra) {
+      let best = null;
+      for (const b of BRAWLERS) {
+        if (usedNames().has(b.name) || !schierabile(b.name)) continue;
+        const v = advReale(b.name, en);
+        if (v === null) continue;
+        if (!best || v > best.adv) best = { name: b.name, adv: v, tot: _classifica.get(b.name) };
+      }
+      if (best && best.adv >= 3 && !nomiSug.has(best.name)) fuori.push({ en, ...best });
+    }
+    if (fuori.length) {
+      const p = document.createElement("p");
+      p.className = "hint risposta";
+      p.innerHTML = `<strong>Risposta più forte a chi hai davanti:</strong> ` + fuori.map((f) =>
+        `contro ${f.en} è <strong>${f.name}</strong> (${f.adv > 0 ? "+" : ""}${f.adv.toFixed(1)})${
+          f.tot === undefined ? "" : `, che però come pick qui vale ${Math.round(f.tot)}%`}`).join("; ") +
+        `. Non è nei sei sopra perché il vantaggio non basta a coprire la mappa: è una risposta da specialista.`;
+      el.appendChild(p);
+    }
+  }
   suggestions.forEach((s, i) => {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -2135,7 +2279,6 @@ function renderSuggestions() {
 
 function render() {
   renderTurnBanner();
-  renderTeamCounter();
   renderSlots("mine");
   renderSlots("theirs");
   // I suggerimenti PRIMA della griglia: è renderSuggestions a calcolare la
@@ -2143,6 +2286,11 @@ function render() {
   // carta. Nell'ordine opposto la griglia mostrava i punteggi del turno
   // precedente — in fase pick comparivano ancora quelli dei ban.
   renderSuggestions();
+  // E il pannello counter DOPO, per la stessa ragione: legge la classifica per
+  // dire quanto vale come pick ogni risposta che elenca. Stava prima, e
+  // mostrava i punteggi del turno precedente — l'ordine delle chiamate non
+  // sposta niente nella pagina, il posto dei riquadri lo decide il markup.
+  renderTeamCounter();
   renderGrid();
   renderSearchResults();
   renderMapArt();

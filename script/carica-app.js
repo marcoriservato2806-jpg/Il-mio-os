@@ -39,7 +39,7 @@ function carica(dir) {
     "computeBanSuggestions", "rawMatchup", "matchupEdge", "classEdge", "predictedWinRate",
     "comparizioneSu600", "correzioneRarita", "contextualWinRate", "scoreCandidate",
     "computeSuggestions", "distribuzioneAvversario", "edgeCasellaVuota", "quotaRisposta",
-    "edgeCentrato", "advReale", "wrReale", "sinergiaReale", "sinergiaWrReale", "mxClasseAdv", "mxModo", "mxPos", "mxK", "mxArr", "MATRICE", "MX_VUOTO", "scartoForzaAvversario", "forzaTipicaMappa", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
+    "edgeCentrato", "advReale", "wrReale", "sinergiaReale", "sinergiaWrReale", "mxClasseAdv", "forzaReale", "mxModo", "mxPos", "mxK", "mxArr", "MATRICE", "MX_VUOTO", "scartoForzaAvversario", "forzaTipicaMappa", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
     "filtroAttivo", "usedNames", "currentTurn", "PROFILO", "QUOTA_RISPOSTA", "MAP_TRAIT_CLASS_BONUS", "searchRank", "ridotto", "rispostaMigliore"];
   codice += "return {" + espone.map((k) => `${k}: typeof ${k} === "undefined" ? undefined : ${k}`).join(", ") + "};";
   const chiavi = Object.keys(finto);

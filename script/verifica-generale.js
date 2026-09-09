@@ -33,6 +33,40 @@ function classificaMappa(map) {
     .sort((x, y) => y.base - x.base);
 }
 
+// ---- 0) L'INVARIANTE DEL TERMINE DI FORZA -------------------------------
+//
+// Contro l'avversario TIPICO di una mappa, "quanto e' forte chi hai davanti"
+// deve fare zero: e' definito come scostamento dal tipico. Se non fa zero, il
+// punteggio ha una distorsione costante su tutta la lista.
+//
+// Questo controllo esiste per un bug vero, trovato dalla segnalazione «al primo
+// pick non c'e' nessuno buono contro Amber». Il termine usava BRAWLER_OVERALL,
+// che e' la win rate di chi GIOCA quel brawler: per Amber (1,9% di scelte)
+// diceva 64,9 contro una media di mappa di 50,3, cioe' -14,6 punti divisi per
+// le tre caselle avversarie, uguali per tutti i candidati. Non cambiava
+// l'ordine, schiacciava tutta la lista di cinque punti. Con Edgar, popolare,
+// l'errore aveva il segno opposto. Un termine che non fa zero sul tipico e'
+// esattamente questo, e a occhio non si vede.
+{
+  let peggio = 0, chi = null, n = 0, somma = 0;
+  for (const map of a.MAPS) {
+    if (!map.winRates || !map.pickRates) continue;
+    a.state.mode = map.mode; a.state.map = map;
+    let sp = 0, ss = 0;
+    for (const b of a.BRAWLERS) {
+      const p = map.pickRates[b.name];
+      if (p === undefined) continue;
+      sp += p; ss += p * a.scartoForzaAvversario(b.name);
+    }
+    const medio = sp ? ss / sp : 0;
+    n++; somma += Math.abs(medio);
+    if (Math.abs(medio) > peggio) { peggio = Math.abs(medio); chi = map.name; }
+  }
+  console.log(`0) FORZA DELL'AVVERSARIO — invariante su ${n} mappe`);
+  console.log(`   contro l'avversario tipico il termine deve fare zero: |media| ${(somma / n).toFixed(3)} punti, massimo ${peggio.toFixed(3)} (${chi})`);
+  console.log(`   ${peggio < 0.5 ? "rispettata" : "DISTORSIONE: il termine non fa zero sull'avversario tipico"}`);
+}
+
 const soloConDati = a.MAPS.filter((m) => m.winRates);
 let sommaRango = 0, primoUguale = 0, entroTre = 0, casi = 0;
 const peggiori = [];

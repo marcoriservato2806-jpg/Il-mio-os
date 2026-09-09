@@ -86,6 +86,57 @@ function verifica(nome, d, roster) {
   return err;
 }
 
+// ---- LA FORZA GENERALE, RICAVATA DALLA MATRICE STESSA --------------------
+//
+// Serve a rispondere a "quanto e' forte l'avversario che hai davanti rispetto a
+// uno qualunque". Prima l'app usava BRAWLER_OVERALL, che viene da brawlmetrics
+// ed e' la win rate di CHI GIOCA quel brawler: per un brawler raro e' gonfiata
+// dalla selezione. Diceva che Amber vale 64,9 quando la sua win rate vera su
+// Pinball Dreams e' 48,8, e ne usciva "affrontare Amber costa 14,6 punti" —
+// piu' del triplo di qualunque counter vero, e con il segno legato alla rarita'
+// invece che alla forza.
+//
+// La forza sulla scala GIUSTA si ricava dalla matrice stessa. Il dato soddisfa
+//   wr(a,b) = 500 + (forza_a - forza_b) + adv(a,b)
+// e questo si verifica: sulle 8.124 coppie di Brawl Ball che hanno sia adv sia
+// wr, il residuo di quel modello additivo ha deviazione standard 0,47 punti.
+// Quindi le differenze di forza si leggono dai dati e si risolvono con qualche
+// iterazione (media di riga, ricentrata a zero). Stessa fonte, stessa scala,
+// nessuna mescolanza. La scala che esce e' ±1,7 punti, non ±14.
+function forze(d) {
+  const B = d.brawlers, n = B.length;
+  const A = d.matchup.adv, W = d.matchup.wr;
+  const righe = [];
+  for (let i = 0; i < n; i++) {
+    const l = [];
+    for (let j = 0; j < n; j++) {
+      if (i === j || A[i][j] === null || W[i][j] === null) continue;
+      l.push([j, W[i][j] - 500 - A[i][j]]); // = forza_i - forza_j
+    }
+    righe.push(l);
+  }
+  let o = new Array(n).fill(0);
+  for (let giro = 0; giro < 200; giro++) {
+    const nuovo = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const l = righe[i];
+      if (!l.length) { nuovo[i] = o[i]; continue; }
+      let s = 0;
+      for (const [j, dv] of l) s += dv + o[j];
+      nuovo[i] = s / l.length;
+    }
+    const m = nuovo.reduce((s, x) => s + x, 0) / n;
+    o = nuovo.map((x) => x - m);
+  }
+  // quanto e' buono il modello additivo: si stampa, non si assume
+  let s2 = 0, cnt = 0, peggio = 0;
+  for (let i = 0; i < n; i++) for (const [j, dv] of righe[i]) {
+    const r = dv - (o[i] - o[j]); s2 += r * r; cnt++; if (Math.abs(r) > peggio) peggio = Math.abs(r);
+  }
+  const sd = cnt ? Math.sqrt(s2 / cnt) : 0;
+  return { forza: o, sd, peggio, cnt };
+}
+
 // ---- codifica. Tutte e quattro le matrici sono simmetriche o antisimmetriche,
 // quindi basta il triangolo superiore: 5.778 numeri invece di 11.664. In interi
 // a 16 bit, in base64, cosi' il file resta testo e l'app lo legge in un colpo.
@@ -121,11 +172,20 @@ async function main() {
     const n = roster.length;
     const idx = {};
     d.brawlers.forEach((nome, k) => { idx[nome] = k; });
+    const f = forze(d);
+    console.log(`  ${modo} forza implicita: residuo del modello additivo sd ${(f.sd / 10).toFixed(2)} punti su ${f.cnt} coppie (max ${(f.peggio / 10).toFixed(1)})`);
+    // la forza nell'ordine del NOSTRO roster, in decimi di punto arrotondati
+    const forzaRoster = new Int16Array(n);
+    for (let k = 0; k < n; k++) {
+      const a = idx[roster[k].toUpperCase()];
+      forzaRoster[k] = a === undefined ? VUOTO : Math.round(f.forza[a]);
+    }
     pezzi[modo] = {
       adv: codifica(d.matchup, n, roster, idx, "adv"),
       wr: codifica(d.matchup, n, roster, idx, "wr"),
       sinAdv: codifica(d.synergy, n, roster, idx, "adv"),
       sinWr: codifica(d.synergy, n, roster, idx, "wr"),
+      forza: Buffer.from(forzaRoster.buffer).toString("base64"),
     };
     if (!calib) calib = d.calibration;
   }
@@ -137,7 +197,7 @@ async function main() {
 
   const oggi = new Date().toISOString().slice(0, 10);
   const righe = Object.entries(pezzi).map(([m, p]) =>
-    `  ${m}: {\n    adv: "${p.adv}",\n    wr: "${p.wr}",\n    sinAdv: "${p.sinAdv}",\n    sinWr: "${p.sinWr}",\n  },`).join("\n");
+    `  ${m}: {\n    adv: "${p.adv}",\n    wr: "${p.wr}",\n    sinAdv: "${p.sinAdv}",\n    sinWr: "${p.sinWr}",\n    forza: "${p.forza}",\n  },`).join("\n");
   const out = `// GENERATO da script/fetch-matchup-matrix.js il ${oggi} — non modificare a mano.
 //
 // LA MATRICE COMPLETA DEI MATCHUP, per modalita' di Classificata. Fonte:
@@ -151,6 +211,13 @@ async function main() {
 //   wr      percentuale di vittorie vera del primo contro il secondo, x10.
 //   sinAdv  lo stesso vantaggio quando i due sono COMPAGNI di squadra.
 //   sinWr   percentuale di vittorie vera quando sono compagni, x10.
+//   forza   la forza generale di ogni brawler in quella modalita', ricavata
+//           dalla matrice stessa risolvendo wr = 500 + (forza_a - forza_b) + adv.
+//           Un valore per brawler, nell'ordine del roster, ricentrato a zero.
+//           Serve a dire quanto e' forte l'avversario che hai davanti SULLA
+//           STESSA SCALA delle win rate di mappa — cosa che BRAWLER_OVERALL non
+//           faceva, perche' e' la win rate di chi gioca quel brawler e per un
+//           brawler raro e' gonfiata dalla selezione.
 //
 // Codifica: triangolo superiore del roster (nell'ordine di BRAWLERS in
 // data.js), interi a 16 bit, base64. adv e' antisimmetrica (adv[b][a] =

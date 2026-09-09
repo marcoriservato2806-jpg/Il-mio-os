@@ -62,6 +62,41 @@ async function main() {
     sbagliate += male;
     console.log(`${etichetta.padEnd(11)} celle sbagliate: ${male}`);
   }
+  // La FORZA per brawler non sta nel file della fonte: la ricava
+  // fetch-matchup-matrix.js risolvendo wr = 500 + (forza_a - forza_b) + adv.
+  // Va quindi verificata contro la relazione da cui e' nata, altrimenti un
+  // errore nella soluzione passerebbe liscio.
+  console.log("");
+  let forzaMale = 0;
+  for (const [modo, etichetta] of Object.entries(MODI)) {
+    const d = await sorgente(modo);
+    a.state.mode = etichetta;
+    const idx = {};
+    d.brawlers.forEach((n, k) => { idx[n] = k; });
+    let s2 = 0, cnt = 0, peggio = 0, chi = null;
+    for (let i = 0; i < nomi.length; i++) {
+      for (let j = 0; j < nomi.length; j++) {
+        if (i === j) continue;
+        const ia = idx[nomi[i].toUpperCase()], ib = idx[nomi[j].toUpperCase()];
+        if (ia === undefined || ib === undefined) continue;
+        const adv = d.matchup.adv[ia][ib], wr = d.matchup.wr[ia][ib];
+        if (adv === null || wr === null) continue;
+        const fa = a.forzaReale(nomi[i]), fb = a.forzaReale(nomi[j]);
+        if (fa === null || fb === null) { forzaMale++; continue; }
+        const r = (wr - 500 - adv) / 10 - (fa - fb);
+        s2 += r * r; cnt++;
+        if (Math.abs(r) > peggio) { peggio = Math.abs(r); chi = `${nomi[i]} vs ${nomi[j]}`; }
+      }
+    }
+    const sd = cnt ? Math.sqrt(s2 / cnt) : 0;
+    // Soglia: 1 punto. Il residuo misurato sta fra 0,41 e 0,48 in tutte le
+    // modalita', quindi un salto oltre 1 vuol dire che la forza e' rotta.
+    const ok = sd < 1;
+    console.log(`${etichetta.padEnd(11)} forza: residuo sd ${sd.toFixed(3)} punti su ${cnt} coppie (max ${peggio.toFixed(1)} su ${chi}) ${ok ? "" : "<-- FUORI SOGLIA"}`);
+    if (!ok) sbagliate++;
+  }
+  if (forzaMale) console.log(`brawler senza forza: ${forzaMale} celle`);
+
   console.log(`\nconfronti: ${confronti.toLocaleString("it-IT")} · sbagliate: ${sbagliate}`);
   if (esempi.length) { console.log("\nprimi casi:"); for (const e of esempi) console.log("  " + e); }
   if (sbagliate) { console.error("\nLA MATRICE NON COMBACIA CON LA FONTE."); process.exit(1); }
