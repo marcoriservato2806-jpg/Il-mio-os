@@ -622,6 +622,21 @@ function correzioneRarita(name) {
 // di separarla. Sotto le 3 partite di Classificata non si applica niente.
 const PERSONALE_N0 = 11;
 const PERSONALE_MIN = 3;
+// IL TETTO. Con 11 partite Damian si spostava di 25 punti: piu' di tutto il
+// resto del punteggio messo insieme, cioe' un veto travestito da ingrediente.
+// L'utente ha chiesto che il suo record sia UNA delle voci di una media
+// ponderata, non la fonte di verita'. Il tetto pero' e' misurato, non scelto:
+// su 226 sue partite di Classificata, predicendo ognuna con il record
+// costruito SENZA quella partita, il tetto ±8 da' il log-loss migliore
+// (0,6704 contro 0,6703 senza tetto e 0,6774 con ±3) e un AUC di 0,581
+// contro lo 0,560 senza tetto. Vedi `script/analizza-partite.js`.
+//
+// Cosa dicono davvero quei numeri, detto senza abbellirlo: NESSUN modello
+// predice bene queste partite. Il migliore trovato — modalita' piu' scarto
+// personale — arriva a 0,604 di AUC su 226 partite, dove 0,5 e' tirare a
+// caso e l'errore standard e' ±0,04. In una partita 3v3 con altre cinque
+// persone, il pick spiega una parte piccola dell'esito.
+const PERSONALE_TETTO = 8;
 // Memorizzato: dipende solo dal profilo, che non cambia mentre l'app gira, e
 // contextualWinRate lo chiamerebbe per ognuno dei 106 candidati a ogni
 // ridisegno. Senza la cache il ridisegno era passato da 15-27ms a 31-42.
@@ -640,7 +655,9 @@ function calcolaScartoPersonale(name) {
   if (nClass < PERSONALE_MIN) return null;
   const mio = (100 * p.vinte) / p.partite;
   const peso = nClass / (nClass + PERSONALE_N0);
-  return { scarto: peso * (mio - PROFILO_MEDIA), mio, partite: p.partite, nClass, peso };
+  const grezzo = peso * (mio - PROFILO_MEDIA);
+  const scarto = Math.max(-PERSONALE_TETTO, Math.min(PERSONALE_TETTO, grezzo));
+  return { scarto, grezzo, tagliato: Math.abs(grezzo) > PERSONALE_TETTO, mio, partite: p.partite, nClass, peso };
 }
 
 function contextualWinRate(name) {
@@ -1614,7 +1631,7 @@ function renderSuggestions() {
     // idea senza motivo su un brawler che ieri consigliava.
     const mio = s.mio;
     const chipMio = mio
-      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media generale del ${PROFILO_MEDIA}%. Con ${mio.nClass} partite di Classificata questo dato pesa il ${Math.round(mio.peso * 100)}%, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}</span>`
+      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media generale del ${PROFILO_MEDIA}%. Con ${mio.nClass} partite di Classificata questo dato pesa il ${Math.round(mio.peso * 100)}%, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti${mio.tagliato ? " (fermato al tetto di 8: il tuo record pesa, ma non decide da solo)" : ""}. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}</span>`
       : "";
     const raro = s.pick !== undefined && s.pick < 1.5 && !datoMio;
     const rarita = raro
