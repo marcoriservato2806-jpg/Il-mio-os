@@ -22,6 +22,11 @@ Assistente per il draft della Classificata di Brawl Stars. Codice in `brawl-draf
 3. **Il dato incerto si miscela, non si scarta né si prende per buono.** Una mappa con campione piccolo o dati vecchi viene fusa col dato generale in proporzione all'affidabilità (`mapConfidence`).
 4. **Misurato e stimato restano distinguibili a schermo.** Riquadri pieni = misurato, contorno = previsione.
 5. **Non inventare numeri.** Fonte irraggiungibile → si tiene il dato vecchio e si annota la data del tentativo fallito.
+6. **Il punteggio si fa sui dati generali, non sul suo record.** Deciso da lui il 9/9: «non ti devi basare sulle mie statistiche, ti devi basare sulle statistiche generali». Il record resta a schermo nel riquadrino, con scritto sopra che non conta. Non rimetterlo dentro senza che lo chieda: la misura dice che aiutava a predire (AUC 0,650) **e** che schiacciava la lista — nove nomi diversi al primo posto su 132 posizioni, con Ash al 40,9%, contro ventidue nomi e 18,2% senza. Le lamentele su «mi consigli sempre lo stesso» venivano da lì.
+
+### Come si controlla che il punteggio sia davvero generale
+
+`script/verifica-generale.js`. Due domande, e sono i due lati della richiesta: (1) con l'avversario a zero pick il primo consigliato deve essere il migliore di quella mappa — oggi 26/33, e nei primi tre 33/33; (2) quando l'avversario riempie le sue caselle la lista deve muoversi — oggi il primo cambia in 9 casi su 33, ed è poco per il motivo strutturale spiegato in [[metodo-counter]], non per un difetto del punteggio.
 
 ## L'ordine dei pick cambia tutto
 
@@ -49,6 +54,8 @@ Il lavoro sui dati è meccanico, quindi vive negli script e non nelle mani:
 | `script/build-map-data.js` | Riscrive `MAPS` e ricalcola `MODE_WIN_RATES` dalle stesse tabelle. Ripulisce le note dai dati statistici, che l'app stampa già da sé. |
 | `script/check-brawl-data.js` | Controlli di coerenza. Da far girare sempre prima di pubblicare. |
 | `script/build-brawl-draft.js` | Bundle in un file solo per l'artifact. **Si lancia dalla radice del repo, non da `brawl-draft/`.** |
+| `script/verifica-generale.js` | Controlla che il consiglio venga dai dati generali: migliore di mappa a zero pick, e quanto si muove la lista quando l'avversario schiera. |
+| `script/estrai-tratti.js` + `script/calibra-tratti.js` | Tentativo **fallito e misurato** di estendere la matrice dei counter con tratti meccanici. Tenuti come prova, l'app non li usa. Vedi [[metodo-counter]]. |
 
 Aggiornare i dati sono due comandi, non un pomeriggio. Vedi [[fonti-brawl-stars]] per come si è scelta la fonte e [[errori-trovati]] per cosa non rifare.
 

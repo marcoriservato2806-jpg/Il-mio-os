@@ -493,8 +493,9 @@ footer details[open] summary { margin-bottom: 8px; }
 /* Il secondo numero del riquadrino (lo scarto dal normale) e' quello che
    sposta il punteggio: si distingue senza gridare. */
 .echip b { font-weight: 800; opacity: 0.85; }
-/* Il record personale: e' il pezzo che sposta di piu' il punteggio, quindi si
-   vede piu' degli altri riquadrini. Pieno, non a contorno. */
+/* Il record personale: NON entra nel punteggio (richiesta dell'utente del 9/9),
+   ma resta il riquadrino piu' visibile perche' e' l'informazione con cui puo'
+   decidere di scartare un consiglio. Pieno, non a contorno. */
 .mio-chip {
   padding: 1px 6px;
   border-radius: 4px;

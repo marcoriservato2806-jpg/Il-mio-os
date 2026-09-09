@@ -645,7 +645,14 @@ function correzioneRarita(name) {
   return p / (p + RARITA_P0); // 0,5% → 0,20   ·   5,7% (media) → 0,74   ·   20% → 0,91
 }
 
-// ---- I TUOI RISULTATI, NON QUELLI DELLA POPOLAZIONE ---------------------
+// ---- I TUOI RISULTATI: SI MOSTRANO, NON DECIDONO ------------------------
+//
+// ATTENZIONE, questo blocco NON entra piu' nel punteggio. Ha deciso per un
+// po', l'utente ha chiesto di smettere, e la richiesta e' stata precisa: i
+// consigli vanno fatti sulle statistiche GENERALI (chi vince di piu', su
+// questa mappa, contro quello che ha preso l'avversario), non sulle sue.
+// Tutto il calcolo qui sotto resta perche' il numero si mostra ancora nel
+// riquadrino accanto al pick: e' informazione, non e' un voto.
 //
 // L'utente ha segnalato tre volte che un pick consigliato gli faceva perdere.
 // La terza volta ho guardato nel posto giusto: il tracker pubblica, per ogni
@@ -657,11 +664,11 @@ function correzioneRarita(name) {
 // probabilita' dello 0,165%. Non e' sfortuna: quel numero descrive un'altra
 // persona.
 //
-// COME ENTRA NEL PUNTEGGIO. Non come valore assoluto — sommare la sua win
-// rate grezza alzerebbe ogni brawler che ha giocato, contando due volte la
-// sua bravura generale (lo stesso errore del favore per brawler). Entra come
-// SCARTO dalla sua media complessiva: "con questo sei tot punti sopra o sotto
-// il tuo solito".
+// COME ERA CALCOLATO, e come resta calcolato per il riquadrino: non come
+// valore assoluto — sommare la sua win rate grezza alzerebbe ogni brawler che
+// ha giocato, contando due volte la sua bravura generale (lo stesso errore del
+// favore per brawler). Come SCARTO dalla sua media complessiva: "con questo sei
+// tot punti sopra o sotto il tuo solito".
 //
 // QUANTO PESA: calibrato sui suoi dati, non scelto. La varianza dei suoi
 // risultati fra brawler e' 0,0440; quella attesa dal solo caso, dato il numero
@@ -675,10 +682,10 @@ function correzioneRarita(name) {
 // di separarla. Sotto le 3 partite di Classificata non si applica niente.
 const PERSONALE_N0 = 11;
 const PERSONALE_MIN = 3;
-// IL TETTO, misurato sul modello a tre livelli: ±10 punti da' log-loss 0,6359
-// e AUC 0,666 sulle sue 310 partite, contro 0,6391/0,665 con ±8 e 0,6533/0,686
-// con ±4. Resta un tetto perche' l'utente ha chiesto — a ragione — che il suo
-// record sia UNA voce di una media ponderata, non un veto.
+// IL TETTO. Serviva quando il record entrava nel punteggio: ±10 punti dava
+// log-loss 0,6359 e AUC 0,666 sulle sue 310 partite, contro 0,6391/0,665 con
+// ±8 e 0,6533/0,686 con ±4. Ora che il record non decide non limita niente:
+// resta perche' e' lo scarto ristretto che il riquadrino mostra.
 const PERSONALE_TETTO = 10;
 
 // ---- IL RECORD PERSONALE, A TRE LIVELLI --------------------------------
@@ -701,9 +708,12 @@ const PERSONALE_TETTO = 10;
 // pesa poco senza essere buttata via.
 //
 // Il termine di mappa sposta tutti i candidati allo stesso modo, quindi non
-// cambia l'ordine: cambia il livello, ed e' giusto che lo faccia. Su Undermine
-// lui ha 2 vittorie su 10 con qualunque brawler, e il numero a schermo deve
-// dirlo invece di mostrargli un 69% che non ha mai visto.
+// cambia l'ordine: cambia il livello. Su Undermine lui ha 2 vittorie su 10 con
+// qualunque brawler.
+//
+// Tutti questi numeri restano scritti perche' misurati, non perche' usati: il
+// punteggio ora non li tocca. Servono a rispondere alla domanda giusta se un
+// giorno se la rifa'.
 function _rec(tab, chiave) {
   const r = tab && chiave ? tab[chiave] : undefined;
   return r && r[0] > 0 ? { n: r[0], v: r[1] } : null;
@@ -773,11 +783,28 @@ function contextualWinRate(name) {
 
   const aff = correzioneRarita(name);
   const generale = 50 + (grezza - 50) * aff;
-  // Il dato di mappa dice quanto vale QUESTO BRAWLER QUI; il tuo record dice
-  // quanto vali TU CON LUI. Sono due cose diverse e si sommano.
+  // Il dato di mappa dice quanto vale QUESTO BRAWLER QUI; il suo record dice
+  // quanto vale LUI CON QUEL BRAWLER. Sono due cose diverse, e la seconda si
+  // MOSTRA senza entrare nel punteggio.
+  //
+  // Richiesta esplicita: il punteggio si fa sui dati GENERALI — chi vince su
+  // questa mappa, e contro chi ha preso l'avversario. Il record resta a
+  // schermo come informazione.
+  // Va detto il costo, misurato fuori campione sulle sue 310 partite: la parte
+  // che DIFFERENZIA i candidati (brawler + coppia, senza il termine di mappa
+  // che sposta tutti allo stesso modo) da' AUC 0,650 contro 0,500 del caso,
+  // quindi non era rumore.
+  //
+  // E va detto il guadagno, che e' piu' grande del costo e non me l'aspettavo.
+  // Su 132 posizioni di draft (33 mappe x 4 momenti), col record dentro il
+  // punteggio i nomi che uscivano primi erano NOVE, e uno solo — Ash — si
+  // prendeva il 40,9% delle posizioni. Senza, i nomi diversi sono ventidue e
+  // il piu' frequente sta al 18,2%. Il record schiacciava la lista sui pochi
+  // brawler con cui lui aveva buoni numeri, ed e' esattamente la cosa di cui
+  // si lamentava ("mi hai consigliato come primo pick Ash", "mi consiglia
+  // sempre Damian"): la causa era il suo record, non i dati generali.
   const mio = scartoPersonale(name);
-  const base = mio ? generale + mio.scarto : generale;
-  return { base, source, grezza, aff, pick: comparizioneSu600(name), generale, mio };
+  return { base: generale, source, grezza, aff, pick: comparizioneSu600(name), generale, mio };
 }
 
 // ---- LE CASELLE AVVERSARIE ANCORA VUOTE ---------------------------------
@@ -1701,14 +1728,14 @@ function renderSuggestions() {
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
     // Le etichette "trappola" e "raro" sono deduzioni sulla POPOLAZIONE: dicono
-    // che il numero generale e' gonfiato o ingannevole. Quando ci sono
-    // abbastanza partite TUE, quella deduzione non serve piu' — il tuo dato e'
-    // la misura diretta di cio' che le etichette stimavano. Lasciarle produceva
-    // righe che si contraddicono: "Surge trappola · tuo 60% su 5" e
-    // "Wendy raro 0,3% · tuo 69% su 112".
-    const datoMio = s.mio && s.mio.peso >= 0.4;
-    const flagGrezzo = pickFlag(s.name);
-    const flag = datoMio && flagGrezzo && flagGrezzo.kind === "trap" && s.mio.mio >= PROFILO_MEDIA ? null : flagGrezzo;
+    // che il numero generale e' gonfiato o ingannevole. Prima venivano zittite
+    // quando lui aveva abbastanza partite proprie con quel brawler — aveva
+    // senso finche' il suo record entrava nel punteggio, perche' allora era il
+    // suo dato a decidere e l'etichetta parlava di un numero che non veniva
+    // piu' usato. Ora decide il dato generale, quindi le etichette che lo
+    // descrivono restano sempre: sono la spiegazione della correzione che il
+    // punteggio applica davvero.
+    const flag = pickFlag(s.name);
     const badge = flag
       ? `<span class="badge ${flag.kind}" title="${
           flag.kind === "trap"
@@ -1753,15 +1780,19 @@ function renderSuggestions() {
     // quindi deve essere la piu' visibile. Senza, l'app sembrerebbe cambiare
     // idea senza motivo su un brawler che ieri consigliava.
     const mio = s.mio;
+    // Il riquadrino MOSTRA il suo record e NON lo somma: il punteggio e' fatto
+    // di dati generali. Il colore segue la differenza grezza dalla sua media,
+    // non lo scarto ristretto, perche' e' il numero che gli sta scritto sopra.
+    const diffMio = mio ? mio.mio - PARTITE_RANKED_MEDIA : 0;
     const chipMio = mio
-      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media in Classificata del ${PARTITE_RANKED_MEDIA}%. Conta insieme il tuo record col brawler${mio.brawler ? " (" + Math.round(100*mio.brawler.v/mio.brawler.n) + "% su " + mio.brawler.n + ")" : ""}, quello su questa mappa${mio.mappaRec ? " (" + Math.round(100*mio.mappaRec.v/mio.mappaRec.n) + "% su " + mio.mappaRec.n + ")" : ""} e la loro combinazione, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti${mio.tagliato ? " (fermato al tetto di 8: il tuo record pesa, ma non decide da solo)" : ""}. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}</span>`
+      ? `<span class="mio-chip ${diffMio <= -6 ? "giu" : diffMio >= 6 ? "su" : "pari"}" title="Le TUE partite, per informazione: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}${mio.dove ? " " + mio.dove : ""}, contro la tua media in Classificata del ${PARTITE_RANKED_MEDIA}%.${mio.brawler ? " Col brawler in generale " + Math.round(100*mio.brawler.v/mio.brawler.n) + "% su " + mio.brawler.n + "." : ""}${mio.mappaRec ? " Su questa mappa, con qualunque brawler, " + Math.round(100*mio.mappaRec.v/mio.mappaRec.n) + "% su " + mio.mappaRec.n + "." : ""} NON entra nel punteggio: il ${Math.round(s.total)}% viene dai dati generali (mappa e avversario). Hai chiesto tu che sia cosi\u2019.">tuo ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}</span>`
       : "";
-    const raro = s.pick !== undefined && s.pick < 1.5 && !datoMio;
+    const raro = s.pick !== undefined && s.pick < 1.5;
     const rarita = raro
       ? `<span class="risk-chip warn" title="Lo sceglie solo lo ${s.pick.toFixed(1)}% delle squadre. Il dato grezzo dice ${Math.round(s.grezza)}%, ma è misurato su chi lo gioca apposta: per te vale circa ${Math.round(s.base)}%.">raro ${s.pick.toFixed(1)}%</span>`
       : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
-    if (mio) parts.push(`il generale direbbe ${s.generale}%, il tuo record lo sposta di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10}`);
+    if (mio) parts.push(`tuo record ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}: mostrato, non contato`);
     if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) {
       parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
     }

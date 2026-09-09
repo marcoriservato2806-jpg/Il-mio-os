@@ -97,6 +97,31 @@ function estrai(html, chiave) {
   // solo mappa, che finora e' il migliore singolo
   console.log(`  ${"solo mappa, ricontrollo".padEnd(22)} log-loss ${logloss(loo("mappa")).toFixed(4)}   AUC ${auc(loo("mappa")).toFixed(3)}`);
 
+  // LA DOMANDA DELL'UTENTE: il termine personale aiuta a SCEGLIERE, o abbassa
+  // solo il livello? Il termine di mappa e' uguale per tutti i candidati in una
+  // stessa partita, quindi non puo' cambiare quale pick consigli: se il potere
+  // predittivo viene tutto da li', per la scelta e' inutile.
+  console.log("\nIL TERMINE PERSONALE AIUTA A SCEGLIERE O SOLO AD ABBASSARE IL LIVELLO?");
+  const gB2 = gruppi["brawler"][0], gM2 = gruppi["mappa"][0], gBM2 = gruppi["brawler x mappa"][0];
+  const pezzi = (x) => {
+    const sc = (c, v) => { if (!c) return 0; const nn = c.n - 1, vv = c.v - v; return nn > 0 ? (nn / (nn + N0)) * (vv / nn - media) : 0; };
+    const cb = gB2[x.br], cm = gM2[x.ma], cbm = gBM2[x.br + "|" + x.ma];
+    const sb = sc(cb, x.v), sm = sc(cm, x.v);
+    const nn = cbm ? cbm.n - 1 : 0, vv = cbm ? cbm.v - x.v : 0;
+    const resto = nn > 0 ? (nn / (nn + N0)) * ((vv / nn - media) - sb - sm) : 0;
+    return { sb, sm, resto };
+  };
+  const q = (f) => Math.max(0.02, Math.min(0.98, f));
+  const modelli = [
+    ["solo la MAPPA (non sceglie)", (x) => q(media + pezzi(x).sm)],
+    ["solo brawler + coppia (sceglie)", (x) => q(media + pezzi(x).sb + pezzi(x).resto)],
+    ["solo la coppia", (x) => q(media + pezzi(x).resto)],
+    ["tutto insieme", (x) => q(media + pezzi(x).sb + pezzi(x).sm + pezzi(x).resto)],
+  ];
+  for (const [nome, f] of modelli)
+    console.log(`  ${nome.padEnd(32)} log-loss ${logloss(f).toFixed(4)}   AUC ${auc(f).toFixed(3)}`);
+  console.log(`  ${"costante (riferimento)".padEnd(32)} log-loss ${logloss(() => media).toFixed(4)}   AUC 0.500`);
+
   console.log("\nCON QUALE TETTO allo scarto complessivo (tre livelli)?");
   for (const cap of [0.04, 0.06, 0.08, 0.10, 0.15, 0.25, 0.99]) {
     const f = (x) => {

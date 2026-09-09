@@ -39,3 +39,24 @@ Risultato: 100% delle combinazioni coperte, con la distinzione fra misurato e st
 ## Cosa ha smentito l'euristica scritta a mano
 
 La matrice calibrata contraddice il buon senso in punti importanti: davo il Tank favorito contro l'Assassin (+1), i dati dicono **−5,96**. E il risultato più utile: **conta molto più chi affronti che chi sei** — da attaccante le classi stanno tutte entro 1,3 punti; da bersaglio no, l'Artiglieria è preda facile (+6,48) mentre Assassin (−4,04) e Support (−3,66) sono i più duri.
+
+## Il tetto vero, misurato il 9/9: quanto counter è invisibile
+
+Domanda dell'utente: «in base ai pick dell'avversario ci sarà una sorta di vantaggio tecnico di brawler, non è possibile che non riesci a individuarlo». Ha ragione che esiste. Misurato quanto se ne vede.
+
+- Coppie **misurate**: 605 uniche su 5.778 (5,4% delle 11.556 orientate).
+- Vantaggio centrato sulle **misurate**: deviazione standard **4,54** punti (fino a ±15).
+- Previsione sulle **stimate**: deviazione standard **1,67** punti. Quasi piatta.
+- Sulle misurate, classe + favore per brawler spiegano il **53,2%** della varianza fuori campione. Il **46,8%** che resta è specifico della coppia: circa **3,1 punti** di deviazione standard di vantaggio vero, invisibile dove nessuno ha misurato.
+
+Quindi: dove la coppia è misurata l'app **muove il punteggio fino a ±15 punti** e lo fa; dove non lo è offre ±2, e quel ±2 è la quantità *calibrata giusta* — gonfiarlo vorrebbe dire inventare counter. Il tetto è del dato.
+
+### Il tentativo per alzarlo, e perché non ha funzionato
+
+`script/estrai-tratti.js` + `script/calibra-tratti.js`. Nove tratti meccanici estratti con regole di parola chiave dall'etichetta ufficiale di stile di gioco di `api.brawlapi.com` (`class.name`, una per brawler: per Piper «Poke From Range And Escape With A Super») — lontano, addosso, muri, spazio, squadra, regge, cespugli, scoppio, blocca. 95 brawler su 108 ne prendono almeno uno; in 398 delle 605 coppie misurate almeno un tratto distingue i due. Poi 36 coefficienti di interazione antisimmetrici (`ha_s(io)·ha_t(lui) − ha_s(lui)·ha_t(io)`), ridge, validazione a 10 pieghe con favore, celle di classe e coefficienti ricalcolati solo sull'allenamento.
+
+**Esito: dal 53,2% al 53,4%.** Due decimi, cioè niente. I coefficienti più grandi stanno sotto mezzo punto (il massimo: +0,33 per «io occupo spazio contro chi blocca»).
+
+**Perché.** Il favore per brawler assorbe già quasi tutto quello che una descrizione a grana grossa può dire — è lo stesso meccanismo per cui il peso di `CLASS_EDGE` era crollato da 0,75 a 0,2 quando il favore è entrato. Ciò che resta è specifico della coppia: Shelly contro Frank, non «corto raggio contro chi regge».
+
+**Non rifarlo con altre parole chiave.** Il collo di bottiglia non è l'estrazione: nove tratti binari non possono contenere l'informazione di 5.778 coppie. L'unica cosa che alzerebbe davvero il tetto è **più coppie misurate**, e nessuna fonte le pubblica — vedi [[fonti-brawl-stars]].
