@@ -1,5 +1,13 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-09 21:20] app | Il record personale era per BRAWLER e basta: per lui conta la MAPPA
+«0 kill 9 morti con Bolt su Undermine, non sei affidabile.» Guardato il registro invece di rispondere a impressione: **Bolt su Deathcap Trap 5 vittorie su 5, su Undermine 1 su 5.** L'app sommava tutte le mappe e gli mostrava «tuo 80%», poi lo mandava su Undermine. E su Undermine lui fa **2 vittorie su 10 con qualunque brawler**: e' la mappa, non solo il brawler.
+**Misurato fuori campione** su 310 partite di Classificata (`script/prova-personale-mappa.js`), predicendo ognuna col record costruito senza quella partita: solo brawler log-loss 0,6636 e **AUC 0,474 — sotto il caso**; solo mappa 0,6495 e 0,629; brawler x mappa 0,6473 e 0,651; **tre livelli (brawler + mappa + quel che resta della coppia) 0,6361 e 0,674**. L'app usava il raggruppamento peggiore dei quattro.
+**Implementato il modello a tre livelli**, ognuno ristretto sul proprio numero di partite (n/(n+11)), coi record presi dal registro `battles` filtrato sulla sola Classificata — non dal campo `detail`, che e' per brawler e mescola le partite trofei.
+**Dettaglio che sembra un cavillo e non lo e':** il tetto va solo sulla parte che DIFFERENZIA. Il termine di mappa e' identico per tutti i candidati — non decide quale pick, decide il livello — e capparlo insieme al resto lo faceva mangiare tutto il budget: su Undermine ogni candidato finiva a -10 e l'app smetteva di distinguere. Ora la mappa passa intera e il tetto (±10, misurato) limita solo brawler + coppia.
+**Risultato sul suo caso:** su Undermine Bolt passa dal 1o posto a 69% al **9o**, e il tabellone scende a 39-47% con l'avviso «non c'e' niente di buono qui». Su Deathcap Trap Bolt resta primo a 79% con «tuo 100% su 5 qui».
+Ridisegno 14-19ms. Vedi [[errori-trovati]].
+
 ## [2026-09-09 19:40] analisi | La geometria della mappa e' gia' nei dati: misurato, niente da aggiungere
 Domanda rimasta aperta: «la mappa era a spazi aperti e Ash li' fa schifo, l'app non lo sa». La tentazione era aggiungere una descrizione della geometria scritta a mano — cioe' l'ennesima euristica non calibrata, quella che ho appena tolto dal bonus di composizione. Prima l'ho misurata.
 **La misura oggettiva:** `script/apertura-mappe.py` legge le immagini delle 33 mappe (150x228, gia' dentro `ritratti.js`) e calcola la densita' di bordi: alta = labirinto, bassa = campo aperto. Va da 0,126 (Rustic Arcade) a 0,288 (Flaring Phoenix).

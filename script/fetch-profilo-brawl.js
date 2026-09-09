@@ -33,6 +33,28 @@ if (!TAG) {
     }
   }
 
+  // IL REGISTRO PARTITE, che serve al record personale per mappa.
+  // Il campo `detail` di ogni brawler da' solo il totale per brawler e mescola
+  // le partite trofei; il registro `battles` ha mappa, modalita', tipo ed esito
+  // di ognuna, quindi si puo' filtrare la sola Classificata e incrociare col
+  // luogo. Misurato che serve: predicendo le sue partite fuori campione, il
+  // record per BRAWLER da solo fa log-loss 0,6636 e AUC 0,474 (sotto il caso),
+  // quello per MAPPA 0,6495 e 0,629, e il modello a tre livelli
+  // (brawler + mappa + quel che resta della coppia) 0,6361 e 0,674.
+  function estraiArray(chiave) {
+    let i = html.indexOf('\\"' + chiave + '\\":['); let sc = true;
+    if (i < 0) { i = html.indexOf('"' + chiave + '":['); sc = false; }
+    if (i < 0) return null;
+    const st = html.indexOf("[", i);
+    let d = 0, en = -1;
+    for (let k = st; k < html.length; k++) { const c = html[k]; if (c === "[") d++; else if (c === "]") { d--; if (!d) { en = k + 1; break; } } }
+    const g = html.slice(st, en);
+    return JSON.parse(sc ? g.replace(/\\"/g, '"').replace(/\\\\/g, "\\") : g);
+  }
+  const battaglie = (estraiArray("battles") || [])
+    .filter((b) => /ranked/i.test(b.type || "") && (b.result === "victory" || b.result === "defeat"))
+    .map((b) => ({ v: b.result === "victory" ? 1 : 0, br: (b.brawlers || [])[0] || null, ma: b.mapName || null }));
+
   const head = html.match(/Brawlers \((\d+)\/(\d+)\)/);
   // La collezione sta nel payload della pagina come "cards":[{...}]. Si legge
   // da lì e non dal DOM: il DOM lo costruisce JavaScript, e a noi serve solo
@@ -82,6 +104,20 @@ if (!TAG) {
   // In Classificata i brawler sotto potenza 9 NON si possono schierare, e da
   // Mythic in su serve potenza 11. Quindi il livello non è un dettaglio: è
   // ciò che separa un consiglio utile da uno che non puoi nemmeno eseguire.
+  const agg = (chiave) => {
+    const g = {};
+    for (const b of battaglie) {
+      const k = chiave(b);
+      if (!k) continue;
+      g[k] = g[k] || [0, 0];
+      g[k][0]++; g[k][1] += b.v;
+    }
+    return g;
+  };
+  const perBrawler = agg((b) => b.br);
+  const perMappa = agg((b) => b.ma);
+  const perCoppia = agg((b) => (b.br && b.ma ? b.br + "|" + b.ma : null));
+
   const partiteTot = posseduti.reduce((s, b) => s + b.partite, 0);
   const vinteTot = posseduti.reduce((s, b) => s + b.vinte, 0);
   const g9 = posseduti.filter((b) => b.potenza >= 9).length;
@@ -89,6 +125,7 @@ if (!TAG) {
   console.error(`#${TAG}: ${posseduti.length} brawler${head ? ` (la pagina dice ${head[0]})` : ""}`);
   console.error(`  giocabili in Classificata (pot. 9+): ${g9}   ·   da Mythic in su (pot. 11): ${g11}`);
   console.error(`  partite registrate: ${partiteTot}, vinte ${vinteTot} = ${(100 * vinteTot / Math.max(1, partiteTot)).toFixed(1)}%`);
+  console.error(`  registro Classificata: ${battaglie.length} partite · ${Object.keys(perBrawler).length} brawler, ${Object.keys(perMappa).length} mappe, ${Object.keys(perCoppia).length} coppie`);
 
   // Il file scritto nel repo NON contiene il tag: il repository è pubblico e
   // il tag è ciò che collega questa cartella al profilo di gioco. I livelli
@@ -124,6 +161,17 @@ if (!TAG) {
 const PROFILO = {
 ${righe}
 };
+
+// I RECORD PER MAPPA, dal registro delle partite di Classificata.
+// Servono al modello a tre livelli: quanto vali con quel brawler, quanto vali
+// su quella mappa, e quel che resta della coppia. Il record per brawler da
+// solo predice peggio del caso (AUC 0,474): e' la mappa a contare di piu'.
+// Ogni voce e' [partite, vinte].
+const PARTITE_BRAWLER = ${JSON.stringify(perBrawler)};
+const PARTITE_MAPPA = ${JSON.stringify(perMappa)};
+const PARTITE_BRAWLER_MAPPA = ${JSON.stringify(perCoppia)};
+const PARTITE_RANKED = ${battaglie.length};
+const PARTITE_RANKED_MEDIA = ${(100 * battaglie.reduce((s, b) => s + b.v, 0) / Math.max(1, battaglie.length)).toFixed(1)};
 
 // La media complessiva di chi usa l'app, su tutte le partite registrate.
 // Serve come riferimento: il dato personale entra nel punteggio come SCARTO

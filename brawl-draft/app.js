@@ -675,42 +675,84 @@ function correzioneRarita(name) {
 // di separarla. Sotto le 3 partite di Classificata non si applica niente.
 const PERSONALE_N0 = 11;
 const PERSONALE_MIN = 3;
-// IL TETTO. Con 11 partite Damian si spostava di 25 punti: piu' di tutto il
-// resto del punteggio messo insieme, cioe' un veto travestito da ingrediente.
-// L'utente ha chiesto che il suo record sia UNA delle voci di una media
-// ponderata, non la fonte di verita'. Il tetto pero' e' misurato, non scelto:
-// su 226 sue partite di Classificata, predicendo ognuna con il record
-// costruito SENZA quella partita, il tetto ±8 da' il log-loss migliore
-// (0,6704 contro 0,6703 senza tetto e 0,6774 con ±3) e un AUC di 0,581
-// contro lo 0,560 senza tetto. Vedi `script/analizza-partite.js`.
+// IL TETTO, misurato sul modello a tre livelli: ±10 punti da' log-loss 0,6359
+// e AUC 0,666 sulle sue 310 partite, contro 0,6391/0,665 con ±8 e 0,6533/0,686
+// con ±4. Resta un tetto perche' l'utente ha chiesto — a ragione — che il suo
+// record sia UNA voce di una media ponderata, non un veto.
+const PERSONALE_TETTO = 10;
+
+// ---- IL RECORD PERSONALE, A TRE LIVELLI --------------------------------
 //
-// Cosa dicono davvero quei numeri, detto senza abbellirlo: NESSUN modello
-// predice bene queste partite. Il migliore trovato — modalita' piu' scarto
-// personale — arriva a 0,604 di AUC su 226 partite, dove 0,5 e' tirare a
-// caso e l'errore standard e' ±0,04. In una partita 3v3 con altre cinque
-// persone, il pick spiega una parte piccola dell'esito.
-const PERSONALE_TETTO = 8;
-// Memorizzato: dipende solo dal profilo, che non cambia mentre l'app gira, e
-// contextualWinRate lo chiamerebbe per ognuno dei 106 candidati a ogni
-// ridisegno. Senza la cache il ridisegno era passato da 15-27ms a 31-42.
+// Prima era solo per BRAWLER, e l'utente ha trovato il caso che lo smonta:
+// con Bolt fa 5 vittorie su 5 su Deathcap Trap e 1 su 5 su Undermine, e l'app
+// gli mostrava la media («tuo 80%») mentre lo mandava a giocare Undermine.
+//
+// Misurato fuori campione sulle sue 310 partite di Classificata, predicendo
+// ognuna col record costruito senza quella partita:
+//   solo brawler          log-loss 0,6636   AUC 0,474   <- sotto il caso
+//   solo mappa            log-loss 0,6495   AUC 0,629
+//   brawler x mappa       log-loss 0,6473   AUC 0,651
+//   TRE LIVELLI           log-loss 0,6361   AUC 0,674   <- il migliore
+//
+// Per lui la MAPPA conta piu' del brawler, e l'app usava il raggruppamento
+// peggiore dei quattro. Tre livelli vuol dire: quanto vali con quel brawler,
+// quanto vali su quella mappa, e quel che resta della coppia — ognuno
+// ristretto sul PROPRIO numero di partite, cosi' una cella da cinque partite
+// pesa poco senza essere buttata via.
+//
+// Il termine di mappa sposta tutti i candidati allo stesso modo, quindi non
+// cambia l'ordine: cambia il livello, ed e' giusto che lo faccia. Su Undermine
+// lui ha 2 vittorie su 10 con qualunque brawler, e il numero a schermo deve
+// dirlo invece di mostrargli un 69% che non ha mai visto.
+function _rec(tab, chiave) {
+  const r = tab && chiave ? tab[chiave] : undefined;
+  return r && r[0] > 0 ? { n: r[0], v: r[1] } : null;
+}
+function _scarto(rec, media) {
+  if (!rec) return 0;
+  return (rec.n / (rec.n + PERSONALE_N0)) * ((100 * rec.v) / rec.n - media);
+}
 const _mio = new Map();
 function scartoPersonale(name) {
-  if (_mio.has(name)) return _mio.get(name);
+  const chiave = name + "|" + (state.map ? state.map.name : "");
+  if (_mio.has(chiave)) return _mio.get(chiave);
   const r = calcolaScartoPersonale(name);
-  _mio.set(name, r);
+  _mio.set(chiave, r);
   return r;
 }
 function calcolaScartoPersonale(name) {
-  if (typeof PROFILO === "undefined" || typeof PROFILO_MEDIA === "undefined") return null;
-  const p = PROFILO[name];
-  if (!p || !p.partite) return null;
-  const nClass = Math.max(0, p.partite - (p.partiteTrofei || 0));
-  if (nClass < PERSONALE_MIN) return null;
-  const mio = (100 * p.vinte) / p.partite;
-  const peso = nClass / (nClass + PERSONALE_N0);
-  const grezzo = peso * (mio - PROFILO_MEDIA);
-  const scarto = Math.max(-PERSONALE_TETTO, Math.min(PERSONALE_TETTO, grezzo));
-  return { scarto, grezzo, tagliato: Math.abs(grezzo) > PERSONALE_TETTO, mio, partite: p.partite, nClass, peso };
+  if (typeof PARTITE_RANKED_MEDIA === "undefined" || typeof PARTITE_BRAWLER === "undefined") return null;
+  const media = PARTITE_RANKED_MEDIA;
+  const su = name.toUpperCase();
+  const mappa = state.map ? state.map.name : null;
+  const recB = _rec(PARTITE_BRAWLER, su);
+  const recM = mappa ? _rec(PARTITE_MAPPA, mappa) : null;
+  const recC = mappa ? _rec(PARTITE_BRAWLER_MAPPA, su + "|" + mappa) : null;
+  if (!recB && !recM && !recC) return null;
+  const sb = _scarto(recB, media);
+  const sm = _scarto(recM, media);
+  // la coppia porta SOLO quello che brawler e mappa non spiegano gia'
+  let resto = 0;
+  if (recC) resto = (recC.n / (recC.n + PERSONALE_N0)) * ((100 * recC.v) / recC.n - media - sb - sm);
+  // IL TETTO VA SOLO SULLA PARTE CHE DIFFERENZIA. Il termine di mappa e'
+  // identico per tutti i candidati: non decide QUALE pick, decide il livello.
+  // Capparlo insieme al resto lo faceva mangiare tutto il budget su una mappa
+  // andata male — su Undermine (2 vittorie su 10) ogni candidato finiva a -10
+  // e l'app smetteva di distinguere. Ora la mappa passa intera e il tetto
+  // limita solo brawler + coppia, che sono la parte su cui il record potrebbe
+  // diventare un veto.
+  const proprio = Math.max(-PERSONALE_TETTO, Math.min(PERSONALE_TETTO, sb + resto));
+  const grezzo = sb + sm + resto;
+  const scarto = proprio + sm;
+  // per il riquadrino si mostra il dato piu' SPECIFICO che esiste
+  const mostra = recC && recC.n >= PERSONALE_MIN ? { rec: recC, dove: "qui" } : recB ? { rec: recB, dove: "" } : { rec: recM, dove: "su questa mappa" };
+  return {
+    scarto, grezzo, scartoMappa: sm, tagliato: Math.abs(sb + resto) > PERSONALE_TETTO,
+    mio: (100 * mostra.rec.v) / mostra.rec.n, partite: mostra.rec.n, dove: mostra.dove,
+    brawler: recB, mappaRec: recM, coppia: recC,
+    peso: recC ? recC.n / (recC.n + PERSONALE_N0) : recB ? recB.n / (recB.n + PERSONALE_N0) : 0,
+    nClass: mostra.rec.n,
+  };
 }
 
 function contextualWinRate(name) {
@@ -1712,7 +1754,7 @@ function renderSuggestions() {
     // idea senza motivo su un brawler che ieri consigliava.
     const mio = s.mio;
     const chipMio = mio
-      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media generale del ${PROFILO_MEDIA}%. Con ${mio.nClass} partite di Classificata questo dato pesa il ${Math.round(mio.peso * 100)}%, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti${mio.tagliato ? " (fermato al tetto di 8: il tuo record pesa, ma non decide da solo)" : ""}. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}</span>`
+      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media in Classificata del ${PARTITE_RANKED_MEDIA}%. Conta insieme il tuo record col brawler${mio.brawler ? " (" + Math.round(100*mio.brawler.v/mio.brawler.n) + "% su " + mio.brawler.n + ")" : ""}, quello su questa mappa${mio.mappaRec ? " (" + Math.round(100*mio.mappaRec.v/mio.mappaRec.n) + "% su " + mio.mappaRec.n + ")" : ""} e la loro combinazione, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti${mio.tagliato ? " (fermato al tetto di 8: il tuo record pesa, ma non decide da solo)" : ""}. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}</span>`
       : "";
     const raro = s.pick !== undefined && s.pick < 1.5 && !datoMio;
     const rarita = raro
