@@ -163,3 +163,31 @@ console.log("\nchi chiuderebbe piu' buchi (somma dei punti recuperati):");
 for (const [n, v] of cl.slice(0, 10)) {
   console.log(`  ${n.padEnd(14)} +${v.toFixed(1)} punti · potenza ${potenza(n)} (${SOGLIA - potenza(n)} livelli) · ${trofei(n)} trofei`);
 }
+
+// ---- IL COSTO VERO -----------------------------------------------------
+// "Livelli mancanti" NON e' il costo: i livelli 10 e 11 da soli sono il 60%
+// del totale, quindi portare un brawler da potenza 5 a 11 costa quasi quanto
+// portarlo da 1 a 11 (7.495 contro 7.765 monete). Solo potenza 9 e 10 sono
+// davvero economici. Ordinare per "valore per livello" era fuorviante.
+// Costi da theriagames.com (marzo 2025) — il gioco mostra il numero vero.
+const COSTO_LIV = { 2:[20,20], 3:[30,35], 4:[50,75], 5:[80,140], 6:[130,290],
+  7:[210,480], 8:[340,800], 9:[550,1250], 10:[890,1875], 11:[1440,2800] };
+function costo(da) {
+  let pp = 0, mo = 0;
+  for (let l = da + 1; l <= 11; l++) { pp += COSTO_LIV[l][0]; mo += COSTO_LIV[l][1]; }
+  return { pp, mo };
+}
+console.log("\n\n==== VALORE PER MONETA SPESA ====\n");
+const perMoneta = Object.entries(acc)
+  .map(([n, r]) => ({ n, pot: potenza(n), tro: trofei(n), volte: r.mappeMigliore,
+    med: r.mappeMigliore ? r.guadagno / r.mappeMigliore : 0, tot: r.guadagno, ...costo(potenza(n)) }))
+  .filter((r) => r.tot > 0);
+perMoneta.sort((x, y) => (y.tot / y.mo) - (x.tot / x.mo));
+console.log("nome         pot   monete   punti pot.   gemme   migliore in   guadagno   valore per 1000 monete");
+for (const r of perMoneta.slice(0, 12)) {
+  console.log(
+    "  " + r.n.padEnd(11), ("p" + r.pot).padEnd(4), String(r.mo).padStart(7), String(r.pp).padStart(11),
+    String(Math.round(r.mo / 13)).padStart(7), String(r.volte + "/99").padStart(13),
+    ("+" + r.med.toFixed(2)).padStart(10), (1000 * r.tot / r.mo).toFixed(2).padStart(21)
+  );
+}
