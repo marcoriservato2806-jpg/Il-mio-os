@@ -58,3 +58,36 @@ brawlify.com (il sito), noff.gg, brawltime.ninja, topbrawl.com, brawlytix.com, b
 ## Il tetto strutturale
 
 **Nessuna fonte pubblica la matrice completa dei matchup.** Tutte si fermano ai 3 migliori e 3 peggiori per brawler. Non è pigrizia di chi cerca: è un limite del dato disponibile. La risposta è modellare il resto — vedi [[metodo-counter]].
+
+## Gadget e star power: quello che NON esiste
+
+Cercato il 9/9/2026, non rifarlo da zero.
+
+- **Nessuna fonte raggiungibile pubblica la win rate PER GADGET.** BrawlMetrics
+  ha le pagine build (`/brawlers/<slug>`) ma riporta solo la **pick rate** di
+  ciascun gadget e star power, non quanto vincono. Verificato su Damian, Meg,
+  Surge e altri otto. Brawlio e Brawlvision: solo per brawler. Le uniche fonti
+  che sembrano avere una tier list dei gadget (brawltime.ninja, topbrawl,
+  brawlytix) sono nella lista dei bloccati, e non si aggirano.
+- È lo stesso tetto della matrice dei counter: è del dato, non della ricerca.
+- **I nomi e le descrizioni** dei gadget si prendono da
+  `api.brawlapi.com/v1/brawlers` (campi `gadgets` e `starPowers`). Attenzione:
+  i valori numerici arrivano come segnaposto (`<!card.value1>`), quindi da lì
+  si ricava cosa fa un gadget, non quanto.
+- **La maggior parte delle pick rate è 51/49 o 52/48**, cioè la comunità è
+  spaccata e il dato non dice niente. Solo pochi casi hanno una maggioranza
+  vera (8-Bit 58/42, Nita 56/44, Damian/Surge/Griff 55/45).
+
+## Costi in monete: fonti che si contraddicono
+
+- `theriagames.com/guide/brawl-stars-coins/` (pubblicato 12/3/2025) ha la
+  tabella completa per livello: totale 1→11 = **3.740 punti potenza e 7.765
+  monete**; 9→10 = 890 PP + 1.875 monete; 10→11 = 1.440 PP + 2.800 monete.
+- `topuplive.com` (aggiornato 25/3/2026) dà numeri diversi e apparentemente
+  con le colonne confuse, ma per gadget/star power/gear dà 1.000 / 2.000 /
+  1.000-2.000 monete e hypercharge 5.000.
+- **Si contraddicono: non scegliere per conto tuo.** Il gioco mostra il costo
+  esatto sul tasto di potenziamento — quello è la fonte vera.
+- Negozio: pacchetti di monete da 300 monete per 30 gemme fino a 4.680 monete
+  per 360 gemme, cioè fra 10 e 13 monete per gemma.
+
