@@ -191,3 +191,51 @@ for (const r of perMoneta.slice(0, 12)) {
     ("+" + r.med.toFixed(2)).padStart(10), (1000 * r.tot / r.mo).toFixed(2).padStart(21)
   );
 }
+
+// ---- IL SECONDO ACQUISTO SI VALUTA DOPO IL PRIMO ------------------------
+// Valutare ogni brawler DA SOLO contro il roster attuale sovrastima il
+// secondo, il terzo e cosi' via: due brawler forti sulle stesse mappe non
+// sommano il loro valore, se lo contendono. Misurato: Ash da solo vale 8,2
+// punti su 6 mappe, ma dopo aver preso Bolt vale 3,7 su 2 — Bolt assorbe il
+// 55% del suo valore, perche' quattro delle sei mappe di Ash sono Gem Grab,
+// dove Bolt e' molto piu' forte.
+const GIA_PRESO = (process.env.GIA_PRESO || "").split(",").map(s => s.trim()).filter(Boolean);
+if (GIA_PRESO.length) {
+  console.log(`\n\n==== VALORE MARGINALE AVENDO GIA' PRESO: ${GIA_PRESO.join(", ")} ====\n`);
+  const disponibili = sbloccati.concat(GIA_PRESO);
+  const acc2 = {};
+  for (const n of bloccati) if (!GIA_PRESO.includes(n)) acc2[n] = { g: 0, volte: 0 };
+  for (const map of a.MAPS) {
+    for (const [nE, nO] of [[0, 0], [1, 0], [2, 1]]) {
+      a.state.mode = map.mode; a.state.map = map;
+      a.state.bans = { A: [], B: [] }; a.state.picks = { A: [], B: [] };
+      a.state.bansPerTeam = 0; a.buildSequence();
+      const liberi = a.likelyEnemyPicks(20).filter((x) => !a.usedNames().has(x));
+      a.state.picks.B = liberi.slice(0, nE); a.state.picks.A = liberi.slice(nE, nE + nO);
+      a.computeSuggestions();
+      const en = a.state.picks.B, oc = a.state.picks.A.map(a.classOf);
+      const vuote = 3 - en.length, minacce = a.likelyEnemyPicks(8), usati = a.usedNames();
+      let migliore = -Infinity;
+      for (const n of disponibili) {
+        if (usati.has(n)) continue;
+        const v = punteggio(n, en, oc, minacce, vuote);
+        if (v !== null && v > migliore) migliore = v;
+      }
+      for (const n of Object.keys(acc2)) {
+        if (usati.has(n)) continue;
+        const v = punteggio(n, en, oc, minacce, vuote);
+        if (v === null) continue;
+        if (v > migliore) { acc2[n].g += v - migliore; acc2[n].volte++; }
+      }
+    }
+  }
+  const r2 = Object.entries(acc2).map(([n, r]) => ({ n, pot: potenza(n), tro: trofei(n), ...r, ...costo(potenza(n)) }))
+    .filter((r) => r.g > 0);
+  r2.sort((x, y) => (y.g / y.mo) - (x.g / x.mo));
+  console.log("nome         pot   monete   gemme   migliore in   valore per 1000 monete");
+  for (const r of r2.slice(0, 10)) {
+    console.log("  " + r.n.padEnd(11), ("p" + r.pot).padEnd(4), String(r.mo).padStart(7),
+      String(Math.round(r.mo / 13)).padStart(7), String(r.volte + "/99").padStart(13),
+      (1000 * r.g / r.mo).toFixed(2).padStart(23));
+  }
+}
