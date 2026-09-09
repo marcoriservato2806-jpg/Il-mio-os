@@ -69,15 +69,26 @@ if (!TAG) {
     starPower: (c.abilities || []).filter((x) => x.kind === "starPower" && x.owned).map((x) => x.name),
     gadgetMancanti: (c.abilities || []).filter((x) => x.kind === "gadget" && !x.owned).map((x) => x.name),
     starPowerMancanti: (c.abilities || []).filter((x) => x.kind === "starPower" && !x.owned).map((x) => x.name),
+    // IL DATO PIU' IMPORTANTE DI TUTTI, ed era li' dentro dal primo giorno:
+    // `detail` contiene le partite giocate e vinte con quel brawler. Cioe' la
+    // win rate DI CHI USA QUESTA APP, non della popolazione generale.
+    // `trophyGames` sono le partite trofei: contano per il numero, ma la
+    // Classificata e' un'altra cosa, quindi il peso si calcola sulle altre.
+    partite: (c.detail || {}).games || 0,
+    vinte: (c.detail || {}).wins || 0,
+    partiteTrofei: (c.detail || {}).trophyGames || 0,
   })).sort((a, b) => b.trofei - a.trofei);
 
   // In Classificata i brawler sotto potenza 9 NON si possono schierare, e da
   // Mythic in su serve potenza 11. Quindi il livello non è un dettaglio: è
   // ciò che separa un consiglio utile da uno che non puoi nemmeno eseguire.
+  const partiteTot = posseduti.reduce((s, b) => s + b.partite, 0);
+  const vinteTot = posseduti.reduce((s, b) => s + b.vinte, 0);
   const g9 = posseduti.filter((b) => b.potenza >= 9).length;
   const g11 = posseduti.filter((b) => b.potenza >= 11).length;
   console.error(`#${TAG}: ${posseduti.length} brawler${head ? ` (la pagina dice ${head[0]})` : ""}`);
   console.error(`  giocabili in Classificata (pot. 9+): ${g9}   ·   da Mythic in su (pot. 11): ${g11}`);
+  console.error(`  partite registrate: ${partiteTot}, vinte ${vinteTot} = ${(100 * vinteTot / Math.max(1, partiteTot)).toFixed(1)}%`);
 
   // Il file scritto nel repo NON contiene il tag: il repository è pubblico e
   // il tag è ciò che collega questa cartella al profilo di gioco. I livelli
@@ -93,7 +104,8 @@ if (!TAG) {
     .sort((a, b) => a.nome.localeCompare(b.nome, "it"))
     .map((b) => `  ${JSON.stringify(b.nome)}: { potenza: ${b.potenza}, trofei: ${b.trofei}` +
       `, gadget: ${JSON.stringify(b.gadget)}, starPower: ${JSON.stringify(b.starPower)}` +
-      `, gadgetMancanti: ${JSON.stringify(b.gadgetMancanti)}, starPowerMancanti: ${JSON.stringify(b.starPowerMancanti)} },`)
+      `, gadgetMancanti: ${JSON.stringify(b.gadgetMancanti)}, starPowerMancanti: ${JSON.stringify(b.starPowerMancanti)}` +
+      `, partite: ${b.partite}, vinte: ${b.vinte}, partiteTrofei: ${b.partiteTrofei} },`)
     .join("\n");
   fs.writeFileSync(dest, `// Livello di potenza dei brawler del proprietario dell'app.
 // GENERATO da script/fetch-profilo-brawl.js — non modificare a mano.
@@ -112,6 +124,14 @@ if (!TAG) {
 const PROFILO = {
 ${righe}
 };
+
+// La media complessiva di chi usa l'app, su tutte le partite registrate.
+// Serve come riferimento: il dato personale entra nel punteggio come SCARTO
+// da questa media, non come valore assoluto. Sommare la win rate personale
+// grezza alzerebbe il livello di ogni brawler che ha giocato, che e' un
+// doppio conteggio della sua bravura generale.
+const PROFILO_MEDIA = ${(100 * vinteTot / Math.max(1, partiteTot)).toFixed(1)};
+const PROFILO_PARTITE = ${partiteTot};
 `);
   console.error(`scritto brawl-draft/profilo.js (senza il tag)`);
   console.log(JSON.stringify({ tag: TAG, letto: new Date().toISOString().slice(0, 10), posseduti }, null, 1));

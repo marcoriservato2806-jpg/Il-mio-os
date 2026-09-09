@@ -592,6 +592,57 @@ function correzioneRarita(name) {
   return p / (p + RARITA_P0); // 0,5% → 0,20   ·   5,7% (media) → 0,74   ·   20% → 0,91
 }
 
+// ---- I TUOI RISULTATI, NON QUELLI DELLA POPOLAZIONE ---------------------
+//
+// L'utente ha segnalato tre volte che un pick consigliato gli faceva perdere.
+// La terza volta ho guardato nel posto giusto: il tracker pubblica, per ogni
+// brawler, LE SUE partite e le sue vittorie. Era nello stesso payload da cui
+// leggevo potenza e trofei, e non lo leggevo.
+//
+// Damian: 11 partite di Classificata, 1 vinta. Se il 56,4% che l'app gli dava
+// in Gem Grab fosse vero per lui, fare 1 o meno vittorie su 11 avrebbe
+// probabilita' dello 0,165%. Non e' sfortuna: quel numero descrive un'altra
+// persona.
+//
+// COME ENTRA NEL PUNTEGGIO. Non come valore assoluto — sommare la sua win
+// rate grezza alzerebbe ogni brawler che ha giocato, contando due volte la
+// sua bravura generale (lo stesso errore del favore per brawler). Entra come
+// SCARTO dalla sua media complessiva: "con questo sei tot punti sopra o sotto
+// il tuo solito".
+//
+// QUANTO PESA: calibrato sui suoi dati, non scelto. La varianza dei suoi
+// risultati fra brawler e' 0,0440; quella attesa dal solo caso, dato il numero
+// di partite di ciascuno, e' 0,0217. Resta 0,0222 di varianza VERA, cioe' una
+// deviazione standard di 14,9 punti: e' davvero molto piu' bravo con alcuni.
+// Da li' il peso di Bayes empirico n/(n+n0) con n0 = p(1-p)/tau2 = 11 partite.
+// Con 11 partite il dato personale pesa la meta', con 3 il 22%, con 72 l'87%.
+//
+// Il conteggio usa le partite di CLASSIFICATA (totali meno quelle trofei):
+// la win rate disponibile e' pero' su tutte, e questo va detto — non c'e' modo
+// di separarla. Sotto le 3 partite di Classificata non si applica niente.
+const PERSONALE_N0 = 11;
+const PERSONALE_MIN = 3;
+// Memorizzato: dipende solo dal profilo, che non cambia mentre l'app gira, e
+// contextualWinRate lo chiamerebbe per ognuno dei 106 candidati a ogni
+// ridisegno. Senza la cache il ridisegno era passato da 15-27ms a 31-42.
+const _mio = new Map();
+function scartoPersonale(name) {
+  if (_mio.has(name)) return _mio.get(name);
+  const r = calcolaScartoPersonale(name);
+  _mio.set(name, r);
+  return r;
+}
+function calcolaScartoPersonale(name) {
+  if (typeof PROFILO === "undefined" || typeof PROFILO_MEDIA === "undefined") return null;
+  const p = PROFILO[name];
+  if (!p || !p.partite) return null;
+  const nClass = Math.max(0, p.partite - (p.partiteTrofei || 0));
+  if (nClass < PERSONALE_MIN) return null;
+  const mio = (100 * p.vinte) / p.partite;
+  const peso = nClass / (nClass + PERSONALE_N0);
+  return { scarto: peso * (mio - PROFILO_MEDIA), mio, partite: p.partite, nClass, peso };
+}
+
 function contextualWinRate(name) {
   const metaWr = state.customScores[name];
   const modeWr = state.mode && MODE_WIN_RATES[state.mode] ? MODE_WIN_RATES[state.mode][name] : undefined;
@@ -609,8 +660,12 @@ function contextualWinRate(name) {
   }
 
   const aff = correzioneRarita(name);
-  const base = 50 + (grezza - 50) * aff;
-  return { base, source, grezza, aff, pick: comparizioneSu600(name) };
+  const generale = 50 + (grezza - 50) * aff;
+  // Il dato di mappa dice quanto vale QUESTO BRAWLER QUI; il tuo record dice
+  // quanto vali TU CON LUI. Sono due cose diverse e si sommano.
+  const mio = scartoPersonale(name);
+  const base = mio ? generale + mio.scarto : generale;
+  return { base, source, grezza, aff, pick: comparizioneSu600(name), generale, mio };
 }
 
 // ---- LE CASELLE AVVERSARIE ANCORA VUOTE ---------------------------------
@@ -844,6 +899,8 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     traits: r1(traits),
     grezza: grezza === undefined ? undefined : r1(grezza),
     pick,
+    mio: ctx.mio,
+    generale: r1(ctx.generale),
     perEnemy,
     vuote,
     futuro: futuro ? { valore: r1(futuro.valore), media: r1(futuro.media), peggio: r1(futuro.peggio), minacciaPeggiore: futuro.minacciaPeggiore } : null,
@@ -1056,6 +1113,26 @@ function ritratto(name, extra) {
   if (src) return `<img class="${cls}" src="${src}" alt="" loading="lazy" decoding="async" width="48" height="48" />`;
   const iniziali = name.replace(/[^A-Za-z0-9 -]/g, "").split(/[ -]/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return `<span class="${cls} ritratto-vuoto">${iniziali}</span>`;
+}
+
+// I ritratti mini delle righe dei consigli, in cache. Sono immagini
+// incorporate come data URI: ricrearne sei a ogni ridisegno le fa
+// ridecodificare al browser. E' la TERZA volta che questa trappola compare in
+// questo file — prima le carte del roster (11ms -> 66ms), poi le caselle del
+// palco (6,4ms), ora le righe dei consigli. La chiave porta il contesto perche'
+// lo stesso nodo non puo' stare in due posti: se comparisse sia nei consigli
+// sia nella ricerca, il secondo se lo porterebbe via.
+const _mini = new Map();
+function ritrattoMini(name, contesto) {
+  const k = contesto + "|" + name;
+  let el = _mini.get(k);
+  if (!el) {
+    const d = document.createElement("div");
+    d.innerHTML = ritratto(name, "mini");
+    el = d.firstChild;
+    _mini.set(k, el);
+  }
+  return el;
 }
 
 function renderSlots(ruolo) {
@@ -1435,7 +1512,6 @@ function renderSuggestions() {
       // L'ordine resta forza × quanto viene scelto davvero, ed è scritto
       // sopra; il numero mostrato è la cosa che si capisce senza spiegazioni.
       row.innerHTML = `
-        ${ritratto(s.name, "mini")}
         <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span>${
           s.risposta
             ? `<span class="floor-chip ${s.risposta.valore < 52 ? "warn" : s.risposta.valore < 56 ? "mid" : "ok"}" title="Se glielo lasci, il tuo pick migliore contro di lui è ${s.risposta.chi} e vale circa ${s.risposta.valore}%. Sotto il 52% vuol dire che una risposta comoda non ce l'hai: è il ban che ti conviene di più. Sopra il 56% sai già gestirlo, e il ban rende meno.">rispondi ${s.risposta.valore}%</span>`
@@ -1444,6 +1520,7 @@ function renderSuggestions() {
         <span class="sugg-class">${s.class}</span>
         <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
       `;
+      row.insertBefore(ritrattoMini(s.name, "ban"), row.firstChild);
       row.addEventListener("click", () => toggleBrawler(s.name));
       el.appendChild(row);
     });
@@ -1483,7 +1560,15 @@ function renderSuggestions() {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
-    const flag = pickFlag(s.name);
+    // Le etichette "trappola" e "raro" sono deduzioni sulla POPOLAZIONE: dicono
+    // che il numero generale e' gonfiato o ingannevole. Quando ci sono
+    // abbastanza partite TUE, quella deduzione non serve piu' — il tuo dato e'
+    // la misura diretta di cio' che le etichette stimavano. Lasciarle produceva
+    // righe che si contraddicono: "Surge trappola · tuo 60% su 5" e
+    // "Wendy raro 0,3% · tuo 69% su 112".
+    const datoMio = s.mio && s.mio.peso >= 0.4;
+    const flagGrezzo = pickFlag(s.name);
+    const flag = datoMio && flagGrezzo && flagGrezzo.kind === "trap" && s.mio.mio >= PROFILO_MEDIA ? null : flagGrezzo;
     const badge = flag
       ? `<span class="badge ${flag.kind}" title="${
           flag.kind === "trap"
@@ -1524,11 +1609,19 @@ function renderSuggestions() {
         : "";
     // Quando il pick è raro, la correzione ha spostato parecchio il numero:
     // va detto, altrimenti sembra che l'app "non veda" un brawler forte.
-    const raro = s.pick !== undefined && s.pick < 1.5;
+    // Il tuo record con quel brawler: e' la cosa che sposta di piu' il numero,
+    // quindi deve essere la piu' visibile. Senza, l'app sembrerebbe cambiare
+    // idea senza motivo su un brawler che ieri consigliava.
+    const mio = s.mio;
+    const chipMio = mio
+      ? `<span class="mio-chip ${mio.scarto <= -4 ? "giu" : mio.scarto >= 4 ? "su" : "pari"}" title="Le TUE partite: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}, contro la tua media generale del ${PROFILO_MEDIA}%. Con ${mio.nClass} partite di Classificata questo dato pesa il ${Math.round(mio.peso * 100)}%, e sposta il punteggio di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10} punti. Senza il tuo record questo pick varrebbe ${s.generale}%.">tuo ${Math.round(mio.mio)}% su ${mio.partite}</span>`
+      : "";
+    const raro = s.pick !== undefined && s.pick < 1.5 && !datoMio;
     const rarita = raro
       ? `<span class="risk-chip warn" title="Lo sceglie solo lo ${s.pick.toFixed(1)}% delle squadre. Il dato grezzo dice ${Math.round(s.grezza)}%, ma è misurato su chi lo gioca apposta: per te vale circa ${Math.round(s.base)}%.">raro ${s.pick.toFixed(1)}%</span>`
       : "";
     const parts = [`base ${s.base}% (${s.baseSource})`];
+    if (mio) parts.push(`il generale direbbe ${s.generale}%, il tuo record lo sposta di ${mio.scarto > 0 ? "+" : ""}${Math.round(mio.scarto * 10) / 10}`);
     if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) {
       parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
     }
@@ -1543,11 +1636,11 @@ function renderSuggestions() {
       parts.push(`mostrato: ${Math.round((1 - s.q) * 100)}% della media + ${Math.round(s.q * 100)}% del caso peggiore (${s.floor}%), perché all'avversario resta${s.vuote > 1 ? "no " + s.vuote + " scelte" : " una scelta"} per trovare la risposta`);
     }
     row.innerHTML = `
-      ${ritratto(s.name, "mini")}
-      <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita ? `<span class="chip-row">${chips}${floorChip}${rarita}</span>` : ""}</span>
+      <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita || chipMio ? `<span class="chip-row">${chips}${floorChip}${chipMio}${rarita}</span>` : ""}</span>
       <span class="sugg-class">${s.class}</span>
       <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
     `;
+    row.insertBefore(ritrattoMini(s.name, "sugg"), row.firstChild);
     row.addEventListener("click", () => toggleBrawler(s.name));
     el.appendChild(row);
   });

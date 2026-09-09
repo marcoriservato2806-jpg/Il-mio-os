@@ -493,6 +493,19 @@ footer details[open] summary { margin-bottom: 8px; }
 /* Il secondo numero del riquadrino (lo scarto dal normale) e' quello che
    sposta il punteggio: si distingue senza gridare. */
 .echip b { font-weight: 800; opacity: 0.85; }
+/* Il record personale: e' il pezzo che sposta di piu' il punteggio, quindi si
+   vede piu' degli altri riquadrini. Pieno, non a contorno. */
+.mio-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mio-chip.su { background: rgba(87, 217, 154, 0.22); color: var(--good); }
+.mio-chip.giu { background: rgba(255, 122, 122, 0.22); color: var(--bad); }
+.mio-chip.pari { background: rgba(255, 255, 255, 0.09); color: var(--text-dim); }
 /* Scarto nullo: ne' un vantaggio ne' uno svantaggio, e non deve sembrarlo. */
 .echip.meas.pari { background: rgba(255, 255, 255, 0.07); color: var(--text-dim); }
 .echip.est.pari { border: 1px solid var(--border); color: var(--text-dim); }
