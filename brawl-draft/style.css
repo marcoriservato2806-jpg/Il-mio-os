@@ -531,6 +531,17 @@ footer details[open] summary { margin-bottom: 8px; }
 
 .panel-title.spaced { margin-top: 14px; }
 .hint.situation { line-height: 1.55; }
+/* Quando il migliore disponibile e' mediocre va detto: il numero in oro da
+   solo si legge come un'approvazione anche quando vale 51%. */
+.hint.scarso {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 194, 61, 0.07);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
+}
+.hint.scarso strong { color: var(--accent); }
 .hint.foot { margin-top: 8px; line-height: 1.5; }
 
 /* Il rischio residuo è un avviso, non un dato allo stesso livello degli

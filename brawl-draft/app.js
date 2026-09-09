@@ -751,6 +751,29 @@ function edgeCasellaVuota(candidato, minacce) {
   return { valore: media, media, peggio, minacciaPeggiore: quale };
 }
 
+// Quella classe, su QUESTA mappa, rende almeno quanto la media della mappa?
+// Serve a impedire che un'euristica scritta a mano scavalchi il dato misurato.
+// Senza dati di mappa risponde di si': l'euristica resta l'unica cosa che c'e'.
+const _resaClasse = new WeakMap();
+function classeRendeQui(cls) {
+  if (!state.map || !state.map.winRates) return true;
+  let tab = _resaClasse.get(state.map);
+  if (!tab) {
+    const per = {}; let somma = 0, n = 0;
+    for (const b of BRAWLERS) {
+      const w = state.map.winRates[b.name];
+      if (w === undefined) continue;
+      (per[b.class] = per[b.class] || []).push(w);
+      somma += w; n++;
+    }
+    const media = n ? somma / n : 50;
+    tab = {};
+    for (const k of Object.keys(per)) tab[k] = per[k].reduce((s, x) => s + x, 0) / per[k].length >= media;
+    _resaClasse.set(state.map, tab);
+  }
+  return tab[cls] !== false;
+}
+
 function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames, minacce, caselleVuote) {
   const ctx = contextualWinRate(candidateName);
   const base = ctx.base;
@@ -790,10 +813,19 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
   if (ownClasses.length > 0) {
     const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
     synergy = -2 * sameClassCount;
+    // "Manca la frontline, prendi un Tank o un Controller" e' un'euristica
+    // generica, e su questa mappa puo' essere semplicemente falsa. Su Bridge
+    // Too Far (Heist) Tank e Controller sono le DUE CLASSI PEGGIORI della
+    // mappa (-2,5 e -1,9 sotto la media) e la regola dava lo stesso +2: e' cosi'
+    // che Otis e' passato da sesto a primo, ed e' la segnalazione dell'utente.
+    // Succede su 9 mappe su 33.
+    //
+    // Regola della casa: specifico batte generico. Il bonus si applica solo se
+    // il dato MISURATO di questa mappa non lo smentisce.
     const hasFrontline = ownClasses.some((c) => c === "Tank" || c === "Controller");
-    if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller")) synergy += 2;
+    if (!hasFrontline && (candidateClass === "Tank" || candidateClass === "Controller") && classeRendeQui(candidateClass)) synergy += 2;
     const hasSupport = ownClasses.some((c) => c === "Support");
-    if (!hasSupport && candidateClass === "Support") synergy += 1;
+    if (!hasSupport && candidateClass === "Support" && classeRendeQui(candidateClass)) synergy += 1;
   }
 
   let traits = 0;
@@ -1427,6 +1459,26 @@ function renderSuggestions() {
     return;
   }
   el.innerHTML = "";
+
+  // QUANTO VALE il migliore, rispetto al normale.
+  //
+  // Misurato su 132 posizioni di draft: il primo consigliato sta fra il 51,1%
+  // e il 61,0%, con mediana 54,1%. Quindi un 53% non e' un buon pick, e' un
+  // draft PARI — ma a schermo era scritto in oro esattamente come un 61%, e
+  // si legge come un'approvazione. L'utente ha seguito un 53%, ha perso, e
+  // aveva ragione a non capire.
+  //
+  // La riga compare solo sotto la mediana: un avviso sempre presente diventa
+  // sfondo e non lo legge piu' nessuno.
+  const meglio = suggestions[0].total;
+  if (meglio < 54) {
+    const p = document.createElement("p");
+    p.className = "hint scarso";
+    p.innerHTML = meglio < 52
+      ? `<strong>Non c'è niente di buono qui.</strong> Il migliore vale ${Math.round(meglio)}% — sotto il 52% ci si finisce in 8 posizioni su 132. Prendi il meno peggio e giocatela.`
+      : `<strong>Draft pari.</strong> Il migliore vale ${Math.round(meglio)}%, sotto la mediana (54%). Nessun pick ti fa vincere la partita: la decide come giocate.`;
+    el.appendChild(p);
+  }
   suggestions.forEach((s, i) => {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
