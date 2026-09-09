@@ -1,0 +1,782 @@
+<title>Mappe di Teologia Morale</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --paper:#f4f5f8;
+  --paper-alt:#e8eaf1;
+  --paper-card:#fbfbfd;
+  --ink:#161a2b;
+  --ink-soft:#4b5164;
+  --rubric:#8c2b34;
+  --rubric-soft:#c98f95;
+  --gold:#8a6a20;
+  --line:#c9cdd8;
+  --shadow: 0 1px 2px rgba(22,26,43,.06), 0 6px 16px rgba(22,26,43,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#14161f;
+    --paper-alt:#1c1f2c;
+    --paper-card:#1a1d29;
+    --ink:#e9e8e2;
+    --ink-soft:#a9adbd;
+    --rubric:#e0838b;
+    --rubric-soft:#5c2b30;
+    --gold:#d1a94f;
+    --line:#333748;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#14161f;
+  --paper-alt:#1c1f2c;
+  --paper-card:#1a1d29;
+  --ink:#e9e8e2;
+  --ink-soft:#a9adbd;
+  --rubric:#e0838b;
+  --rubric-soft:#5c2b30;
+  --gold:#d1a94f;
+  --line:#333748;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Public Sans',ui-sans-serif,system-ui,sans-serif;
+  margin:0;
+}
+
+.wrap{max-width:1180px;margin:0 auto;padding:2.5rem 1.75rem 6rem;}
+
+/* ---------- Masthead ---------- */
+.masthead{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1.5rem;
+  padding-bottom:1.25rem;
+  border-bottom:1.5px solid var(--line);
+  margin-bottom:1.75rem;
+  flex-wrap:wrap;
+}
+.masthead h1{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:700;
+  font-size:clamp(2.1rem,4vw,2.9rem);
+  margin:0;
+  line-height:1.05;
+  text-wrap:balance;
+  letter-spacing:.2px;
+}
+.masthead .eyebrow{
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:.72rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--rubric);
+  margin:0 0 .5rem;
+  font-weight:600;
+}
+.masthead .sub{
+  font-size:.9rem;
+  color:var(--ink-soft);
+  margin:.4rem 0 0;
+  max-width:46ch;
+}
+.print-btn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.72rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  background:var(--rubric);
+  color:#fbf6f0;
+  border:none;
+  padding:.65rem 1.1rem;
+  border-radius:3px;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:var(--shadow);
+}
+.print-btn:hover{filter:brightness(1.08);}
+.print-btn:focus-visible{outline:2px solid var(--rubric);outline-offset:2px;}
+
+/* ---------- TOC ---------- */
+.toc{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:.6rem;
+  margin-bottom:3rem;
+}
+.toc a{
+  display:flex;
+  gap:.7rem;
+  align-items:baseline;
+  padding:.7rem .85rem;
+  background:var(--paper-card);
+  border:1px solid var(--line);
+  border-radius:4px;
+  text-decoration:none;
+  color:var(--ink);
+  font-size:.85rem;
+  transition:border-color .15s ease, transform .15s ease;
+}
+.toc a:hover{border-color:var(--rubric-soft);transform:translateY(-1px);}
+.toc a:focus-visible{outline:2px solid var(--rubric);outline-offset:2px;}
+.toc .n{
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--rubric);
+  font-weight:600;
+  font-size:.78rem;
+}
+.toc .t{font-weight:600;line-height:1.25;}
+
+/* ---------- Chapter / Map ---------- */
+.chapter{
+  margin-bottom:4.5rem;
+  page-break-after:always;
+  break-after:page;
+}
+.chapter:last-child{page-break-after:auto;break-after:auto;}
+
+.chapter-head{
+  display:flex;
+  align-items:baseline;
+  gap:.85rem;
+  margin-bottom:1.6rem;
+}
+.chapter-head .num{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.78rem;
+  letter-spacing:.1em;
+  color:var(--rubric);
+  font-weight:600;
+  white-space:nowrap;
+}
+.chapter-head h2{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:700;
+  font-size:clamp(1.5rem,2.6vw,1.95rem);
+  margin:0;
+  line-height:1.1;
+  text-wrap:balance;
+}
+.chapter-head .rule{flex:1;height:1px;background:var(--line);align-self:center;}
+
+/* central hub */
+.hub-row{display:flex;flex-direction:column;align-items:center;margin-bottom:0;}
+.hub{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:700;
+  font-size:1.25rem;
+  text-align:center;
+  color:#fbf6f0;
+  background:var(--rubric);
+  padding:.85rem 1.9rem;
+  border-radius:999px;
+  box-shadow:var(--shadow);
+  max-width:60ch;
+  line-height:1.2;
+}
+.stem{width:1.5px;height:1.4rem;background:var(--line);}
+.bus{height:1.5px;background:var(--line);width:100%;max-width:1080px;}
+
+/* branch grid */
+.branches{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+  gap:1.1rem 1.2rem;
+  padding-top:1.4rem;
+}
+.branch{
+  background:var(--paper-card);
+  border:1px solid var(--line);
+  border-top:3px solid var(--gold);
+  border-radius:6px;
+  padding:.95rem 1.05rem 1.05rem;
+  box-shadow:var(--shadow);
+}
+.branch h3{
+  font-family:'Public Sans',sans-serif;
+  font-weight:700;
+  font-size:.86rem;
+  letter-spacing:.01em;
+  color:var(--gold);
+  margin:0 0 .55rem;
+  line-height:1.25;
+}
+.branch ul{
+  margin:0;
+  padding-left:1.05rem;
+  font-size:.8rem;
+  line-height:1.48;
+  color:var(--ink);
+}
+.branch ul ul{
+  margin-top:.25rem;
+  padding-left:1rem;
+  font-size:.98em;
+  color:var(--ink-soft);
+}
+.branch li{margin-bottom:.4rem;}
+.branch li:last-child{margin-bottom:0;}
+.branch li::marker{color:var(--rubric-soft);}
+
+footer{
+  margin-top:2rem;
+  padding-top:1.2rem;
+  border-top:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;
+  color:var(--ink-soft);
+  letter-spacing:.03em;
+}
+
+@media print{
+  body{background:#fff;--paper:#fff;--paper-card:#fff;}
+  .wrap{max-width:none;padding:.4cm .6cm;}
+  .toc, .print-btn{display:none !important;}
+  .masthead{margin-bottom:1cm;}
+  .chapter{margin-bottom:0;}
+  .branch{box-shadow:none;}
+  .hub{box-shadow:none;}
+  @page{size:A4 landscape;margin:1cm;}
+}
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div>
+      <p class="eyebrow">Teologia morale — dispensa riassuntiva</p>
+      <h1>Mappe concettuali, capitolo per capitolo</h1>
+      <p class="sub">11 capitoli, ogni nodo del riassunto riportato per intero. Pensate per essere stampate una per pagina (A4 orizzontale).</p>
+    </div>
+    <button class="print-btn" onclick="window.print()">Stampa tutte le mappe</button>
+  </div>
+
+  <nav class="toc" id="toc" aria-label="Indice dei capitoli"></nav>
+
+  <main id="chapters"></main>
+
+  <footer>Documento generato dal riassunto fornito — nessun contenuto è stato omesso, solo riorganizzato in forma di mappa.</footer>
+</div>
+
+<script>
+const CHAPTERS = [
+{
+  n:"01", title:"La solitudine dei giovani",
+  hub:"La solitudine dei giovani",
+  branches:[
+    {t:"Il divario generazionale", items:[
+      "L'Italia è un paese anziano: gli adulti faticano a capire l'universo mentale dei giovani",
+      "La giovinezza degli adulti (anni '80-'90) fu vissuta in un mondo semplice e stabile",
+      "Oggi i giovani ereditano un mondo complicato, senza punti di riferimento",
+      "Errore degli adulti: proporre soluzioni con modelli superati e inefficaci"
+    ]},
+    {t:"Fine delle grandi narrazioni", items:[
+      "1989, caduta del Muro di Berlino → fine delle ideologie, crisi di partiti e istituzioni",
+      "Si rompe la continuità tra padri e figli che garantiva identità e fiducia nel futuro",
+      "Crollo della pratica religiosa: le Chiese viste come «non luoghi», prive di sacralità",
+      "Un mondo non ateo ma «senza Dio»: assente da letteratura, cinema, media, social",
+      "Resistono storie individuali di autentico recupero della fede",
+      "Anche il mondo ecclesiale si contrae: pensiero debole, appartenenza sostituita dal like",
+      "Critica agli adulti: aver «abbassato l'asticella» educativa e culturale"
+    ]},
+    {t:"Un mondo sfarinato", items:[
+      "Socialità giovanile ridotta a individualismo, non più comunitaria",
+      "Scuola frammentata dalla digitalizzazione (tablet, slide, registro elettronico)",
+      "Lockdown e DAD: ferite profonde, falsa illusione di vicinanza dietro lo schermo",
+      "Isolamento → bullismo, competitività esasperata, difficoltà ad accettare il fallimento",
+      "Segnali d'allarme: disturbi alimentari, tatuaggi, piercing",
+      "Risposta degli adulti: silenzio, oppure psicofarmaci e ansiolitici (nuove dipendenze)"
+    ]},
+    {t:"Il mondo degli affetti", items:[
+      "I siti di incontri come sintomo dell'incapacità di incontrarsi davvero",
+      "Relazioni digitali fondate su identità fittizie e immagini costruite",
+      "Senza l'esempio dei genitori è difficile concepire un amore stabile",
+      "«Noi amiamo perché Egli ci ha amati per primo» — l'amore si impara vivendolo",
+      "La società educa a mettere l'io davanti al noi",
+      "Scompare il fidanzamento, si preferisce la convivenza senza reale verifica affettiva",
+      "Critica alla rivoluzione sessuale: scissione tra sessualità, fecondità e amore"
+    ]},
+    {t:"La teatralizzazione del mondo e i social", items:[
+      "Lo smartphone sdoppia l'esistenza: realtà quotidiana opaca vs dimensione virtuale dorata",
+      "Paradosso: l'individuo «esiste solo se pubblica»",
+      "Filtri e nickname costruiscono un'identità ideale vissuta come reale",
+      "Dietro lo schermo ci si sente al sicuro, protetti dai like: «si spegne il pensiero»",
+      "Serve un'educazione digitale consapevole",
+      "Dopo la «morte di Dio», la scomparsa del prossimo condanna alla solitudine"
+    ]},
+    {t:"Verso una ricostruzione", items:[
+      "L'individualismo esasperato ha origini storiche negli anni Sessanta",
+      "1) Abbandonare le dinamiche regressive dell'ego, aprirsi ai bisogni degli altri",
+      "2) Recuperare il valore della parola, capace di dare struttura al mondo",
+      "3) Gli adulti devono riscoprire l'autorevolezza verso i giovani",
+      "Punto di partenza: l'ascolto — delle parole altrui e della Parola, custodita dalla Chiesa"
+    ]}
+  ]
+},
+{
+  n:"02", title:"San Tommaso d'Aquino",
+  hub:"San Tommaso d'Aquino — l'eredità da far fruttare",
+  branches:[
+    {t:"La metafora dell'eredità", items:[
+      "Ricevuto un lascito, l'erede può: ignorarlo, disperderlo, dilapidarlo, seppellirlo per paura",
+      "Opzione migliore: farlo fruttare e investirlo in direzioni nuove",
+      "Si applica all'eredità intellettuale di Tommaso, nell'800° anniversario della nascita"
+    ]},
+    {t:"Confronto con Sant'Agostino", items:[
+      "Agostino: pagine tormentate, vicine alla sensibilità dell'uomo moderno",
+      "Tommaso: stile pacato, accademico; la Summa segue argomenti a favore e contrari",
+      "Libertà intellettuale: la verità non cambia a seconda di chi la pronuncia",
+      "In un'epoca di toni urlati, insegna il valore del dialogo senza ostilità",
+      "Scrive la Summa per i «novizi», per rimediare a una didattica caotica e dispersiva",
+      "Oggi la cultura è spesso asservita a tesi precostituite (università, media, social)"
+    ]},
+    {t:"Il gusto delle domande", items:[
+      "La Summa è un immenso libro di quesiti: Tommaso credeva nel dibattito",
+      "Oggi l'autorità è incarnata da media, social e lobbies che condizionano il pensiero",
+      "Il lavoro intellettuale come servizio alla comunità, per liberarla dagli slogan ideologici"
+    ]},
+    {t:"Elaborare una cultura cristiana", items:[
+      "I Padri della Chiesa fusero l'eredità di Atene, Roma e Cristianesimo",
+      "Tommaso, nel Duecento, si confronta con la visione laica di Aristotele",
+      "Comprende Aristotele ma crea un pensiero interamente nuovo",
+      "Da evitare due estremi: appiattimento acritico e irrigidimento difensivo",
+      "Via tommasiana: sviluppare la propria identità e riagganciarla al Vangelo",
+      "Paolo VI: la rottura tra Vangelo e cultura è «il dramma della nostra epoca»"
+    ]},
+    {t:"Nella continuità", items:[
+      "Consapevolezza storica: non siamo il culmine del pensiero, ma parte di un cammino comune",
+      "Non un «io penso» assoluto, ma un «io penso insieme a te»",
+      "Cartesio fa tabula rasa; Lutero esalta l'esperienza individuale; lo storicismo si crede culmine della storia",
+      "Conclusione: sostituire la supponenza individualista con la gratitudine verso chi ci ha preceduto"
+    ]}
+  ]
+},
+{
+  n:"03", title:"Esiste il diritto naturale",
+  hub:"Esiste il diritto naturale",
+  branches:[
+    {t:"Leggi non scritte e riflesso del cosmo", items:[
+      "Nel mondo greco (Antigone): i decreti di un re non possono calpestare le leggi celesti non scritte",
+      "La giustizia terrena come riflesso dell'ordine dell'universo (Romolo, culture indiana e cinese)",
+      "Platone: la giustizia è armonia, come la ragione che controlla impulsi e desideri",
+      "Col Cristianesimo: la ragione umana riflette la sapienza di Dio, creatore dell'ordine"
+    ]},
+    {t:"Le definizioni classiche", items:[
+      "Ulpiano: il diritto naturale è ciò che la natura insegna a tutti gli animali",
+      "Aristotele: giusto legale (leggi scritte) vs giusto naturale (valido ovunque)",
+      "Due problemi aperti: istituti sempre esistiti? natura umana con caratteri fissi?",
+      "Oggi il relativismo domina: nulla è assoluto, tutto dipende dai punti di vista"
+    ]},
+    {t:"Il paradosso di Sant'Agostino", items:[
+      "Negava il diritto naturale: esiste solo legge eterna e legge positiva umana",
+      "Motivo: col peccato originale la ragione umana è debole e «ferita»",
+      "Lutero: la natura è corrotta, la ragione retta solo grazie a Cristo",
+      "San Paolo: l'autorità civile porta la spada per mandato di Dio"
+    ]},
+    {t:"La natura come scopo, e la sua crisi moderna", items:[
+      "Per Aristotele e Tommaso la natura è lo scopo finale di una cosa (il seme → l'albero)",
+      "Fare il bene = realizzare il proprio scopo naturale: realtà e dovere coincidevano",
+      "Con la scienza moderna la natura diventa solo ciò che si misura",
+      "David Hume (1700): non si può dedurre un dovere da un fatto",
+      "Conseguenza: bene e male dipendono solo dalle scelte e leggi umane"
+    ]},
+    {t:"Il metodo scientifico e le quattro cause", items:[
+      "Prima di Galileo: religione e filosofia cercavano il «perché» delle cose",
+      "Con Galileo: la natura diventa matematica, la scienza chiede solo il «come»",
+      "Le quattro cause aristoteliche: materiale, efficiente, formale, finale",
+      "La causa finale viene cancellata nel Seicento",
+      "Il modello fallisce in medicina (il fine coordina gli organi) e nel diritto (fatti umani non numerabili)"
+    ]},
+    {t:"Il diritto naturale esiste", items:[
+      "Compito del legislatore: discernere il bene, proteggere valori già iscritti nella natura umana",
+      "Diritti inviolabili: libertà religiosa, beni essenziali e partecipazione politica, famiglia",
+      "La dignità si fonda sulla natura umana comune, dato oggettivo che nessuno può cancellare",
+      "Esiste una legge naturale scritta dentro di noi, che dice cosa è giusto e cosa è sbagliato"
+    ]}
+  ]
+},
+{
+  n:"04", title:"San Tommaso giurista",
+  hub:"San Tommaso è stato un giurista?",
+  branches:[
+    {t:"Il contesto medievale", items:[
+      "XIII secolo: grande vitalità degli studi giuridici, nascita delle facoltà, riuso del Digesto",
+      "Non giurista in senso moderno: la cultura medievale è unitaria, non specialistica",
+      "Le Summae medievali unificano il sapere in un unico principio: Dio",
+      "Ogni disciplina, per Tommaso, riceve senso solo in relazione a Dio"
+    ]},
+    {t:"LEX e IUS nella Summa Theologiae", items:[
+      "La legge (lex) trattata nella I-II parte: le virtù naturali e morali",
+      "Il diritto (ius) trattato nella II-II parte: le virtù teologali (fede, speranza, carità)",
+      "Metafora dell'ellisse a due fuochi: legge da un lato, diritto dall'altro",
+      "Storicamente l'ellisse si appiattisce in un cerchio: la legge assorbe il diritto",
+      "Le Costituzioni del dopoguerra restituiscono lo ius sopra la lex (Rule of Law)"
+    ]},
+    {t:"Lo ius, centro dell'esperienza giuridica", items:[
+      "Concetto moderno (dal Codice napoleonico 1804): diritto soggettivo, potere della volontà",
+      "Concetto medievale: diritto oggettivo, ripartizione dei beni, non volontà dello Stato",
+      "Per Tommaso lo ius è «ipsa res iusta»: la cosa giusta in sé",
+      "Il legislatore non crea il diritto, ma dichiara ciò che è già intrinsecamente giusto"
+    ]},
+    {t:"La giustizia commutativa", items:[
+      "Immagine della bilancia: equilibrio perfetto tra dare e ricevere",
+      "Esempio 1: responsabilità extracontrattuale (art. 2043 c.c.)",
+      "Esempio 2: il giusto prezzo nelle compravendite",
+      "Esempio 3: l'usura e i contratti viziati da errore, violenza o dolo",
+      "Il giusto si realizza per natura o per accordo (privato o pubblico)",
+      "Separazione tra legge (ragione, schema deduttivo) e diritto (intelletto, realtà)"
+    ]},
+    {t:"Le tre leggi in sistema", items:[
+      "Legge eterna: il piano divino che governa il cosmo (metafore: l'orologio, il cambio della bici)",
+      "Legge naturale: partecipazione dell'uomo alla legge eterna",
+      "— tendenze: conservazione della vita, unione uomo-donna e cura dei figli, socialità e verità su Dio",
+      "Primo precetto: «il bene è da farsi e da cercarsi, il male è da evitarsi»",
+      "Quadruplice identità della legge: trascendente, obiettiva, immanente, razionale",
+      "Legge positiva umana: norma statale che deve conformarsi alla legge naturale"
+    ]},
+    {t:"La legge umana positiva", items:[
+      "Non contraddice il diritto naturale: lo traduce in regole concrete",
+      "Supera Agostino: lo Stato non è solo un male necessario contro il peccato",
+      "Ragione speculativa (cose immutabili) vs ragione pratica (azioni umane mutevoli)",
+      "Dai principi astratti alle norme concrete: per sillogismo o per determinazione"
+    ]},
+    {t:"Conclusione", items:[
+      "La sapienza giuridica di Tommaso è risorsa contro la rigidità del formalismo moderno",
+      "Il diritto è inserito in un sistema unitario orientato alla ricerca di Dio"
+    ]}
+  ]
+},
+{
+  n:"05", title:"Corporeità e diritto privato",
+  hub:"Corporeità e diritto privato",
+  branches:[
+    {t:"Biotecnologie e proprietà del corpo", items:[
+      "Errore diffuso: pensare di essere proprietari del proprio corpo, come un oggetto",
+      "L'autonomia riguarda l'avere (beni); la vita e la salute riguardano l'essere",
+      "«Non abbiamo un corpo, siamo il nostro corpo» — non è un bene disponibile o vendibile"
+    ]},
+    {t:"L'articolo 32 della Costituzione", items:[
+      "Comma 1: la salute è diritto fondamentale dell'individuo e interesse della collettività",
+      "Trasformare il consenso informato in disponibilità assoluta di sé svilisce la dignità umana",
+      "Comma 2: nessun trattamento sanitario obbligatorio se non per legge",
+      "Norma nata «dopo Auschwitz», a tutela dell'intangibilità fisica contro i regimi totalitari"
+    ]},
+    {t:"Le tutele civili e costituzionali", items:[
+      "Art. 5 c.c.: vieta atti che causino diminuzione permanente dell'integrità fisica",
+      "Art. 2 Cost.: protegge i diritti inviolabili e impone doveri di solidarietà",
+      "Il limite all'autonomia privata evita che un soggetto disponga di un altro"
+    ]},
+    {t:"Il parallelismo col diritto del lavoro", items:[
+      "In origine il lavoro era una «locazione d'opera»: sfruttamento di donne e bambini",
+      "La svolta: la forza lavoro non è merce staccabile dal lavoratore → visione personalistica",
+      "Con le biotecnologie, rischio di ridurre la persona al dato biologico (es. selezione embrioni)",
+      "La Costituzione: ogni individuo è soggetto di diritto dal primo all'ultimo istante di vita"
+    ]},
+    {t:"Prospettive interpretative", items:[
+      "L'ordinamento non è fatto solo di Stato e individuo, ma di una pluralità di formazioni sociali",
+      "Art. 2 Cost.: la famiglia come «società naturale»",
+      "Legge 194/1978: la decisione sull'aborto è della donna, ma non è disposizione totale sul feto",
+      "Art. 7 legge 194/1978: se il feto può vivere autonomamente, va salvaguardata la sua vita"
+    ]},
+    {t:"Il rapporto medico-paziente", items:[
+      "Non è un semplice contratto economico: il malato non è un oggetto, il medico non è un esecutore",
+      "Dignità = libertà e parità dei soggetti",
+      "Rifiuto anticipato di cure: distanza psicologica e temporale dal momento della decisione",
+      "La volontà è modificabile fino all'ultimo istante di vita: consenso attuale ≠ consenso virtuale",
+      "La delega a terzi rischia di aprire la strada a forme di omicidio del consenziente"
+    ]}
+  ]
+},
+{
+  n:"06", title:"La violenza di genere",
+  hub:"La violenza di genere",
+  branches:[
+    {t:"«In principio fu la Madre»", items:[
+      "Teoria del matriarcato originario, poi distrutto dall'invidia maschile: nasce il patriarcato",
+      "Accettare questa lettura significa accettare il conflitto come inevitabile",
+      "Il problema di fondo: la società fatica a uscire da una logica di scontro"
+    ]},
+    {t:"Le narrazioni bibliche", items:[
+      "Caino e Abele: fatti per essere fratelli, finiamo spesso per farci la guerra",
+      "«Tuo marito ti dominerà» (Genesi): descrive una rottura, non la condizione originaria",
+      "Il racconto della creazione nasce in esilio a Babilonia, per custodire l'identità del popolo",
+      "A differenza dei miti antichi (guerra tra dei), la Bibbia crea il mondo con una sola Parola, senza violenza"
+    ]},
+    {t:"Dal linguaggio all'antropologia", items:[
+      "Per vivere insieme serve la Parola: ognuno rinuncia a imporre la propria visione (Alain Supiot)",
+      "Il linguaggio è il primo «bene comune» da proteggere",
+      "Chi si chiude in un linguaggio privato si isola (dal greco «idiotes»)",
+      "Logos = parola e ragione insieme",
+      "La biogiuridica richiede un significato comune per parole come «famiglia», «figlio», «marito»",
+      "Il diritto come «tecnica del divieto»: tecnica umana, che istituisce le persone come soggetti"
+    ]},
+    {t:"I tre limiti fondanti dell'antropologia", items:[
+      "La nascita insegna la causa: non ci siamo fatti da soli",
+      "Il sesso insegna la differenza: da soli siamo solo metà dell'umanità",
+      "La morte insegna la regola: il mondo continua anche senza di noi",
+      "Passaggio necessario: dal principio del piacere al principio di realtà",
+      "«Non esiste identità senza limiti» — la vera libertà nasce dall'accettarli"
+    ]},
+    {t:"Il patriarcato, oggi", items:[
+      "Distinzione tra «Paese reale» (mentalità patriarcale residua) e «Paese legale» (parità nelle leggi)",
+      "Legge 194/1978 sull'aborto: decisione riservata solo alla donna",
+      "Legge sul divorzio: nessun privilegio per il marito",
+      "Paradosso: mentalità patriarcale residua accanto a una crisi profonda dell'identità maschile"
+    ]},
+    {t:"Riscoprire l'alleanza", items:[
+      "Serve un «terzo» neutrale per fare pace: la legge e il giudice",
+      "Parabola del figliol prodigo: i fratelli non fanno pace perché fraintendono il padre",
+      "San Paolo: «non c'è più uomo né donna, tutti siete uno»",
+      "Il cristianesimo introduce il matrimonio come scelta libera e la monogamia",
+      "Serve passare dalla legge umana alla Parola di Dio, che rivela uguaglianza e complementarità"
+    ]}
+  ]
+},
+{
+  n:"07", title:"Diritto, linguaggio e antropologia",
+  hub:"Diritto, linguaggio e antropologia",
+  branches:[
+    {t:"Diritto, ragione e parola", items:[
+      "Gli animali seguono regole per causa-effetto, ma non ne capiscono il perché",
+      "Gli uomini hanno diritto perché possiedono ragione e linguaggio",
+      "Una legge sentita come ingiusta smette di essere rispettata (crollo delle dittature)"
+    ]},
+    {t:"Il diritto nasce da una ragione condivisa", items:[
+      "Regole non scritte nascono dalla fiducia reciproca (es. la fila allo sportello)",
+      "Hobbes si sbagliava: l'uomo non è un lupo feroce senza guardiano",
+      "Aristotele: l'uomo è un «animale socievole»",
+      "Tesi centrale: diritto, linguaggio e ragione sono collegati",
+      "Gli animali restano «oggetti» di legge, non «soggetti»: mancano parola e ragione"
+    ]},
+    {t:"La parola: icona o fantasma", items:[
+      "La parola può essere icona (riflesso vero) o fantasma (immagine ingannevole)",
+      "Compito del legislatore: chiamare le cose col loro nome, senza mentire",
+      "Impoverimento del linguaggio: «coppia» ridotta a somma di due persone",
+      "Critica alla «famiglia mononucleare» come contraddizione in termini",
+      "Critica al politicamente corretto (es. i femminili di ruolo)",
+      "Il vero problema: il diritto pensato sul modello maschile cancella le differenze reali",
+      "I diritti dei bambini spesso pensati come se fossero piccoli adulti"
+    ]},
+    {t:"Senso, diritto e linguaggio", items:[
+      "Si può dire qualsiasi cosa, ma solo dentro le regole della logica comune",
+      "L'ideologia pretende che siano le cose ad adattarsi ai nostri ragionamenti",
+      "Il diritto non può dominare l'uomo o disporre del suo corpo: è soggetto, non oggetto",
+      "Esempio: legge canadese che vieta al bambino il legame legale col padre biologico",
+      "Mostruosità reale (psicologica) e mostruosità giuridica (discriminazione) generate da questa legge"
+    ]},
+    {t:"I tre limiti biologici e il ruolo del diritto", items:[
+      "Nascita → causalità; Sesso → differenziazione; Morte → norma",
+      "Crescere: dal principio del piacere al principio di realtà",
+      "Il diritto deve guidare la tecnica senza lasciarla distruggere l'umano",
+      "La libertà non è assoluta: l'«io» si costruisce su un «sé» donato",
+      "Pascal: l'uomo non è né angelo né bestia"
+    ]}
+  ]
+},
+{
+  n:"08", title:"Il diritto e la pace",
+  hub:"Il diritto e la pace",
+  branches:[
+    {t:"Le premesse non giuridiche del diritto", items:[
+      "Il diritto nasce quando manca la pace, cioè nel conflitto",
+      "La «fictio iuris»: si crede che la regola preesista perfetta al caso concreto",
+      "In realtà la regola si costruisce nel processo: scelta dell'articolo, dei fatti rilevanti, convinzione del giudice",
+      "La discrezionalità dell'autorità deve muoversi entro il bene pubblico",
+      "Il Codice non è un insieme di comandi certi, ma un «fascio di possibilità»"
+    ]},
+    {t:"Indeterminazione del diritto", items:[
+      "Il diritto non è matematica: il punto di vista di chi osserva cambia il risultato",
+      "Le leggi scritte sono un punto di partenza, non l'arrivo",
+      "Il diritto è un «lavoro in corso», creato insieme da giudici, avvocati e cittadini"
+    ]},
+    {t:"Una topica complessa", items:[
+      "Rischio: la legge diventa il comando del più forte sul più debole",
+      "Tacito sui conquistatori romani: «fanno il deserto e lo chiamano pace»",
+      "Compito del giudice: rendere la legge «abitabile» (Papa Francesco)"
+    ]},
+    {t:"Il diritto come creazione", items:[
+      "Come nella Genesi: il giurista usa le parole per mettere ordine nel caos",
+      "Scopo del diritto: creare uguaglianza e difendere la dignità (l'«anima» del diritto)",
+      "Critica al giusrazionalismo geometrico del Seicento",
+      "Il diritto è scienza pratica (iuris prudentia): si ragiona caso per caso",
+      "La regola nasce da tre elementi: legge scritta, caso reale, valori della comunità"
+    ]},
+    {t:"La proposta del diritto canonico", items:[
+      "Benedetto XVI: il diritto non è fatto solo di codici e articoli",
+      "La legge scritta ha bisogno di un'anima: diritto divino/naturale nella Chiesa, Costituzione nello Stato",
+      "Canone 17: le leggi si interpretano secondo il significato proprio, nel testo e nel contesto",
+      "Il contesto è la realtà umana e sociale: apertura ad essa fa del giurista un operatore di pace"
+    ]}
+  ]
+},
+{
+  n:"09", title:"Rinunciare al diritto?",
+  hub:"Rinunciare al diritto?",
+  branches:[
+    {t:"Premessa", items:[
+      "L'uomo è un «animale politico» (Aristotele): si realizza solo dentro una comunità",
+      "Art. 2 Cost.: la personalità si sviluppa nelle formazioni sociali",
+      "Stare insieme è difficile: rischio di chiudersi nell'indifferenza o nell'ostilità"
+    ]},
+    {t:"Livello 0 — La violenza", items:[
+      "L'altro è visto come nemico o concorrente",
+      "Miti fondativi: Caino uccide Abele, Romolo uccide Remo",
+      "La violenza usa solo la forza bruta: si subisce da schiavi o si lotta per la giustizia"
+    ]},
+    {t:"Livello 1 — Il diritto", items:[
+      "Il diritto è come la grammatica: serve a comportarsi bene insieme",
+      "Solo lo Stato può usare la forza per punire",
+      "Pace fragile, ancora basata sulla paura della punizione"
+    ]},
+    {t:"Livello 2 — La rinuncia al diritto", items:[
+      "La legge si basa sul calcolo; la vita vera conosce il passo indietro per amore",
+      "Il Codice Civile prevede casi generosi: cancellare un debito, pagare per un altro",
+      "Il Vangelo chiede una giustizia più grande: la logica del dono"
+    ]},
+    {t:"Livello 3 — La legge come ponte", items:[
+      "La legge può essere clava (per schiacciare) o ponte (per unire e proteggere i deboli)",
+      "Esempio: il diritto del lavoro dell'Ottocento, da sfruttamento a tutela",
+      "Se isolata dalla morale, la società crolla: il diritto deve restare aperto alla verità della vita"
+    ]},
+    {t:"Conclusione", items:[
+      "Vivere bene con gli altri significa saper rinunciare a un proprio diritto per non ferire l'altro",
+      "Non è debolezza ma umiltà e ricchezza interiore",
+      "La giustizia è la base necessaria; l'amore e la cura dell'altro sono il traguardo finale"
+    ]}
+  ]
+},
+{
+  n:"10", title:"Mitezza e umiltà",
+  hub:"Mitezza e umiltà",
+  branches:[
+    {t:"Vera e falsa spiritualità", items:[
+      "Il male può imitare digiuni e sacrifici, ma non l'umiltà e la mitezza",
+      "La vera santità si riconosce dalla vicinanza e dalla misericordia",
+      "Vera sapienza: pacifica e capace di ascolto — falsa sapienza: arrogante",
+      "Esempio di San Tommaso: chi possiede la verità non ha bisogno di aggredire"
+    ]},
+    {t:"Cos'è (e cosa non è) la mitezza", items:[
+      "Non è debolezza, non è ignoranza o paura, non è sottomissione",
+      "È: coraggio nel discutere con calma, fermezza nel pretendere giustizia, difesa dei deboli",
+      "Gesù assorbe il male invece di distruggere chi lo attacca",
+      "La sua libertà interiore viene dalla totale fiducia in Dio",
+      "Città di Caino (egoismo, violenza) vs Città di Cristo (accoglienza, sacrificio)",
+      "Dalla mangiatoia al sepolcro: coerenza tra nascita e morte; pazienza coi discepoli"
+    ]},
+    {t:"Cos'è (e cosa non è) l'umiltà", items:[
+      "Non è falsa modestia, non è depressione, non è una recita",
+      "È verità: riconoscere i propri limiti come dono di Dio",
+      "È dono dello Spirito, nasce dai fallimenti (come per Pietro)",
+      "È «kenosi»: Gesù rinuncia al diritto di essere trattato come Dio",
+      "Il perdono sembra «ingiusto» alla logica umana, ma è la logica del dono di Gesù"
+    ]},
+    {t:"I tre livelli di esistenza", items:[
+      "1) Lo stato di natura: dominato dalla violenza (homo homini lupus)",
+      "2) Il diritto umano: regola la convivenza ma legalizza la violenza, non la elimina",
+      "3) La giustizia del Regno: l'umiltà di Cristo, che spegne la violenza senza reagire",
+      "Sfida per il cristiano: rinunciare ai propri diritti per amore"
+    ]},
+    {t:"I gradini dell'umiliazione di Gesù", items:[
+      "L'indifferenza e la solitudine: tradito dagli amici, ignorato dal popolo",
+      "Il silenzio: non si difende davanti agli accusatori",
+      "Il disonore: muore come un criminale, per solidarietà con l'uomo",
+      "Oggi la debolezza della Chiesa è un'occasione: ogni risurrezione comincia dal nulla"
+    ]}
+  ]
+},
+{
+  n:"11", title:"Una possibile evoluzione del diritto",
+  hub:"Una possibile evoluzione del diritto",
+  branches:[
+    {t:"Il diritto soggettivo moderno", items:[
+      "Nel Medioevo e a Roma il diritto cercava un ordine naturale nelle cose",
+      "Con la modernità l'individuo diventa isolato, libero, desideroso di dominare",
+      "Simbolo: il diritto di proprietà del Codice Napoleonico",
+      "La libertà come confine: «faccio ciò che voglio, purché non ostacoli gli altri»",
+      "Lo Stato interviene solo come arbitro armato",
+      "Marx: i diritti dell'uomo egoista, isolato come una «monade»"
+    ]},
+    {t:"Il pensiero di Gabriel Marcel", items:[
+      "Viviamo nella «riflessione prima»: la libertà come proprietà privata",
+      "Le persone trattate come oggetti o strumenti, rapporti puramente funzionali",
+      "Le persone come monadi isolate («radio ricetrasmittenti»)",
+      "La responsabilità si riduce al minimo richiesto dalla legge",
+      "Serve un «esodo» dall'egoismo per vedere l'altro come persona, non ostacolo",
+      "Il diritto deve diventare spazio di intersoggettività, incontro autentico",
+      "L'uomo esiste solo in relazione: rispondere all'altro è il vero atto di libertà",
+      "Anche per Tommaso, le leggi devono far scorrere la naturale socialità dell'uomo"
+    ]},
+    {t:"Prospettive in bioetica", items:[
+      "Temi: rapporto medico-paziente, aborto, eutanasia, manipolazione genetica, ambiente",
+      "Questi problemi non si risolvono restando nella logica del «diritto soggettivo» («la vita è mia»)",
+      "Serve pensare a partire dall'altro: non esistono «stranieri morali»",
+      "In medicina: ascolto vero del malato, non comando né freddo servizio",
+      "In famiglia: il bambino ha bisogno di essere «figlio», non di ricevere «servizi»",
+      "Verso natura e ambiente: pensare alle generazioni future e ai popoli più poveri",
+      "Credenti e non credenti possono costruire insieme un nuovo Illuminismo delle leggi"
+    ]}
+  ]
+}
+];
+
+function renderBranch(b){
+  const sub = document.createElement('div');
+  sub.className='branch';
+  const h=document.createElement('h3');
+  h.textContent=b.t;
+  sub.appendChild(h);
+  const ul=document.createElement('ul');
+  b.items.forEach(it=>{
+    const li=document.createElement('li');
+    li.textContent=it;
+    ul.appendChild(li);
+  });
+  sub.appendChild(ul);
+  return sub;
+}
+
+const tocEl=document.getElementById('toc');
+const mainEl=document.getElementById('chapters');
+
+CHAPTERS.forEach(ch=>{
+  const a=document.createElement('a');
+  a.href='#cap-'+ch.n;
+  a.innerHTML='<span class="n">'+ch.n+'</span><span class="t">'+ch.title+'</span>';
+  tocEl.appendChild(a);
+
+  const sec=document.createElement('section');
+  sec.className='chapter';
+  sec.id='cap-'+ch.n;
+
+  const head=document.createElement('div');
+  head.className='chapter-head';
+  head.innerHTML='<span class="num">CAP. '+ch.n+'</span><h2>'+ch.title+'</h2><span class="rule"></span>';
+  sec.appendChild(head);
+
+  const hubRow=document.createElement('div');
+  hubRow.className='hub-row';
+  const hub=document.createElement('div');
+  hub.className='hub';
+  hub.textContent=ch.hub;
+  const stem=document.createElement('div');
+  stem.className='stem';
+  const bus=document.createElement('div');
+  bus.className='bus';
+  hubRow.appendChild(hub);
+  hubRow.appendChild(stem);
+  hubRow.appendChild(bus);
+  sec.appendChild(hubRow);
+
+  const branches=document.createElement('div');
+  branches.className='branches';
+  ch.branches.forEach(b=>branches.appendChild(renderBranch(b)));
+  sec.appendChild(branches);
+
+  mainEl.appendChild(sec);
+});
+</script>
