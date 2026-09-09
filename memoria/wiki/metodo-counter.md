@@ -40,7 +40,21 @@ Risultato: 100% delle combinazioni coperte, con la distinzione fra misurato e st
 
 La matrice calibrata contraddice il buon senso in punti importanti: davo il Tank favorito contro l'Assassin (+1), i dati dicono **−5,96**. E il risultato più utile: **conta molto più chi affronti che chi sei** — da attaccante le classi stanno tutte entro 1,3 punti; da bersaglio no, l'Artiglieria è preda facile (+6,48) mentre Assassin (−4,04) e Support (−3,66) sono i più duri.
 
-## Il tetto vero, misurato il 9/9: quanto counter è invisibile
+## SUPERATO: la matrice completa esiste (9/9, sera)
+
+Tutto quello che segue in questa pagina — la stima per classe, il favore per brawler, il tetto del 5% — era la risposta giusta a una domanda sbagliata. **La matrice completa dei matchup esiste** e ora è dentro l'app: vedi [[fonti-brawl-stars]] per dov'è e come si è trovata. Per ognuna delle sei modalità, tutte le 5.778 coppie, con il vantaggio al netto della forza generale dei due e la win rate vera, più la **sinergia** fra compagni che prima era un'euristica scritta a mano.
+
+Cosa cambia, in concreto:
+
+- `edgeCentrato(a,b)` è una lettura, non una stima. Dove la coppia non ha abbastanza partite (dal 4% all'11%) si usa la media dei vantaggi **veri** fra quelle due classi, in quella modalità — quindi il ripiego viene dalla stessa fonte del dato.
+- **Il "favore per brawler" era in gran parte un artefatto.** Era stimato dalle 624 coppie che le fonti pubblicavano, che sono per costruzione gli *estremi* di ogni brawler. Nella matrice vera la media di riga di ogni brawler ha deviazione standard di **0,26 punti** in Gem Grab e 0,48 in Hot Zone: quasi zero. Sulle coppie vere non si sottrae più niente, perché `adv` è già il solo effetto della coppia.
+- La scorciatoia algebrica in `edgeCasellaVuota` non serve più (serviva perché la stima dipendeva dalle classi, non dai due brawler). Il ciclo vero sui cento avversari **costa meno** della scorciatoia sulla stima: il ridisegno è passato da 21,8 a 12,8 ms. Leggere un intero da un array tipizzato costa meno che ricostruire una previsione.
+- Il peso del caso peggiore è stato ricalibrato: la curva del compromesso si è spostata e il ginocchio è a 0,2, non a 0,4.
+- Effetto misurato: con tre avversari in campo il primo consigliato **cambia in 27 mappe su 33** (prima 9), e ogni brawler si sposta in media di 1,94 posizioni (prima 0,83).
+
+La parte qui sotto resta come storia del ragionamento e perché è ancora il ripiego quando non c'è una modalità scelta. **Ma la conclusione «il limite è del dato, non del modello» era sbagliata: il limite era della ricerca.**
+
+## Il tetto di quando la matrice non si trovava (storia)
 
 Domanda dell'utente: «in base ai pick dell'avversario ci sarà una sorta di vantaggio tecnico di brawler, non è possibile che non riesci a individuarlo». Ha ragione che esiste. Misurato quanto se ne vede.
 

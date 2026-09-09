@@ -1,5 +1,20 @@
-// La scorciatoia algebrica in edgeCasellaVuota deve dare lo STESSO numero del
-// ciclo ovvio su tutti gli avversari possibili. Se divergono, e' rotta.
+// `edgeCasellaVuota` deve dare lo STESSO numero del ciclo ovvio su tutti gli
+// avversari possibili. Se divergono, e' rotta.
+//
+// Dal 9/9 quello che verifica e' cambiato. Prima l'app usava una scorciatoia
+// algebrica (somma su sette classi invece che su cento avversari) e questo
+// script ne era il controllo. Ora, con la matrice vera dei matchup, il ciclo su
+// cento avversari e' quello che l'app fa davvero — legge interi da un array
+// tipizzato, quindi costa poco — e la scorciatoia resta solo per il caso in cui
+// non c'e' una modalita' scelta. Lo script continua a servire: e' il controllo
+// che il ciclo, la rinormalizzazione e il ripiego per classe siano coerenti fra
+// l'app e un riferimento scritto fuori dall'app.
+//
+// Nota sul riferimento: la media e' CONDIZIONATA a chi ha un valore. Le
+// probabilita' della distribuzione avversaria sono normalizzate su tutti i
+// disponibili, ma il candidato stesso va escluso (non puo' stare in entrambe le
+// squadre) e qualche coppia non ha dato ne' per se' ne' per classe. Quindi si
+// somma anche il peso usato e si divide.
 const { carica } = require("./carica-app.js");
 const a = carica();
 a.state.minPower = 11;
@@ -7,12 +22,21 @@ a.state.minPower = 11;
 // la versione ovvia, scritta qui e non nell'app: e' il riferimento
 function ovvia(candidato) {
   const dist = a.distribuzioneAvversario();
-  let media = 0;
+  const usaMatrice = a.mxModo() !== null;
+  let media = 0, peso = 0;
   for (const r of dist) {
     if (r.name === candidato) continue;
-    media += r.p * a.edgeCentrato(candidato, r.name);
+    if (usaMatrice) {
+      let e = a.advReale(candidato, r.name);
+      if (e === null) e = a.mxClasseAdv(a.classOf(candidato), a.classOf(r.name));
+      if (e === null) continue;
+      media += r.p * e; peso += r.p;
+    } else {
+      media += r.p * a.edgeCentrato(candidato, r.name);
+      peso = 1;
+    }
   }
-  return media;
+  return peso > 0 ? media / peso : 0;
 }
 
 let peggio = 0, chiPeggio = null, n = 0;

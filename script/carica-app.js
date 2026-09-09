@@ -21,8 +21,10 @@ function carica(dir) {
     requestAnimationFrame: (f) => f(),
     console,
     Date, Math, JSON, Map, Set, Object, Array, Number, String, isNaN, parseFloat, parseInt,
+    // la matrice dei matchup e' base64 di interi a 16 bit: serve saperla leggere
+    atob, ArrayBuffer, Uint8Array, Int16Array, WeakMap, performance,
   };
-  const sorgenti = ["data.js", "ritratti.js", "profilo.js", "app.js"];
+  const sorgenti = ["data.js", "matrice.js", "ritratti.js", "profilo.js", "app.js"];
   let codice = "";
   for (const f of sorgenti) {
     const p = path.join(d, f);
@@ -37,8 +39,8 @@ function carica(dir) {
     "computeBanSuggestions", "rawMatchup", "matchupEdge", "classEdge", "predictedWinRate",
     "comparizioneSu600", "correzioneRarita", "contextualWinRate", "scoreCandidate",
     "computeSuggestions", "distribuzioneAvversario", "edgeCasellaVuota", "quotaRisposta",
-    "edgeCentrato", "scartoForzaAvversario", "forzaTipicaMappa", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
-    "filtroAttivo", "usedNames", "currentTurn", "PROFILO"];
+    "edgeCentrato", "advReale", "wrReale", "sinergiaReale", "sinergiaWrReale", "mxClasseAdv", "mxModo", "mxPos", "mxK", "mxArr", "MATRICE", "MX_VUOTO", "scartoForzaAvversario", "forzaTipicaMappa", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
+    "filtroAttivo", "usedNames", "currentTurn", "PROFILO", "QUOTA_RISPOSTA", "MAP_TRAIT_CLASS_BONUS", "searchRank", "ridotto", "rispostaMigliore"];
   codice += "return {" + espone.map((k) => `${k}: typeof ${k} === "undefined" ? undefined : ${k}`).join(", ") + "};";
   const chiavi = Object.keys(finto);
   const fn = new Function(...chiavi, codice);

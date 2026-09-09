@@ -55,9 +55,39 @@ brawlify.com (il sito), noff.gg, brawltime.ninja, topbrawl.com, brawlytix.com, b
 - **brawltime.com**: dati freschi ma da 22 a 411 partite per brawler. Troppo poche: è rumore.
 - **brawlcalculator.com**: 3+3 counter per brawler, senza numeri, da luglio, basati sul parere di un singolo giocatore (SpenLC) — e contraddicono la statistica.
 
-## Il tetto strutturale
+## Il "tetto strutturale" era mio, non del dato (corretto il 9/9)
 
-**Nessuna fonte pubblica la matrice completa dei matchup.** Tutte si fermano ai 3 migliori e 3 peggiori per brawler. Non è pigrizia di chi cerca: è un limite del dato disponibile. La risposta è modellare il resto — vedi [[metodo-counter]].
+Qui c'era scritto: «nessuna fonte pubblica la matrice completa dei matchup, tutte si fermano ai 3 migliori e 3 peggiori per brawler; non è pigrizia di chi cerca, è un limite del dato». **Era falso, e ha fatto smettere di cercare per settimane.** L'utente ha insistito — «questi dati ci sono, altre applicazioni lo fanno, da qualche parte saranno» — e aveva ragione.
+
+**La matrice completa sta qui:**
+
+| Indirizzo | Cosa dà |
+|---|---|
+| `storage.googleapis.com/brawlanalyzer-public/draft/pairs-<modalità>.json.gz` | **matrice 108×108 per modalità**: `matchup.adv` (vantaggio al netto della forza generale dei due, ×10), `matchup.wr` (win rate vera, ×10), `synergy.adv` e `synergy.wr` (le stesse due cose da COMPAGNI), `calibration`. Modalità: `gemGrab`, `brawlBall`, `bounty`, `heist`, `hotZone`, `knockout`. |
+| `storage.googleapis.com/brawlanalyzer-public/pl-results.json.gz` | **tutte le mappe ranked in un file**: `individual` (win rate, pick rate, star rate per brawler), `teams` (i 10 trii più vincenti), campione e data. È lo stesso dato che `fetch-brawlplanet-ranked.js` gratta dall'HTML. |
+| `storage.googleapis.com/brawlanalyzer-public/brawlers.json.gz` | il roster come lo usa il loro draft helper |
+| `storage.googleapis.com/brawlanalyzer-public/normal-map-index.json` | indice delle mappe trofei (182 attive, tutte le modalità) |
+
+Bucket pubblico, senza chiave, CORS aperto: è quello da cui il loro sito stesso legge nel browser. **La lista degli oggetti (`/storage/v1/b/.../o`) risponde 401**, quindi i nomi dei file non si scoprono elencando — si leggono nel codice della pagina che li scarica.
+
+### Come si è trovato, cioè il metodo da riusare
+
+1. La pagina brawler mostra 5+5. Il pannello ha un selettore «Game mode» → se cambiare modalità non ricarica la pagina, il dato di tutte le modalità è già nel browser.
+2. Nel payload della pagina (`self.__next_f.push`) c'erano stringhe di un pannello che sulle pagine non si vede: `weGoFirst`, `turnBan`, `noMatrixForMode`, `banExplainer`, `counterHeading`. Esiste un Draft Helper.
+3. Non è nella sitemap. Trovato provando gli indirizzi: **`/powerleague/draft`**.
+4. Scaricati i suoi chunk JavaScript e cercate le chiamate di rete: `fetch(\`https://storage.googleapis.com/brawlanalyzer-public/draft/pairs-${e}.json.gz\`)`, con `e` = la modalità.
+
+**La regola generale: una pagina che mostra dieci righe non prova che il dato sia dieci righe.** Se la pagina è interattiva, il dato pieno è già passato dal browser. Si trova guardando *cosa scarica*, non rileggendo l'HTML. Vale per qualsiasi sito, non solo per questo.
+
+### Cosa resta vero
+
+- Le **pagine** dei siti si fermano davvero a 3+3 o 5+5. Non era sbagliato quello: era sbagliato concludere che quindi il dato non esistesse.
+- La copertura non è totale: dall'89% al 96% delle 5.778 coppie secondo la modalità. Il resto ha troppe poche partite, e la fonte lo dice mettendo `null` invece di un numero inventato.
+- Le win rate per coppia hanno una soglia più alta delle `adv`: dal 60% all'83% delle coppie. Dove c'è la `adv` ma non la `wr`, la percentuale si ricostruisce e **a schermo si dice che è ricostruita**.
+
+### Il controllo che serve, e perché
+
+Il file è codificato in base64 di interi nel triangolo superiore. **Un solo indice sbagliato sposterebbe tutti i vantaggi su coppie sbagliate senza che niente sembri rotto**: i numeri resterebbero plausibili e i consigli diventerebbero silenziosamente spazzatura. Nessuna rilettura del codice lo trova. `script/verifica-matrice.js` riconfronta la matrice decodificata dall'app col file della fonte cella per cella, in entrambi i versi, su tutte e sei le modalità: **277.344 confronti**. Da rifare a ogni aggiornamento.
 
 ## Gadget e star power: quello che NON esiste
 

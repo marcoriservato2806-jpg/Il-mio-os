@@ -369,6 +369,131 @@ function computeBanSuggestions() {
 
 // Percentuale di vittorie di A contro B, se misurata. Le coppie valgono in
 // entrambi i versi: se B contro A fa 30%, allora A contro B fa 70%.
+// ---- LA MATRICE VERA, 108x108 PER MODALITA' ------------------------------
+//
+// Per mesi questo file ha stimato il 95% delle coppie perche' la memoria diceva
+// che nessuno pubblicava la matrice completa. Non era vero, e l'utente ha
+// insistito che da qualche parte dovesse stare: «in base ai pick dell'avversario
+// ci sara' una sorta di vantaggio tecnico, non e' possibile che non riesci a
+// individuarlo».
+//
+// Le PAGINE di brawlplanet mostrano 5 migliori e 5 peggiori per brawler. Ma il
+// loro Draft Helper e' interattivo, quindi la matrice la scarica nel browser, da
+// un bucket pubblico. Da li' arriva `matrice.js` (vedi
+// script/fetch-matchup-matrix.js): per ognuna delle sei modalita', tutte le
+// 5.778 coppie, con il vantaggio al netto della forza generale dei due E la
+// win rate vera — piu' le stesse due cose per i COMPAGNI di squadra.
+//
+// Copertura: dall'89% al 96% delle coppie a seconda della modalita', contro il
+// 5,4% di prima. Stessa fonte delle win rate di mappa, quindi nessuna
+// mescolanza di scale.
+//
+// LA CONSEGUENZA IMPORTANTE, e va detta perche' smonta una cosa scritta qui
+// sotto: il "favore" per brawler (quanto uno e' genericamente scomodo) era
+// stimato dalle 624 coppie che le fonti pubblicavano, che sono per costruzione
+// gli ESTREMI di ogni brawler. Nella matrice vera la media di riga di ogni
+// brawler ha deviazione standard di 0,26 punti in Gem Grab e 0,48 in Hot Zone:
+// quasi zero. Quel termine era in gran parte un artefatto del campione a code.
+// Sulle coppie vere non si sottrae niente: `adv` e' GIA' il solo effetto della
+// coppia, perche' la fonte lo definisce al netto della forza generale dei due.
+const MX_MODO = { "Gem Grab": "gemGrab", "Brawl Ball": "brawlBall", "Bounty": "bounty", "Heist": "heist", "Hot Zone": "hotZone", "Knockout": "knockout" };
+let _mxPos = null;
+function mxPos(name) {
+  if (!_mxPos) {
+    _mxPos = new Map();
+    BRAWLERS.forEach((b, i) => _mxPos.set(b.name, i));
+  }
+  return _mxPos.get(name);
+}
+// posizione nel triangolo superiore, con i < j
+function mxK(i, j) {
+  const n = BRAWLERS.length;
+  return i * n - (i * (i + 1)) / 2 + (j - i - 1);
+}
+const _mxArr = new Map();
+function mxDecodifica(b64) {
+  const bin = atob(b64);
+  const buf = new ArrayBuffer(bin.length);
+  const u8 = new Uint8Array(buf);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return new Int16Array(buf);
+}
+function mxModo() {
+  if (typeof MATRICE === "undefined" || !state.mode) return null;
+  const m = MX_MODO[state.mode];
+  return m && MATRICE[m] ? m : null;
+}
+// Decodifica pigra: una modalita' per volta, e solo il campo che serve. Sono
+// 5.778 interi per campo, quindi il costo si paga una volta per partita.
+function mxArr(campo) {
+  const m = mxModo();
+  if (!m) return null;
+  const k = m + "|" + campo;
+  let a = _mxArr.get(k);
+  if (a === undefined) { a = mxDecodifica(MATRICE[m][campo]); _mxArr.set(k, a); }
+  return a;
+}
+// Legge una cella. `verso` dice come si comporta la matrice scambiando i due:
+// -1 antisimmetrica (il vantaggio), 0 complementare a 1000 (la win rate),
+// +1 simmetrica (le due di sinergia). Verificato esatto sui dati, non assunto.
+function mxCella(campo, a, b, verso) {
+  const arr = mxArr(campo);
+  if (!arr) return null;
+  const ia = mxPos(a), ib = mxPos(b);
+  if (ia === undefined || ib === undefined || ia === ib) return null;
+  const dritto = ia < ib;
+  const v = arr[dritto ? mxK(ia, ib) : mxK(ib, ia)];
+  if (v === MX_VUOTO) return null;
+  if (dritto) return v / MX_SCALA;
+  if (verso === -1) return -v / MX_SCALA;
+  if (verso === 0) return (1000 - v) / MX_SCALA;
+  return v / MX_SCALA;
+}
+// Il vantaggio VERO di a contro b, in punti di win rate. null se la fonte non
+// ha abbastanza partite per quella coppia in questa modalita'.
+function advReale(a, b) { return mxCella("adv", a, b, -1); }
+// La win rate VERA di a contro b.
+function wrReale(a, b) { return mxCella("wr", a, b, 0); }
+// Le stesse due cose da COMPAGNI di squadra.
+function sinergiaReale(a, b) { return mxCella("sinAdv", a, b, 1); }
+function sinergiaWrReale(a, b) { return mxCella("sinWr", a, b, 1); }
+
+// Per le coppie che restano senza dato (dal 4% al 11% secondo la modalita'):
+// la media dei vantaggi VERI fra quelle due classi, in questa modalita'. Cosi'
+// il ripiego viene dalla stessa fonte del dato, invece che da un'altra.
+// Un passaggio su 5.778 coppie, una volta per modalita'.
+const _mxClasse = new Map();
+function mxClasseAdv(ca, cb) {
+  const m = mxModo();
+  if (!m) return null;
+  let tab = _mxClasse.get(m);
+  if (!tab) {
+    const arr = mxArr("adv");
+    if (!arr) return null;
+    const somma = new Map(), conta = new Map();
+    const n = BRAWLERS.length;
+    for (let i = 0; i < n; i++) {
+      const ci = BRAWLERS[i].class;
+      for (let j = i + 1; j < n; j++) {
+        const v = arr[mxK(i, j)];
+        if (v === MX_VUOTO) continue;
+        const cj = BRAWLERS[j].class;
+        const k1 = ci + "|" + cj, k2 = cj + "|" + ci;
+        somma.set(k1, (somma.get(k1) || 0) + v); conta.set(k1, (conta.get(k1) || 0) + 1);
+        somma.set(k2, (somma.get(k2) || 0) - v); conta.set(k2, (conta.get(k2) || 0) + 1);
+      }
+    }
+    tab = new Map();
+    for (const [k, s] of somma) {
+      const c = conta.get(k);
+      if (c >= 20) tab.set(k, s / c / MX_SCALA); // sotto 20 coppie il numero balla
+    }
+    _mxClasse.set(m, tab);
+  }
+  const v = tab.get(ca + "|" + cb);
+  return v === undefined ? null : v;
+}
+
 function rawMatchup(a, b) {
   if (MATCHUPS[a] && MATCHUPS[a][b] !== undefined) return MATCHUPS[a][b];
   if (MATCHUPS[b] && MATCHUPS[b][a] !== undefined) return 100 - MATCHUPS[b][a];
@@ -399,6 +524,15 @@ function rawMatchup(a, b) {
 // essere forte in generale. Le percentuali per avversario ("vs Rosa 72%")
 // restano NON centrate, perche' quelle sono win rate verificabili sulle fonti.
 function edgeCentrato(a, b) {
+  // 1. Il dato vero, quando c'e': e' GIA' il solo effetto della coppia.
+  const vero = advReale(a, b);
+  if (vero !== null) return vero;
+  // 2. La coppia non ha abbastanza partite: la media vera fra le due classi,
+  //    dalla stessa fonte e nella stessa modalita'.
+  const perClasse = mxClasseAdv(classOf(a), classOf(b));
+  if (perClasse !== null) return perClasse;
+  // 3. Nessuna modalita' scelta, quindi nessuna matrice: si torna alla stima
+  //    di prima, che veniva da un'altra fonte e da un campione a code.
   const p = predictedWinRate(a, b);
   const oa = BRAWLER_OVERALL[a];
   const ob = BRAWLER_OVERALL[b];
@@ -578,11 +712,21 @@ function classEdge(ca, cb) {
 // calibrato. Torna anche `measured` perché la differenza fra un dato e una
 // previsione deve restare visibile, non sparire dentro una percentuale.
 function predictedWinRate(a, b) {
-  const measured = rawMatchup(a, b);
-  if (measured !== null) return { wr: measured, measured: true };
+  // La win rate vera della coppia, in questa modalita'.
+  const w = wrReale(a, b);
+  if (w !== null) return { wr: w, measured: true };
   const oa = BRAWLER_OVERALL[a];
   const ob = BRAWLER_OVERALL[b];
   const gap = oa !== undefined && ob !== undefined ? oa - ob : 0;
+  // Il vantaggio della coppia e' misurato ma la win rate non (la fonte ha una
+  // soglia di partite piu' alta per pubblicarla): la percentuale si ricostruisce
+  // dal vantaggio vero piu' la differenza di forza. Il numero che sposta il
+  // punteggio resta misurato; quello mostrato e' ricostruito, e va detto.
+  const adv = advReale(a, b);
+  if (adv !== null) return { wr: Math.max(5, Math.min(95, 50 + gap + adv)), measured: true, ricostruita: true };
+  const perClasse = mxClasseAdv(classOf(a), classOf(b));
+  if (perClasse !== null) return { wr: Math.max(5, Math.min(95, 50 + gap + perClasse)), measured: false };
+  // Nessuna modalita' scelta: la vecchia stima, dall'altra fonte.
   const wr = 50 + gap + classEdge(classOf(a), classOf(b)) + (favoreMatchup(a) - favoreMatchup(b));
   return { wr: Math.max(5, Math.min(95, wr)), measured: false };
 }
@@ -830,9 +974,25 @@ function contextualWinRate(name) {
 //     misura: non ho gli esiti delle partite, quindi non c'e' niente su cui
 //     calibrarla. E' legata al rango scelto nelle impostazioni, perche' e'
 //     l'unica cosa che dice contro chi stai giocando.
-// 0,4 da Mythic in su (dove l'avversario drafta guardando la tua squadra),
-// 0,3 fino a Diamante. Entrambi dentro la parte buona della curva misurata.
-const QUOTA_RISPOSTA = { 11: 0.4, 9: 0.3, 0: 0.35 };
+// RICALIBRATA IL 9/9, quando la matrice vera ha sostituito le stime. Il metodo
+// e' lo stesso di prima (`script/calibra-quota-risposta.js`: quanti punti di
+// pavimento si guadagnano per ogni punto di media perso, e dove il cambio
+// smette di convenire), ma la curva si e' spostata di brutto, perche' ora il
+// caso peggiore e' un matchup vero e non una media di classe:
+//   q=0,1  media -0,07  pavimento +2,30   -> 33 punti per punto
+//   q=0,2  media -0,19  pavimento +3,34   -> 18 punti per punto
+//   q=0,3  media -0,57  pavimento +4,80   ->  8 punti per punto
+//   q=0,4  media -0,83  pavimento +5,47   ->  7 punti per punto
+// Il ginocchio e' fra 0,2 e 0,3, non piu' a 0,4. E c'e' un secondo vincolo, che
+// l'utente ha chiesto a parole sue: «se l'avversario non ha ancora preso niente,
+// dimmi il migliore in quella mappa». Misurato sulle 33 mappe con dati, il
+// migliore di mappa resta nei primi tre 31 volte su 33 con q=0,2 e solo 25 su
+// 33 con q=0,4. Quindi 0,2 da Mythic in su, 0,15 fino a Diamante.
+//
+// Resta un'ASSUNZIONE, non una misura: per calibrarla su un bersaglio servirebbe
+// sapere come sono finite le partite, e il registro del tracker da' la mappa, il
+// brawler e l'esito ma NON i pick avversari. Controllato, non supposto.
+const QUOTA_RISPOSTA = { 11: 0.2, 9: 0.15, 0: 0.18 };
 function quotaRisposta() {
   const q = QUOTA_RISPOSTA[state.minPower];
   return q === undefined ? 0.3 : q;
@@ -851,7 +1011,7 @@ function distribuzioneAvversario() {
     if (used.has(b.name)) continue;
     const p = comparizioneSu600(b.name);
     if (p <= 0) continue;
-    righe.push({ name: b.name, p });
+    righe.push({ name: b.name, p, i: mxPos(b.name) });
     tot += p;
   }
   for (const r of righe) r.p /= tot || 1;
@@ -890,6 +1050,11 @@ function aggregatiAvversario() {
 // col telefono quattro volte piu' lento portavano il ridisegno da 10 a 40ms —
 // e la lentezza e' la cosa di cui l'utente si era gia' lamentato.
 //
+// DAL 9/9 la scorciatoia serve solo quando non c'e' una modalita' scelta, cioe'
+// quando la matrice vera non e' disponibile. Con la matrice si scorrono davvero
+// i cento avversari, leggendo interi da un array tipizzato: misurato sotto,
+// costa meno di quanto costava la scorciatoia sulla stima.
+//
 // La scorciatoia viene dall'algebra, non da un'approssimazione. Su una coppia
 // STIMATA il vantaggio centrato si semplifica:
 //   wr        = 50 + (forza_c - forza_t) + classe(c,t) + favore(c) - favore(t)
@@ -904,22 +1069,48 @@ function aggregatiAvversario() {
 // `script/verifica-scorciatoia.js` confronta questa versione con quella ovvia
 // su tutte le mappe: se un giorno divergono, la scorciatoia e' rotta.
 function edgeCasellaVuota(candidato, minacce) {
-  const { pClasse, pDi, sommaFav } = aggregatiAvversario();
   const cc = classOf(candidato);
-  let media = -sommaFav;
-  for (const [k, p] of pClasse) media += p * classEdge(cc, k);
-  // il candidato non puo' stare in entrambe le squadre
-  const pSe = pDi.get(candidato);
-  if (pSe !== undefined) media -= pSe * (classEdge(cc, cc) - favoreMatchup(candidato));
-  // le coppie misurate: si toglie il termine stimato e si mette quello vero.
-  // Si scorrono i VICINI del candidato (una decina), non tutti gli avversari
-  // possibili: e' quello che rende utile la scorciatoia.
-  for (const t of viciniMisurati(candidato)) {
-    if (t === candidato) continue;
-    const p = pDi.get(t);
-    if (p === undefined) continue; // non e' fra gli avversari ancora disponibili
-    media -= p * (classEdge(cc, classOf(t)) - favoreMatchup(t));
-    media += p * edgeCentrato(candidato, t);
+  let media = 0;
+  const arr = mxArr("adv");
+  const ic = mxPos(candidato);
+  if (arr && ic !== undefined) {
+    // Con la matrice vera la scorciatoia algebrica non vale piu': si semplificava
+    // solo perche' la stima dipendeva dalle classi e non dai due brawler. Ora si
+    // scorrono davvero i circa cento avversari possibili — ma leggendo interi da
+    // un array tipizzato, non ricostruendo una previsione, quindi costa poco.
+    let peso = 0;
+    for (const r of distribuzioneAvversario()) {
+      if (r.i === undefined || r.i === ic) continue; // non puo' stare in entrambe le squadre
+      const dritto = ic < r.i;
+      const v = arr[dritto ? mxK(ic, r.i) : mxK(r.i, ic)];
+      let e;
+      if (v !== MX_VUOTO) e = (dritto ? v : -v) / MX_SCALA;
+      else {
+        const pc = mxClasseAdv(cc, classOf(r.name));
+        if (pc === null) continue;
+        e = pc;
+      }
+      media += r.p * e;
+      peso += r.p;
+    }
+    // Le probabilita' erano normalizzate su tutti i disponibili; togliendo il
+    // candidato stesso e le coppie senza dato la somma non fa piu' uno, quindi
+    // si rinormalizza: e' una media condizionata a chi un valore ce l'ha.
+    if (peso > 0) media /= peso;
+  } else {
+    // Nessuna modalita' scelta: la vecchia scorciatoia sulla stima per classe.
+    const { pClasse, pDi, sommaFav } = aggregatiAvversario();
+    media = -sommaFav;
+    for (const [k, p] of pClasse) media += p * classEdge(cc, k);
+    const pSe = pDi.get(candidato);
+    if (pSe !== undefined) media -= pSe * (classEdge(cc, cc) - favoreMatchup(candidato));
+    for (const t of viciniMisurati(candidato)) {
+      if (t === candidato) continue;
+      const p = pDi.get(t);
+      if (p === undefined) continue;
+      media -= p * (classEdge(cc, classOf(t)) - favoreMatchup(t));
+      media += p * edgeCentrato(candidato, t);
+    }
   }
   // Il caso peggiore si cerca fra le minacce PLAUSIBILI, non fra tutti e 106:
   // il peggior matchup in assoluto e' spesso un brawler che nessuno prende.
@@ -968,7 +1159,7 @@ function classeRendeQui(cls) {
   return tab[cls] !== false;
 }
 
-function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames, minacce, caselleVuote) {
+function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses, enemyNames, minacce, caselleVuote, ownNames) {
   const ctx = contextualWinRate(candidateName);
   const base = ctx.base;
   const baseSource = ctx.source;
@@ -986,7 +1177,7 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     // all'avversario tipico di questa mappa
     const coppia = edgeCentrato(candidateName, en);
     const forza = scartoForzaAvversario(en);
-    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: coppia + forza, coppia, forza, measured: p.measured };
+    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: coppia + forza, coppia, forza, measured: p.measured, ricostruita: !!p.ricostruita };
   });
   // La media si fa su TUTTE E TRE le caselle avversarie, non solo su quelle
   // piene: una sola casella conosciuta e' un terzo della storia, non tutta.
@@ -1007,8 +1198,31 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
   // pick "manca la frontline" è vero per definizione, e dare +2 a ogni Tank e
   // Controller falsava la classifica: mostrava Damian e Trunk sopra la loro
   // win rate reale sulla mappa, cioè sopra il dato misurato.
+  // COMPOSIZIONE. Dal 9/9 esiste il dato vero: la stessa fonte pubblica, per
+  // tutte le 5.778 coppie e per ogni modalita', quanto due brawler rendono
+  // COME COMPAGNI al netto della forza generale dei due. Prima qui c'era solo
+  // un'euristica scritta a mano — "tre volte la stessa classe e' fragile",
+  // "manca la frontline" — che sulla mappa sbagliata si e' già rivelata falsa
+  // (Otis promosso da sesto a primo su una mappa dove Tank e Controller sono le
+  // due classi peggiori).
+  //
+  // Regola della casa: specifico batte generico, e non si sommano. Se la
+  // sinergia vera con i compagni gia' schierati c'e', si usa quella e
+  // l'euristica tace. Media sui compagni, non somma: `sinAdv` e' lo scostamento
+  // di QUELLA coppia, e sommarne due lo conterebbe come se fossero due effetti
+  // indipendenti.
   let synergy = 0;
-  if (ownClasses.length > 0) {
+  let sinFonte = null;
+  const alleati = ownNames || [];
+  if (alleati.length > 0) {
+    let somma = 0, n = 0;
+    for (const al of alleati) {
+      const v = sinergiaReale(candidateName, al);
+      if (v !== null) { somma += v; n++; }
+    }
+    if (n > 0) { synergy = somma / n; sinFonte = { misurata: n, su: alleati.length }; }
+  }
+  if (sinFonte === null && ownClasses.length > 0) {
     const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
     synergy = -2 * sameClassCount;
     // "Manca la frontline, prendi un Tank o un Controller" e' un'euristica
@@ -1054,6 +1268,7 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     baseSource,
     matchupAvg: r1(matchupAvg),
     synergy: r1(synergy),
+    sinFonte,
     traits: r1(traits),
     grezza: grezza === undefined ? undefined : r1(grezza),
     pick,
@@ -1101,7 +1316,8 @@ function computeSuggestions() {
   // riquadrino "vs null 51% +0", cioe' un avversario fantasma che entrava
   // nella media dei matchup e la diluiva verso lo zero — proprio nella parte
   // che lui accusava di non fare i counter.
-  const ownClasses = state.picks[own].filter(Boolean).map(classOf);
+  const ownNames = state.picks[own].filter(Boolean);
+  const ownClasses = ownNames.map(classOf);
   const enemyNames = state.picks[enemy].filter(Boolean);
   const enemyClasses = enemyNames.map(classOf);
 
@@ -1129,7 +1345,7 @@ function computeSuggestions() {
     .filter((b) => !used.has(b.name))
     .filter((b) => !mieiPick || schierabile(b.name))
     .map((b) => {
-    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames, threats, enemyLeft);
+    const s = scoreCandidate(b.name, b.class, ownClasses, enemyClasses, enemyNames, threats, enemyLeft, ownNames);
     // Il caso peggiore sta nella STESSA riga della media. Tenerli in due
     // classifiche separate obbligava a confrontarle a mano e non diceva
     // quale seguire — che è esattamente il dubbio che ha fatto sbagliare.
@@ -1181,7 +1397,25 @@ function computeSuggestions() {
   // punteggio su ogni carta e si ordina di conseguenza. Calcolarla due volte
   // sarebbe sprecato: è lo stesso conto.
   _classifica = new Map(candidates.map((c) => [c.name, c.total]));
-  return candidates.slice(0, 6);
+  // IL MIGLIORE DELLA MAPPA, anche quando non e' il primo consigliato.
+  //
+  // Richiesta esplicita: «se l'avversario non ha ancora preso niente, dimmi il
+  // migliore in quella mappa». Con la matrice vera dei matchup non e' sempre lo
+  // stesso brawler, e il caso e' istruttivo: su Undermine Damian ha una delle
+  // win rate di mappa piu' alte e uno dei pavimenti piu' bassi (perde contro
+  // mezzo roster), quindi il punteggio lo scavalca e a volte lo butta fuori dai
+  // primi sei. Nasconderlo sarebbe due volte sbagliato: non risponde a quello
+  // che ha chiesto, e non spiega perche' l'app non e' d'accordo con la media di
+  // mappa. Quindi si porta fuori e lo si mostra accanto, col motivo.
+  let migliorMappa = null;
+  if (candidates.length) {
+    let m = candidates[0];
+    for (const c of candidates) if (c.base > m.base) m = c;
+    if (m.name !== candidates[0].name) migliorMappa = m;
+  }
+  const lista = candidates.slice(0, 6);
+  lista.migliorMappa = migliorMappa;
+  return lista;
 }
 
 function pickOrBan(name) {
@@ -1390,15 +1624,36 @@ function gridOrderedBrawlers() {
 // Ricerca: prima chi INIZIA con quello che hai scritto, poi chi lo contiene.
 // Con "bo" vuoi Bo davanti a Bibi, e "sh" deve dare Shelly e Shade prima di
 // Ash. Restituisce la lista già ordinata per pertinenza.
+//
+// I NOMI CON LA PUNTEGGIATURA erano un buco vero, e su questi si scrive di
+// corsa: "mrp" non trovava Mr. P, "8bit" non trovava 8-Bit, "rt" non trovava
+// R-T, "elprimo" non trovava El Primo, "larrylawrie" non trovava Larry &
+// Lawrie. Sono nove brawler su 108, e il punto e' che col timer che corre nessuno
+// scrive "Mr. P" col punto e lo spazio giusti. Ora ogni nome si confronta anche
+// in forma RIDOTTA — sole lettere e cifre — e la ricerca fa lo stesso con
+// quello che scrivi tu.
+const _rid = new Map();
+function ridotto(n) {
+  let v = _rid.get(n);
+  if (v === undefined) { v = n.toLowerCase().replace(/[^a-z0-9]/g, ""); _rid.set(n, v); }
+  return v;
+}
 function searchRank(list, q) {
   const s2 = q.trim().toLowerCase();
   if (!s2) return list;
+  const r2 = s2.replace(/[^a-z0-9]/g, "");
   const score = (n) => {
     const l = n.toLowerCase();
     if (l === s2) return 0;
     if (l.startsWith(s2)) return 1;
     if (l.includes(" " + s2) || l.includes("-" + s2)) return 2;
-    return l.includes(s2) ? 3 : 99;
+    // La forma ridotta viene DOPO l'inizio del nome vero ma PRIMA di un pezzo
+    // in mezzo: con "rt" vuoi R-T, non Mortis (che contiene "rt" a meta').
+    const rn = r2 ? ridotto(n) : "";
+    if (r2 && rn === r2) return 3;
+    if (r2 && rn.startsWith(r2)) return 4;
+    if (l.includes(s2)) return 5;
+    return r2 && rn.includes(r2) ? 6 : 99;
   };
   return list.map((b) => ({ b, r: score(b.name) })).filter((x) => x.r < 99)
     .sort((x, y) => x.r - y.r).map((x) => x.b);
@@ -1627,6 +1882,45 @@ function renderTeamCounter() {
 
   if (enemyNames.length === 0 && enemyLeft === 0) { el.innerHTML = html; el.hidden = false; return; }
 
+  // ---- LA RISPOSTA A OGNUNO DEI LORO -----------------------------------
+  //
+  // Questo riquadro era tornato a essere una frase, perche' con il 5% delle
+  // coppie misurate una classifica di counter era una classifica di stime — e
+  // una stima messa in fila sembra un fatto. Con la matrice vera si puo' fare:
+  // per ogni avversario in campo, i tre brawler ancora disponibili con il
+  // vantaggio VERO piu' alto contro di lui, in questa modalita'.
+  //
+  // Il vantaggio non e' il punteggio, e la differenza va scritta: un
+  // "vantaggio +15 contro Wendy" puo' appartenere a un brawler che su questa
+  // mappa vale 48%. Quindi accanto al vantaggio c'e' sempre quanto vale il
+  // pick nel complesso, cosi' si vede subito se e' una risposta o una trappola.
+  if (enemyNames.length > 0) {
+    const liberi = BRAWLERS.filter((b) => !usedNames().has(b.name) && schierabile(b.name));
+    let righe = "";
+    for (const en of enemyNames) {
+      const risposte = [];
+      for (const b of liberi) {
+        const v = advReale(b.name, en);
+        if (v === null) continue;
+        risposte.push({ name: b.name, adv: v, tot: _classifica.get(b.name) });
+      }
+      risposte.sort((x, y) => y.adv - x.adv);
+      const tre = risposte.slice(0, 3);
+      righe += `<div class="pair-row"><span class="pair-vs">contro ${en}</span>${
+        tre.length === 0
+          ? `<span class="pair-none">nessuna coppia con abbastanza partite</span>`
+          : tre.map((r) => `<span class="pair-pick" title="${r.name} contro ${en}: ${r.adv > 0 ? "+" : ""}${r.adv.toFixed(1)} punti sopra quello che la sola forza dei due farebbe prevedere, misurato in ${state.mode}.${
+              r.tot === undefined ? "" : ` Come pick, qui e adesso, vale ${Math.round(r.tot)}%.`
+            }">${r.name} <em>${r.adv > 0 ? "+" : ""}${r.adv.toFixed(1)}</em>${r.tot === undefined ? "" : ` · ${Math.round(r.tot)}%`}</span>`).join("")
+      }</div>`;
+    }
+    if (righe) {
+      html += `<p class="panel-title pair-title">La risposta a ognuno dei loro</p>`;
+      html += righe;
+      html += `<p class="hint foot">Il numero in oro è il <strong>vantaggio della coppia</strong>: quanto quel brawler fa meglio contro quell'avversario di quanto la sola forza dei due farebbe prevedere. Misurato su partite vere di Classificata in ${state.mode || "questa modalità"}. Il secondo numero è quanto vale come <strong>pick</strong>, qui e adesso: un vantaggio grande su un pick mediocre resta un pick mediocre — è una risposta da specialista, non una scelta sicura.</p>`;
+    }
+  }
+
   el.innerHTML = html;
   el.hidden = false;
 }
@@ -1723,6 +2017,22 @@ function renderSuggestions() {
       : `<strong>Situazione sotto la media.</strong> Il migliore vale ${Math.round(meglio)}%, contro una mediana di 62%. Nessun pick ti fa vincere: la decide come giocate.`;
     el.appendChild(p);
   }
+  // Il migliore per la sola win rate di mappa, quando il punteggio non e'
+  // d'accordo. Serve a rispondere alla domanda che l'utente fa davvero ("qual
+  // e' il migliore qui") e a far vedere il disaccordo invece di subirlo.
+  const mm = suggestions.migliorMappa;
+  if (mm) {
+    const dentro = suggestions.some((s) => s.name === mm.name);
+    const p = document.createElement("p");
+    p.className = "hint mappa-top";
+    const buco = mm.media !== undefined ? Math.round(mm.media - mm.floor) : null;
+    p.innerHTML = `<strong>Il migliore per la sola win rate di mappa è ${mm.name}</strong> (${Math.round(mm.base)}% su questa mappa)` +
+      `, ma qui vale ${Math.round(mm.total)}%${dentro ? "" : " e non entra nei primi sei"}` +
+      (mm.risk && buco !== null && buco >= 6
+        ? `: contro ${mm.risk.enemy} scende al ${mm.floor}%, cioè ${buco} punti sotto la sua media. È forte in media e fragile.`
+        : `.`);
+    el.appendChild(p);
+  }
   suggestions.forEach((s, i) => {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
@@ -1762,7 +2072,11 @@ function renderSuggestions() {
         // il colore segue il numero MOSTRATO, non quello prima
         // dell'arrotondamento: un "+0" rosso e' un numero che non torna
         return `<span class="echip ${p.measured ? "meas" : "est"} ${sc > 0 ? "pos" : sc < 0 ? "neg" : "pari"}" title="${
-          p.measured ? "Matchup misurato su partite reali" : "Previsione: differenza di forza + classe + quanto e' scomodo da affrontare"
+          p.measured
+            ? p.ricostruita
+              ? "Il vantaggio di questa coppia è misurato su partite vere; la percentuale qui sotto è ricostruita da quel vantaggio, perché la fonte pubblica la win rate solo sopra una soglia di partite più alta"
+              : "Matchup misurato su partite reali, in questa modalità"
+            : "Nessun dato per questa coppia: media dei vantaggi veri fra le due classi, in questa modalità"
         }: vinci il ${Math.round(p.wr * 10) / 10}% contro ${p.enemy}. Il ${sc >= 0 ? "+" : ""}${sc} è quanto questo è sopra o sotto il normale per questa coppia, ed è la parte che sposta il punteggio — il resto è forza generale, già contata nella base.">vs ${p.enemy} ${Math.round(p.wr)}% <b>${sc >= 0 ? "+" : ""}${sc}</b></span>`;
       })
       .join("");
@@ -1798,7 +2112,9 @@ function renderSuggestions() {
     }
     if (typeof PROFILO !== "undefined" && PROFILO[s.name]) parts.push(`tuoi trofei: ${PROFILO[s.name].trofei}`);
     if (s.matchupAvg) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}${s.vuote ? " (su 3 caselle, " + s.vuote + " ancora vuot" + (s.vuote > 1 ? "e" : "a") + ")" : ""}`);
-    if (s.synergy) parts.push(`composizione ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
+    if (s.synergy) parts.push(s.sinFonte
+      ? `sinergia coi compagni ${s.synergy > 0 ? "+" : ""}${s.synergy} (misurata su ${s.sinFonte.misurata} di ${s.sinFonte.su})`
+      : `composizione ${s.synergy > 0 ? "+" : ""}${s.synergy} (euristica di classe: la sinergia misurata non c'è)`);
     if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
     // Il numero mostrato e' la miscela, quindi il dettaglio DEVE arrivare
     // fino a lui: un totale che non torna con le sue righe non e' verificabile.

@@ -1161,3 +1161,18 @@ html { scroll-padding-top: 64px; }
   .sugg-score { font-size: 0.92rem; }
   .sugg-class { font-size: 0.64rem; }
 }
+
+/* Il migliore per la sola win rate di mappa, quando il punteggio non e'
+   d'accordo. Non e' un avviso e non e' un consiglio: e' il dato di mappa messo
+   accanto al punteggio, perche' la domanda "qual e' il migliore qui" ha una
+   risposta e va data anche quando l'app ne sceglie un altro. */
+.hint.mappa-top {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border-left: 3px solid var(--team-a);
+  background: rgba(77, 139, 240, 0.08);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
+  font-size: 0.78rem;
+}
+.hint.mappa-top strong { color: var(--team-a); }

@@ -66,6 +66,14 @@ Verifica sempre che il residuo medio sul totale delle coppie sia vicino a zero: 
 cd brawl-draft && node -e "new Function(require('fs').readFileSync('data.js','utf8'))()"   # sintassi
 ```
 
+E, ogni volta che si rigenera `matrice.js`:
+
+```bash
+node script/verifica-matrice.js   # 277.344 confronti contro il file della fonte
+```
+
+Serve perché la matrice è base64 di interi nel triangolo superiore: **un indice sbagliato sposta tutti i vantaggi su coppie sbagliate senza che niente sembri rotto.**
+
 Poi `node script/check-brawl-data.js`, che carica `data.js` e verifica:
 - nessun duplicato in `BRAWLERS`;
 - ogni nome usato in `winRates`, `bestPicks`, `MODE_WIN_RATES`, `DEFAULT_META_SCORES`, `USE_RATES`, `MATCHUPS`, `BRAWLER_OVERALL` esiste nel roster;
@@ -112,7 +120,7 @@ L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`
 
 ## Cosa NON rifare
 
-- Non ricercare la matrice completa dei matchup: **nessuna fonte la pubblica**, tutte danno 3 migliori e 3 peggiori per brawler. Il tetto è del dato, non della ricerca.
+- ~~Non ricercare la matrice completa dei matchup: nessuna fonte la pubblica~~ — **questa riga era sbagliata e ha fatto smettere di cercare per settimane.** La matrice completa 108×108 per modalità sta su `storage.googleapis.com/brawlanalyzer-public/draft/pairs-<modalità>.json.gz` (il bucket pubblico del Draft Helper di brawlplanet), insieme alla matrice delle **sinergie**. È già dentro l'app: `brawl-draft/matrice.js`, generato da `script/fetch-matchup-matrix.js`, verificato cella per cella da `script/verifica-matrice.js`. Vedi [[fonti-brawl-stars]] per il metodo con cui si è trovata — che vale in generale: *una pagina che mostra dieci righe non prova che il dato sia dieci righe; se è interattiva, il dato pieno è già passato dal browser.*
 - Non reintrodurre l'euristica di classe scritta a mano: è stata sostituita da `CLASS_EDGE`, calibrata sui dati, che la smentisce in più punti.
 - Non ordinare i pick per matchup nudo: premia i brawler senza dati. Usa la win rate nel contesto.
 - **Non sommare il vantaggio nei matchup senza centrarlo sul candidato**: la sua forza generale è già nella win rate di mappa, che è la base. Contarla due volte fa uscire sempre gli stessi nomi. Quello dell'avversario invece va contato.

@@ -21,6 +21,9 @@ const read = (f) => fs.readFileSync(path.join(SRC, f), "utf8");
 const html = read("index.html");
 const css = read("style.css");
 const data = read("data.js");
+// la matrice completa dei matchup: 363 KB di base64, decodificata a pezzi
+// dall'app solo per la modalita' in corso
+const matrice = read("matrice.js");
 const app = read("app.js");
 const ritratti = read("ritratti.js");
 const profilo = read("profilo.js");
@@ -50,6 +53,8 @@ ${ritratti}
 
 ${data}
 
+${matrice}
+
 ${app}
 </script>
 `;
@@ -70,6 +75,7 @@ const checks = [
   ["contiene il markup", out.includes('id="brawler-grid"')],
   ["contiene i ritratti", out.includes("const BRAWLER_IMGS")],
   ["contiene il profilo", out.includes("const PROFILO ")],
+  ["contiene la matrice dei matchup", out.includes("const MATRICE ")],
   // Nessun tag giocatore nel file pubblicato. Il controllo cerca la FORMA di
   // un tag, non un tag preciso: scriverne uno qui dentro lo metterebbe in
   // chiaro in un repository pubblico — che e' esattamente quello che questa
