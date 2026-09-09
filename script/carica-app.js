@@ -37,7 +37,7 @@ function carica(dir) {
     "computeBanSuggestions", "rawMatchup", "matchupEdge", "classEdge", "predictedWinRate",
     "comparizioneSu600", "correzioneRarita", "contextualWinRate", "scoreCandidate",
     "computeSuggestions", "distribuzioneAvversario", "edgeCasellaVuota", "quotaRisposta",
-    "edgeCentrato", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
+    "edgeCentrato", "scartoForzaAvversario", "forzaTipicaMappa", "viciniMisurati", "likelyEnemyPicks", "residualRisk", "favoreMatchup", "schierabile",
     "filtroAttivo", "usedNames", "currentTurn", "PROFILO"];
   codice += "return {" + espone.map((k) => `${k}: typeof ${k} === "undefined" ? undefined : ${k}`).join(", ") + "};";
   const chiavi = Object.keys(finto);

@@ -406,6 +406,59 @@ function edgeCentrato(a, b) {
   return p.wr - atteso - favoreMatchup(a);
 }
 
+// ---- QUANTO E' FORTE L'AVVERSARIO CHE HAI DAVANTI ----------------------
+//
+// L'errore piu' grosso trovato in questa app, e l'utente lo diceva da giorni
+// («non fa i counter, mi consiglia male»).
+//
+// Il punteggio parte dalla win rate di mappa, che e' misurata contro
+// l'avversario TIPICO di quella mappa. Se davanti hai Wendy, che e' molto piu'
+// forte del tipico, quella base non vale piu': va corretta verso il basso. Il
+// modello invece usava solo il residuo `misurato - atteso`, che toglie
+// esattamente la differenza di forza — cioe' buttava via proprio
+// l'informazione che serviva.
+//
+// Il caso concreto: Ash contro Wendy vince il 43,7%. Il residuo e' +6,5,
+// perche' contro un mostro come Wendy ci si aspetterebbe di fare anche peggio.
+// L'app sommava quel +6,5 e concludeva che affrontare Wendy MIGLIORA Ash.
+// L'avversario tipico su Pinball Dreams vale 50,3 di forza, Wendy 67,6:
+// affrontare lei costa -17,3. Il totale giusto e' -10,8.
+//
+// Il termine mancante e' quindi `forzaTipica(mappa) - forza(avversario)`, e non
+// e' doppio conteggio: il residuo e' l'effetto della COPPIA, questo e' quanto
+// l'avversario si scosta dalla media contro cui la base e' stata misurata.
+// Sulle caselle ancora vuote vale zero per costruzione (la media dello scarto
+// sulla distribuzione e' nulla), quindi si applica solo a chi e' in campo.
+const _forzaTipica = new WeakMap();
+function forzaTipicaMappa() {
+  if (!state.map || !state.map.pickRates) {
+    // senza dati di mappa, la media semplice del roster
+    let s = 0, n = 0;
+    for (const b of BRAWLERS) { const o = BRAWLER_OVERALL[b.name]; if (o !== undefined) { s += o; n++; } }
+    return n ? s / n : 50;
+  }
+  const memo = _forzaTipica.get(state.map);
+  if (memo !== undefined) return memo;
+  let sp = 0, sf = 0;
+  for (const b of BRAWLERS) {
+    const o = BRAWLER_OVERALL[b.name];
+    const p = state.map.pickRates[b.name];
+    if (o === undefined || p === undefined) continue;
+    sp += p; sf += p * o;
+  }
+  const v = sp ? sf / sp : 50;
+  _forzaTipica.set(state.map, v);
+  return v;
+}
+
+// Quanto ti costa (o ti rende) affrontare proprio LUI invece di un avversario
+// qualunque di questa mappa.
+function scartoForzaAvversario(nemico) {
+  const o = BRAWLER_OVERALL[nemico];
+  if (o === undefined) return 0;
+  return forzaTipicaMappa() - o;
+}
+
 // Il matchup VERO, tolta la parte spiegata dalla sola differenza di forza
 // (vedi il commento sopra MATCHUPS in data.js). Positivo = A se la cava
 // contro B meglio di quanto la differenza di forza farebbe prevedere.
@@ -860,7 +913,11 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     // `wr` e' la win rate da mostrare (verificabile sulle fonti); `edge` e' il
     // vantaggio CENTRATO, l'unico che puo' entrare nel punteggio senza
     // contare due volte la forza generale del candidato.
-    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: edgeCentrato(candidateName, en), measured: p.measured };
+    // due pezzi: quanto ti scosta la COPPIA, e quanto e' forte lui rispetto
+    // all'avversario tipico di questa mappa
+    const coppia = edgeCentrato(candidateName, en);
+    const forza = scartoForzaAvversario(en);
+    return { enemy: en, wr: Math.round(p.wr * 10) / 10, edge: coppia + forza, coppia, forza, measured: p.measured };
   });
   // La media si fa su TUTTE E TRE le caselle avversarie, non solo su quelle
   // piene: una sola casella conosciuta e' un terzo della storia, non tutta.
@@ -954,8 +1011,14 @@ function computeSuggestions() {
   const used = usedNames();
   const own = turn.team;
   const enemy = own === "A" ? "B" : "A";
-  const ownClasses = state.picks[own].map(classOf);
-  const enemyNames = state.picks[enemy];
+  // I BUCHI VANNO TOLTI. Le caselle sono un array con posizioni fisse, e
+  // togliere un pick lascia un `null` in mezzo: `usedNames()` lo scartava,
+  // questi due no. Risultato visto nella schermata dell'utente: un
+  // riquadrino "vs null 51% +0", cioe' un avversario fantasma che entrava
+  // nella media dei matchup e la diluiva verso lo zero — proprio nella parte
+  // che lui accusava di non fare i counter.
+  const ownClasses = state.picks[own].filter(Boolean).map(classOf);
+  const enemyNames = state.picks[enemy].filter(Boolean);
   const enemyClasses = enemyNames.map(classOf);
 
   const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
@@ -1461,7 +1524,7 @@ function renderTeamCounter() {
 
   const own = turn.team;
   const enemy = own === "A" ? "B" : "A";
-  const enemyNames = state.picks[enemy];
+  const enemyNames = state.picks[enemy].filter(Boolean);
   const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
 
   const fmt = (n) => Math.round(n) + "%";
@@ -1556,21 +1619,24 @@ function renderSuggestions() {
 
   // QUANTO VALE il migliore, rispetto al normale.
   //
-  // Misurato su 132 posizioni di draft: il primo consigliato sta fra il 51,1%
-  // e il 61,0%, con mediana 54,1%. Quindi un 53% non e' un buon pick, e' un
-  // draft PARI — ma a schermo era scritto in oro esattamente come un 61%, e
-  // si legge come un'approvazione. L'utente ha seguito un 53%, ha perso, e
-  // aveva ragione a non capire.
+  // Ricalibrato il 9/9 dopo due cambiamenti che hanno spostato la scala (il
+  // record personale e la forza dell'avversario): su 396 posizioni con
+  // avversari ESTRATTI DALLA PICK RATE VERA — non i piu' forti, che era
+  // l'errore del test precedente e faceva sembrare che il punteggio scivolasse
+  // di 13 punti — il primo consigliato sta fra 49,4% e 78,1%, mediana 62,3%.
+  // Sotto il 59% ci si finisce nel 7% delle posizioni, sotto il 53% nell'1%.
+  // Il numero grande a schermo si legge come un'approvazione anche quando
+  // vale poco: qui gli si mette accanto il riferimento.
   //
   // La riga compare solo sotto la mediana: un avviso sempre presente diventa
   // sfondo e non lo legge piu' nessuno.
   const meglio = suggestions[0].total;
-  if (meglio < 54) {
+  if (meglio < 59) {
     const p = document.createElement("p");
     p.className = "hint scarso";
-    p.innerHTML = meglio < 52
-      ? `<strong>Non c'è niente di buono qui.</strong> Il migliore vale ${Math.round(meglio)}% — sotto il 52% ci si finisce in 8 posizioni su 132. Prendi il meno peggio e giocatela.`
-      : `<strong>Draft pari.</strong> Il migliore vale ${Math.round(meglio)}%, sotto la mediana (54%). Nessun pick ti fa vincere la partita: la decide come giocate.`;
+    p.innerHTML = meglio < 53
+      ? `<strong>Non c'è niente di buono qui.</strong> Il migliore vale ${Math.round(meglio)}%: succede in una posizione su cento. Hanno preso bene loro. Prendi il meno peggio e giocatela.`
+      : `<strong>Situazione sotto la media.</strong> Il migliore vale ${Math.round(meglio)}%, contro una mediana di 62%. Nessun pick ti fa vincere: la decide come giocate.`;
     el.appendChild(p);
   }
   suggestions.forEach((s, i) => {
