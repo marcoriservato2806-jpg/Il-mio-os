@@ -58,8 +58,17 @@ if (!TAG) {
   const grezzo = html.slice(start, end);
   const cards = JSON.parse(scappato ? grezzo.replace(/\\"/g, '"').replace(/\\\\/g, "\\") : grezzo);
 
+  // Oltre a potenza e trofei si prendono i GADGET e le STAR POWER possedute.
+  // Il payload del tracker le ha sempre avute (campo `abilities`, con un flag
+  // `owned`) e non le leggevo: ho consigliato di comprare gadget che erano
+  // gia' suoi, e ho basato un'analisi su un livello di potenza vecchio di un
+  // giorno. Un dato che c'e' e non si legge e' un dato che non hai.
   const posseduti = cards.map((c) => ({
     nome: c.displayName, potenza: c.power, rank: c.rank, trofei: c.trophies,
+    gadget: (c.abilities || []).filter((x) => x.kind === "gadget" && x.owned).map((x) => x.name),
+    starPower: (c.abilities || []).filter((x) => x.kind === "starPower" && x.owned).map((x) => x.name),
+    gadgetMancanti: (c.abilities || []).filter((x) => x.kind === "gadget" && !x.owned).map((x) => x.name),
+    starPowerMancanti: (c.abilities || []).filter((x) => x.kind === "starPower" && !x.owned).map((x) => x.name),
   })).sort((a, b) => b.trofei - a.trofei);
 
   // In Classificata i brawler sotto potenza 9 NON si possono schierare, e da
@@ -82,13 +91,16 @@ if (!TAG) {
   const righe = posseduti
     .slice()
     .sort((a, b) => a.nome.localeCompare(b.nome, "it"))
-    .map((b) => `  ${JSON.stringify(b.nome)}: { potenza: ${b.potenza}, trofei: ${b.trofei} },`)
+    .map((b) => `  ${JSON.stringify(b.nome)}: { potenza: ${b.potenza}, trofei: ${b.trofei}` +
+      `, gadget: ${JSON.stringify(b.gadget)}, starPower: ${JSON.stringify(b.starPower)}` +
+      `, gadgetMancanti: ${JSON.stringify(b.gadgetMancanti)}, starPowerMancanti: ${JSON.stringify(b.starPowerMancanti)} },`)
     .join("\n");
   fs.writeFileSync(dest, `// Livello di potenza dei brawler del proprietario dell'app.
 // GENERATO da script/fetch-profilo-brawl.js — non modificare a mano.
 // Letto il ${new Date().toISOString().slice(0, 10)} dal tracker pubblico di brawlplanet.
 //
-// Per ogni brawler: livello di potenza e trofei.
+// Per ogni brawler: livello di potenza, trofei, e quali gadget e star power
+// sono gia' posseduti (e quali mancano, col loro costo in monete).
 //
 // PERCHÉ SERVE: in Classificata un brawler sotto POTENZA 9 non si può
 // schierare, e da Mythic in su ne serve uno a POTENZA 11. Un consiglio su un
