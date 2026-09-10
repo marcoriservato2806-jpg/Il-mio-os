@@ -1,6 +1,6 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
-## [2026-09-10 09:05] strumento | La pagina di raccolta ora dice perché scarta una partita
+## [2026-09-10 11:50] strumento | La pagina di raccolta ora dice perché scarta una partita
 Ho scritto `estrai()` senza aver mai visto una risposta vera dell'API: se sbaglio un nome di campo, l'unico messaggio è "nessuna partita utilizzabile" e non si capisce di chi è la colpa.
 Ora la pagina conta gli scarti **per motivo**, registra i valori di `battle.type` che ha incontrato e i nomi dei campi del primo elemento, e salva il resoconto in `diagnostica/ultima`. Solo conteggi e nomi di campo: nessun tag, nessun nome di giocatore, nessun valore.
 Riscontro sulla forma dell'API da due fonti indipendenti (docs.rs/brawl-api, brawlstats): `battle.type` vale `soloRanked`/`teamRanked`/`ranked` — il filtro `/ranked/i` li prende tutti; `teams` è un array di due squadre di `{tag, name, brawler:{name,...}}`. Resta da confermare sul dato vero.
