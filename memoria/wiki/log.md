@@ -1,5 +1,13 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-10 12:40] errore mio | Un artifact non puo' chiamare nessun sito esterno
+"Load failed" sul telefono, con wifi acceso, chiave nuova e indirizzo autorizzato giusto: la fetch non arrivava mai a un codice HTTP, cadeva prima.
+**Causa:** le pagine artifact girano dietro una CSP che vieta `fetch`/XHR verso qualsiasi host. Non e' aggirabile e non dipende dalla rete.
+**L'errore di metodo, che e' il pezzo che conta:** avevo verificato il CORS di `api.brawlstars.com` con `curl` **dal server**, e avevo concluso che la pagina poteva chiamarla. Ho collaudato un ambiente diverso da quello in cui il codice sarebbe girato. Il CORS del server non dice niente sui limiti della sandbox del client.
+**Regola:** una capacita' del client si verifica dal client. Se non posso provarla li', e' un'ipotesi, e va detta come ipotesi.
+**Costo:** due giri a vuoto per Marco e **due chiavi API bruciate** (fotografate entrambe negli screenshot mandati per chiedere aiuto).
+**Strada nuova:** comando rapido iOS che chiama l'API dal telefono e copia il risultato negli appunti; l'estrazione e l'anonimizzazione le faccio qui. La pagina artifact diventa le istruzioni, senza piu' `db` ne' fetch.
+
 ## [2026-09-10 12:05] errore mio | Due bottoni, e quello sbagliato diceva "fatto"
 Marco ha scritto "caricato": archivio vuoto, nessuna partita, nemmeno il resoconto degli scarti. Non era colpa dell'API.
 La pagina aveva **Salva** (tag e chiave nel telefono) e **Raccogli le partite**. Salva rispondeva con un messaggio verde "Salvati su questo telefono": sembra la conferma che il lavoro è fatto, e invece non era ancora partito niente.
