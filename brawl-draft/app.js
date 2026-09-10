@@ -1683,6 +1683,12 @@ function skipBans() {
   if (!turn || turn.phase !== "ban") return;
   // I ban già inseriti restano validi: si tolgono solo le caselle di ban
   // ancora vuote, così il turno passa ai pick.
+  //
+  // Questo copre il caso NORMALE, non un'eccezione: il supporto Supercell dice
+  // che ogni giocatore PUÒ bannare, quindi i ban di una partita sono da tre a
+  // sei. Il tasto diceva solo «Salta i ban», che si legge come «non bannare
+  // affatto»: chi ne aveva visti quattro non sapeva di poterli registrare e
+  // fermarsi lì. Il comportamento c'era già, mancava il nome.
   state.sequence = state.sequence.filter((t) => t.phase !== "ban" || nomeDelTurno(t));
   render();
 }
@@ -2230,14 +2236,14 @@ function renderSuggestions() {
     const bans = computeBanSuggestions();
     if (bans.length === 0) {
       el.innerHTML =
-        `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
+        `<button type="button" id="skip-bans" class="skip-bans">Fine ban (anche se sono meno di 6) → vai ai pick</button>` +
         `<p class="hint">Nessun dato per suggerire un ban: seleziona modalità o mappa.</p>`;
       const b = document.getElementById("skip-bans");
       if (b) b.addEventListener("click", skipBans);
       return;
     }
     el.innerHTML =
-      `<button type="button" id="skip-bans" class="skip-bans">Salta i ban → vai ai pick</button>` +
+      `<button type="button" id="skip-bans" class="skip-bans">Fine ban (anche se sono meno di 6) → vai ai pick</button>` +
 "";
     bans.forEach((s, i) => {
       const row = document.createElement("div");

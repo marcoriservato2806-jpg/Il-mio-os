@@ -42,6 +42,46 @@ Non a intuito. Quattro controlli:
 
 **Eccezione nota:** Wendy è prima su 12 mappe su 33 con lo 0,3% di scelte, contro la tendenza generale. Non è rumore (0,3% di ~1,9M sono ~5.700 partite) ed è confermata S tier da Dexerto e BrawlMetrics, che sono indipendenti. Ma quel numero è misurato su chi la gioca abitualmente: l'app lo dice nel suggerimento invece di nasconderlo.
 
+## Gli altri draft tool, e il disaccordo sui counter (10/9)
+
+Analizzati sette strumenti. Documento leggibile: artifact «Cosa sanno gli altri draft tool», copia in `brawl-draft/concorrenza.html`.
+
+| Strumento | Modello | Cosa se ne ricava |
+|---|---|---|
+| **deepdraft.fr** | **codice in chiaro, non minificato** | Il più avanzato: motore NNUE + hash di Zobrist + tabelle di trasposizione in un Web Worker, cioè vera ricerca ad albero. Dati pubblici in `deepdraft.fr/--data/per_map_draft_analytics.json` con `trio_uplift` e `co_occurrence_lift`. Coefficienti: `USERATE_WEIGHT 0.85`, `SYNERGY_COEFFICIENT 0.7`, `COUNTER_COEFFICIENT 1`, `TRIO_COEFFICIENT 0.1`, **`GLOBAL_COUNTER_BONUS 0`** (costruito e spento) |
+| **powerleagueprodigy.com** | server (`/api/plprodigy/eval`) | Nel client si legge il payload: **pesi per fascia di rango** (vedi sotto), `isEnemyPerspective`, `minLevel`, `userBrawlers`. **Il loro bundle contiene una `X-API-Key` in chiaro: non usata, non annotata altrove** |
+| **metapick-ai.com** | server | Endpoint `simulate_draft` (ricerca sul draft), `predict_winrate` (solo a squadre complete), `stats`. Pesi decisi dall'utente con cursori: `synergy_weight`, `counter_weight`, `ban_penalty_weight`. Le risposte hanno un `type`, fra cui `counter_pick` |
+| brawl360, brawldraft.pro, brawltrack, brawlpick | server (REST / tRPC) | Niente di leggibile. Non è un giudizio sulla qualità: non si vede |
+| brawlytics.pro | — | **403 alle richieste automatiche, non aggirato** |
+
+### I pesi per rango di PL Prodigy (sommano a 100)
+
+| fascia | counter | win rate | sinergia | ban | fit | popolarità |
+|---|---|---|---|---|---|---|
+| Diamante e sotto | 32 | 27 | 14 | 9 | 9 | 9 |
+| Mythic | 34 | 25 | 13 | 10 | 11 | 7 |
+| Leggenda | 36 | 23 | 12 | 12 | 12 | 5 |
+| Masters e oltre | 40 | 20 | 10 | 13 | 13 | 4 |
+
+Salendo di rango i counter contano di più e la forza nuda di meno. **Non replicabile qui**: la nostra fonte mette in chiaro che i suoi dati sono «Diamond 1 and above, pooled across every league», perché dividendoli per lega restano troppe poche partite per coppia. Pesi per rango senza dati per rango sarebbero inventati. L'app fa già la stessa cosa per un'altra via: `QUOTA_RISPOSTA` è 0,2 da Mythic in su e 0,15 fino a Diamante.
+
+### IL DISACCORDO, ed è la cosa da ricordare
+
+`script/confronta-fonti-counter.js`. Il `matchup_performance_delta` di Deep Draft contro la nostra matrice, stesse mappe e stesse coppie, **24.558 confronti**:
+
+- correlazione **r = 0,007**; stesso segno sui counter netti **50%**, cioè testa o croce.
+- **Non è che il loro sia rotto**: è coerente con sé stesso (delta[A][B] contro delta[B][A] dà r = −0,895) e la sua dispersione è 11,1 punti contro gli 1,3 attesi dal solo campionamento.
+- Spiegazione parziale: il loro numero è ancora mescolato alla forza generale (correla 0,28 con la differenza di win rate), il nostro è al netto. E le loro win rate di mappa vanno dal 4% al 96%, cioè pochissime partite su molti brawler.
+- Campione: 154k partite per mappa contro 1,9 milioni; copertura dei matchup 8,6% contro 95,8%.
+
+**Non si mescolano.** È esattamente la situazione per cui esiste la regola «mai due fonti dentro lo stesso numero». E vale come cautela sul nostro dato: quando un'app mostra un numero sui counter, quel numero è meno solido di come appare.
+
+### Cosa NON prendere da loro, e perché
+
+- **`trio_uplift` e `co_occurrence_lift`** (Deep Draft): le due idee migliori viste — soprattutto la seconda, che deduce il conflitto di ruolo da quanto la gente sceglie due brawler *insieme*, non dagli esiti. Ma stanno su un campione 13 volte più piccolo e su dati che non concordano coi nostri.
+- **Il bonus «matchup positivo contro tutti e tre»**: l'app ce l'ha già in forma migliore (il pavimento, graduato invece che acceso/spento). Loro l'hanno messo a zero.
+- **I cursori per i pesi**: scaricano sull'utente una taratura che non si è saputa misurare.
+
 ## Quelle bloccate (403/402/429)
 
 brawlify.com (il sito), noff.gg, brawltime.ninja, topbrawl.com, brawlytix.com, brawlhq.com, wiki Fandom, brawlstats.net.

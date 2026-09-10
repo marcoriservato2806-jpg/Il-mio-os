@@ -1,0 +1,259 @@
+<title>Cosa sanno gli altri draft tool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --ground: #f7f5fa; --paper: #ffffff; --sunk: #efecf4;
+    --line: #ded8e8; --line-soft: #ebe6f2;
+    --ink: #1a1622; --ink-mid: #4d4460; --ink-dim: #776c8c;
+    --gold: #9a6b00; --gold-soft: rgba(212,160,23,.13);
+    --good: #1d7a4f; --good-soft: rgba(29,122,79,.11);
+    --bad: #b32d34; --bad-soft: rgba(179,45,52,.09);
+    --cold: #2f5fa8; --cold-soft: rgba(47,95,168,.1);
+    --sans: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#14111b; --paper:#1c1826; --sunk:#241f30;
+      --line:#3a3348; --line-soft:#2c2639;
+      --ink:#ece8f3; --ink-mid:#b8b0c8; --ink-dim:#8c839e;
+      --gold:#ffc23d; --gold-soft:rgba(255,194,61,.12);
+      --good:#57d99a; --good-soft:rgba(87,217,154,.12);
+      --bad:#ff8080; --bad-soft:rgba(255,128,128,.11);
+      --cold:#7aa8f0; --cold-soft:rgba(122,168,240,.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#14111b; --paper:#1c1826; --sunk:#241f30;
+    --line:#3a3348; --line-soft:#2c2639;
+    --ink:#ece8f3; --ink-mid:#b8b0c8; --ink-dim:#8c839e;
+    --gold:#ffc23d; --gold-soft:rgba(255,194,61,.12);
+    --good:#57d99a; --good-soft:rgba(87,217,154,.12);
+    --bad:#ff8080; --bad-soft:rgba(255,128,128,.11);
+    --cold:#7aa8f0; --cold-soft:rgba(122,168,240,.12);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:880px; margin:0 auto; padding-block:48px 72px; padding-left:20px; padding-right:20px; }
+  .prosa { max-width:68ch; }
+  h1 { font-family:var(--serif); font-weight:900; font-size:clamp(2rem,6vw,3rem); line-height:1.03; letter-spacing:-.025em; margin:0 0 14px; text-wrap:balance; }
+  .sotto { font-size:1.06rem; color:var(--ink-mid); max-width:60ch; margin:0 0 8px; }
+  .firma { font-family:var(--mono); font-size:.72rem; color:var(--ink-dim); letter-spacing:.04em; text-transform:uppercase; margin:0; }
+  h2 { font-family:var(--serif); font-weight:600; font-size:clamp(1.35rem,3.4vw,1.72rem); line-height:1.15; letter-spacing:-.015em; margin:0 0 12px; text-wrap:balance; }
+  h3 { font-size:1rem; font-weight:600; margin:0; letter-spacing:-.005em; }
+  p { margin:0 0 14px; }
+  a { color:var(--cold); text-decoration-thickness:1px; text-underline-offset:2px; }
+  strong { font-weight:600; color:var(--ink); }
+  em.q { font-style:normal; color:var(--ink-mid); }
+  code, .num { font-family:var(--mono); font-size:.88em; font-variant-numeric:tabular-nums; }
+  section { margin-top:46px; }
+  .eyebrow { font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.14em; color:var(--ink-dim); margin:0 0 10px; }
+
+  .sommario { background:var(--sunk); border-left:3px solid var(--gold); border-radius:0 10px 10px 0; padding:20px 22px; margin:0; }
+  .sommario p:last-child { margin-bottom:0; }
+  .sommario .grosso { font-family:var(--serif); font-size:1.2rem; line-height:1.32; font-weight:600; margin-bottom:12px; text-wrap:balance; }
+
+  /* Ogni strumento porta un segno: il suo modello si legge o no. E' la cosa
+     che decide quanto vale la sua riga in questo documento. */
+  .strumenti { display:grid; gap:14px; margin:0; padding:0; list-style:none; }
+  .str { background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .str-h { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .str-h h3 { flex:1 1 14ch; }
+  .apertura { font-family:var(--mono); font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:3px 8px; border-radius:4px; white-space:nowrap; }
+  .apertura.chiaro { background:var(--good-soft); color:var(--good); }
+  .apertura.mezzo  { background:var(--gold-soft); color:var(--gold); }
+  .apertura.chiuso { background:var(--cold-soft); color:var(--cold); }
+  .apertura.negato { background:var(--bad-soft); color:var(--bad); }
+  .str p { margin:0 0 8px; font-size:.94rem; }
+  .str p:last-child { margin-bottom:0; }
+  .str .preso { border-top:1px solid var(--line-soft); margin-top:10px; padding-top:9px; font-size:.9rem; }
+  .str .preso b { font-family:var(--mono); font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); font-weight:400; display:block; margin-bottom:2px; }
+
+  .tab-wrap { overflow-x:auto; margin:0 0 16px; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  caption { text-align:left; font-size:.8rem; color:var(--ink-dim); padding-bottom:8px; }
+  th, td { text-align:left; padding:8px 12px 8px 0; border-bottom:1px solid var(--line-soft); }
+  th { font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-dim); font-weight:400; }
+  td.n, th.n { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; padding-right:0; }
+  tbody tr:last-child td { border-bottom:none; }
+  .su { color:var(--good); font-weight:700; }
+  .giu { color:var(--bad); font-weight:700; }
+
+  figure { margin:0 0 18px; }
+  figcaption { font-size:.82rem; color:var(--ink-dim); margin-top:10px; max-width:62ch; }
+  svg { display:block; max-width:100%; height:auto; }
+
+  .verdetti { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+  .v { display:grid; grid-template-columns:7.5rem 1fr; gap:4px 14px; padding:12px 0; border-bottom:1px solid var(--line-soft); font-size:.94rem; }
+  .v:last-child { border-bottom:none; }
+  .v .tag { font-family:var(--mono); font-size:.64rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:3px 8px; border-radius:4px; align-self:start; text-align:center; }
+  .v .tag.si { background:var(--good-soft); color:var(--good); }
+  .v .tag.no { background:var(--bad-soft); color:var(--bad); }
+  .v .tag.chiedo { background:var(--gold-soft); color:var(--gold); }
+  .v .tag.forse { background:var(--cold-soft); color:var(--cold); }
+  .v p { margin:0; }
+  @media (max-width:560px) { .v { grid-template-columns:1fr; } .v .tag { justify-self:start; } }
+
+  hr { border:none; border-top:1px solid var(--line); margin:44px 0 0; }
+  .coda { font-size:.86rem; color:var(--ink-dim); margin-top:20px; }
+</style>
+
+<div class="wrap">
+  <header class="prosa">
+    <p class="firma">Ricerca · 10 settembre 2026</p>
+    <h1>Cosa sanno gli altri draft tool</h1>
+    <p class="sotto">Sette strumenti di draft per Brawl Stars, letti nel codice dove il codice si lascia leggere. Cosa fanno meglio di te, cosa fanno peggio, e la cosa scomoda che è saltata fuori confrontando i loro dati coi tuoi.</p>
+  </header>
+
+  <section class="prosa">
+    <div class="sommario">
+      <p class="grosso">Uno di loro ha idee migliori delle mie. Nessuno di loro ha dati migliori dei tuoi. E i due migliori dataset sul mondo non sono d'accordo su niente.</p>
+      <p>La scoperta che conta: ho confrontato i dati sui counter di <strong>Deep Draft</strong> coi tuoi, sulle stesse 26 mappe e sulle stesse coppie di brawler. <strong>Correlazione <span class="num">0,007</span>. Concordanza di segno <span class="num">50%</span>, cioè testa o croce.</strong></p>
+      <p>Non è che uno dei due sia rotto: sono tutti e due coerenti al proprio interno. È che misurano cose diverse e nessuno dei due lo dice. Se un tool ti mostra «questo counterà quello», ti sta mostrando l'opinione di una fonte, non un fatto.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il campo</p>
+    <h2>Sette strumenti, e quanto si lasciano guardare</h2>
+    <ul class="strumenti">
+
+      <li class="str">
+        <div class="str-h"><h3>Deep Draft</h3><span class="apertura chiaro">codice in chiaro</span></div>
+        <p><strong>Il più avanzato dei sette, e non è vicino.</strong> Il file <code>draft-main.js</code> non è nemmeno minificato: dentro c'è <code>initializeZobrist()</code>, tabelle di trasposizione, e un motore <strong>NNUE</strong> — la stessa architettura di valutazione di Stockfish — che gira in un Web Worker. È una vera ricerca ad albero sul draft, con più versioni del motore fra cui l'utente sceglie.</p>
+        <p>Accanto c'è anche un percorso semplice, e lì stanno le idee: <code>co_occurrence_lift</code> (se due brawler vengono scelti insieme <em class="q">meno</em> del caso, è un conflitto di ruolo — la composizione dedotta dal comportamento invece che dagli esiti), <code>trio_uplift</code> (dati sui terzetti, non solo sulle coppie), un bonus per chi ha il matchup positivo contro <em class="q">tutti e tre</em>, e la lista dei tre brawler che Classificata regala maxati ogni stagione.</p>
+        <p class="preso"><b>quello che si impara</b>Le idee migliori del settore. Ma i coefficienti raccontano un'altra storia: il bonus «counteri tutti e tre» è impostato a <strong>zero</strong> e il peso dei terzetti a <strong>0,1</strong>. Le hanno costruite e poi spente.</p>
+      </li>
+
+      <li class="str">
+        <div class="str-h"><h3>brawlplanet — Draft Helper</h3><span class="apertura chiaro">dati in chiaro</span></div>
+        <p>È la fonte che usi già. Il modello è semplice — mappa + matchup medio + sinergia media — ma il dato sotto è il migliore che esista: matrice completa per modalità, e una calibrazione con il punteggio di Brier pubblicato accanto.</p>
+        <p class="preso"><b>quello che si impara</b>Già dentro la tua app da ieri l'altro. Modello povero, dati ricchi, e l'unica validazione su esiti veri di tutto il settore.</p>
+      </li>
+
+      <li class="str">
+        <div class="str-h"><h3>PL Prodigy</h3><span class="apertura mezzo">modello sul server</span></div>
+        <p>Il modello sta dietro <code>/api/plprodigy/eval</code> e non si legge. Ma il codice del browser mostra <em class="q">cosa gli manda</em>, e lì c'è la cosa più interessante: <strong>pesi diversi per fascia di rango</strong>, e la possibilità di valutare il tabellone <em class="q">dal lato dell'avversario</em>. Chiedono anche il livello minimo e quali brawler possiedi, come fai tu.</p>
+        <p class="preso"><b>quello che si impara</b>La tabella dei pesi per rango, qui sotto. È un'opinione senza validazione pubblicata, ma è un'opinione coerente.</p>
+      </li>
+
+      <li class="str">
+        <div class="str-h"><h3>MetaPick AI</h3><span class="apertura mezzo">modello sul server</span></div>
+        <p>Tre endpoint: <code>predict_winrate</code> (parte solo a squadre complete, come la probabilità di tabellone che hai adesso), <code>stats</code> per mappa, e <code>simulate_draft</code> — che è la ricerca sul draft, fatta sul server. Manda anche <code>synergy_weight</code>, <code>counter_weight</code>, <code>min_synergy</code>, <code>ban_penalty_weight</code>: <strong>i pesi li decide l'utente con dei cursori.</strong> Le risposte hanno un campo <code>type</code>, e uno dei valori è <code>counter_pick</code>.</p>
+        <p class="preso"><b>quello che si impara</b>Distinguere «pick solido» da «risposta da specialista» è una distinzione che anche loro fanno. I cursori sono un modo elegante di scaricare sull'utente una taratura che non hanno saputo misurare.</p>
+      </li>
+
+      <li class="str">
+        <div class="str-h"><h3>Brawl360 · BrawlDraft.pro · Brawl Tracker · BrawlPick</h3><span class="apertura chiuso">niente da leggere</span></div>
+        <p>Tutti e quattro tengono il modello sul server (API REST o tRPC) e mandano al browser solo il risultato. Ho guardato i loro bundle: prendono le immagini dal CDN di Brawlify, come tutti, e nient'altro di utile emerge senza interrogare i loro server — cosa che non ho fatto.</p>
+        <p class="preso"><b>quello che si impara</b>Niente, onestamente. Non è un giudizio sulla loro qualità: è che non si vede.</p>
+      </li>
+
+      <li class="str">
+        <div class="str-h"><h3>Brawlytics</h3><span class="apertura negato">403</span></div>
+        <p>Risponde 403 alle richieste automatiche. <strong>Non l'ho aggirato</strong>, come per gli altri siti bloccati che stanno già in memoria.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="eyebrow">La scoperta</p>
+    <h2>Due fonti serie, zero accordo</h2>
+    <div class="prosa">
+      <p>Deep Draft pubblica i suoi dati grezzi. Ho preso il loro <code>matchup_performance_delta</code> — quanto un brawler rende contro un altro — e l'ho confrontato con la mia matrice, sulle stesse mappe e sulle stesse coppie. <strong>24.558 confronti.</strong></p>
+    </div>
+    <div class="tab-wrap">
+      <table>
+        <caption>Il confronto, e i due controlli che ho fatto prima di dare la colpa a qualcuno.</caption>
+        <tbody>
+          <tr><td>Correlazione fra le due fonti</td><td class="n giu">r = 0,007</td></tr>
+          <tr><td>Stesso segno sui counter netti</td><td class="n giu">50%</td></tr>
+          <tr><td>I loro dati sono coerenti con sé stessi?</td><td class="n su">sì — r = −0,895</td></tr>
+          <tr><td>È solo rumore da campione piccolo?</td><td class="n su">no — dispersione 11,1 punti contro 1,3 attesi</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prosa">
+      <p>Quindi non è che uno dei due misura a caso. Il loro dato è <em class="q">internamente coerente</em>: il valore di A contro B sta quasi esattamente all'opposto di quello di B contro A, che è quello che ci si aspetta da una misura vera. E la sua dispersione è dieci volte più grande di quella che darebbe il puro rumore di campionamento.</p>
+      <p>Un pezzo di spiegazione l'ho trovato: <strong>il loro numero è ancora mescolato alla forza generale</strong> (correla 0,28 con la differenza di win rate fra i due), mentre il mio è al netto di quella. E le loro win rate di mappa vanno dal <span class="num">4%</span> al <span class="num">96%</span>: numeri così agli estremi vogliono dire pochissime partite su molti brawler.</p>
+      <p>Ma non basta a spiegare uno zero. La conclusione onesta è che <strong>non so quale delle due abbia ragione</strong>, e che so due cose sulla mia: sta su un campione <strong>tredici volte</strong> più grande, e ha un punteggio di Brier misurato su esiti veri. La loro non ha validazione pubblicata. Sull'evidenza disponibile la mia è meglio sostenuta — non è la stessa cosa che dire che è giusta.</p>
+    </div>
+    <div class="tab-wrap">
+      <table>
+        <caption>Le due fonti, sulla stessa mappa. Hard Rock Mine.</caption>
+        <thead><tr><th>&nbsp;</th><th class="n">Deep Draft</th><th class="n">la tua fonte</th></tr></thead>
+        <tbody>
+          <tr><td>partite sulla mappa</td><td class="n">154.477</td><td class="n su">1.942.206</td></tr>
+          <tr><td>celle di matchup con un dato</td><td class="n">994</td><td class="n su">11.070</td></tr>
+          <tr><td>copertura delle coppie</td><td class="n">8,6%</td><td class="n su">95,8%</td></tr>
+          <tr><td>terzetti con un dato</td><td class="n su">1.599</td><td class="n giu">0</td></tr>
+          <tr><td>validazione pubblicata</td><td class="n giu">nessuna</td><td class="n su">Brier 0,225–0,237</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il pezzo rubabile</p>
+    <h2>PL Prodigy cambia i pesi col rango</h2>
+    <div class="tab-wrap">
+      <table>
+        <caption>I pesi che PL Prodigy manda al proprio server, per fascia di rango. Sommano a 100. Letti nel loro codice, non dichiarati da loro.</caption>
+        <thead><tr><th>fascia</th><th class="n">counter</th><th class="n">win rate</th><th class="n">sinergia</th><th class="n">ban</th><th class="n">fit</th><th class="n">popolarità</th></tr></thead>
+        <tbody>
+          <tr><td>Diamante e sotto</td><td class="n">32</td><td class="n">27</td><td class="n">14</td><td class="n">9</td><td class="n">9</td><td class="n">9</td></tr>
+          <tr><td>Mythic</td><td class="n">34</td><td class="n">25</td><td class="n">13</td><td class="n">10</td><td class="n">11</td><td class="n">7</td></tr>
+          <tr><td>Leggenda</td><td class="n">36</td><td class="n">23</td><td class="n">12</td><td class="n">12</td><td class="n">12</td><td class="n">5</td></tr>
+          <tr><td>Masters e oltre</td><td class="n">40</td><td class="n">20</td><td class="n">10</td><td class="n">13</td><td class="n">13</td><td class="n">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prosa">
+      <p>La direzione è chiara e sensata: <strong>salendo di rango i counter contano di più</strong> (32 → 40) e la forza nuda sulla mappa di meno (27 → 20), la popolarità crolla (9 → 4) e i ban pesano di più (9 → 13).</p>
+      <p>La tua app <strong>fa già la stessa cosa, con un altro meccanismo</strong>: il peso del caso peggiore è 0,2 da Mythic in su e 0,15 fino a Diamante, cioè «più sali, più l'avversario la risposta la trova». Quello che non posso fare è tarare i pesi per rango come loro: la mia fonte mette in chiaro che i suoi dati sono <em class="q">Diamante 1 e sopra, tutte le leghe insieme</em>, perché dividendoli per lega restano troppe poche partite per coppia. Senza dati divisi per rango, pesi divisi per rango sarebbero inventati.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il risultato</p>
+    <h2>La tua app è migliorabile? Sì, in quattro punti su undici</h2>
+    <ul class="verdetti">
+      <li class="v"><span class="tag si">fatto</span><p><strong>I ban possono essere meno di sei.</strong> Il supporto Supercell dice che ogni giocatore <em class="q">può</em> bannare, quindi in una partita ne vedi da tre a sei. L'app lo gestiva già — inserisci quelli veri e premi il tasto — ma il tasto diceva «Salta i ban», che si legge come «non bannare affatto». Ora dice <em class="q">«Fine ban (anche se sono meno di 6)»</em>. Il comportamento c'era, mancava il nome.</p></li>
+
+      <li class="v"><span class="tag chiedo">mi serve da te</span><p><strong>I tre brawler che Classificata regala maxati questa stagione.</strong> Deep Draft li tiene in una lista fissa. Sono giocabili a potenza 11 anche se tu non li hai saliti — quindi l'app te li sta escludendo per sbaglio. La loro lista è del 15 agosto e oggi è il 10 settembre, quindi è vecchia e non me la invento: <strong>guardali in gioco e dimmi quali sono</strong>, sono trenta secondi e cambia cosa puoi schierare.</p></li>
+
+      <li class="v"><span class="tag forse">se lo vuoi</span><p><strong>Guardare il tabellone dal lato loro.</strong> PL Prodigy ha un interruttore che valuta la posizione dalla parte dell'avversario: «cosa prenderebbero adesso». La tua app quella lista ce l'ha già dentro (la usa per stimare le caselle vuote), non la mostra. È mezz'ora di lavoro. Non l'ho fatto perché due ore fa mi hai chiesto di <em class="q">togliere</em> roba.</p></li>
+
+      <li class="v"><span class="tag no">no, e il perché</span><p><strong>I cursori per i pesi</strong> (MetaPick, PL Prodigy). È il contrario di quello che mi hai chiesto stanotte, e c'è una ragione più profonda per non farlo: un cursore per «quanto contano i counter» è un modo di far scegliere a te un numero che dovrei misurare io. Se non so tararlo, il problema non si risolve dandolo in mano a te.</p></li>
+
+      <li class="v"><span class="tag no">no, e il perché</span><p><strong>I dati sui terzetti e il conflitto di ruolo</strong> di Deep Draft. Sono le due idee migliori che ho visto — la seconda soprattutto: dedurre che due brawler non stanno insieme dal fatto che la gente non li sceglie insieme, invece che dagli esiti. Ma i loro dati stanno su un campione tredici volte più piccolo e <em class="q">non concordano coi miei</em>. La regola di casa è che due fonti non si mescolano mai dentro lo stesso numero, e questa è esattamente la situazione per cui esiste.</p></li>
+
+      <li class="v"><span class="tag no">no, e il perché</span><p><strong>I pesi per rango.</strong> Direzione giusta, ma la mia fonte dichiara di mettere insieme tutte le leghe da Diamante 1 in su perché dividendole restano troppe poche partite. Tarare per rango senza dati per rango è inventare.</p></li>
+
+      <li class="v"><span class="tag no">no, già c'è</span><p><strong>Il bonus «hai il matchup positivo contro tutti e tre».</strong> La tua app ce l'ha in forma migliore: il <em class="q">pavimento</em> è esattamente questo, ma graduato invece che acceso/spento — e conta quanto sei esposto al peggiore, non solo se lo batti. Deep Draft il loro l'ha messo a zero.</p></li>
+
+      <li class="v"><span class="tag no">non per te</span><p><strong>I brawler posseduti dai compagni, per casella</strong> (Deep Draft). Serve a chi gioca in squadra e conosce i tag dei compagni. Tu giochi in solitaria: non li sai prima.</p></li>
+
+      <li class="v"><span class="tag forse">aperto</span><p><strong>Il motore vero</strong> — ricerca ad albero con NNUE e tabelle di trasposizione, come Deep Draft. È l'unico punto in cui qualcuno è architetturalmente avanti a te. Ho misurato ieri che un giro solo di lookahead non regge contro un avversario realistico, ma questo non dice niente su un motore serio. Sono settimane di lavoro per un guadagno che i dati di League of Legends danno piccolo. Lo lascio scritto, non lo comincio.</p></li>
+    </ul>
+  </section>
+
+  <section class="prosa">
+    <p class="eyebrow">Una cosa che ho trovato e non ho usato</p>
+    <h2>La chiave API di PL Prodigy è nel loro sito</h2>
+    <p>Il bundle JavaScript che chiunque scarica aprendo la loro pagina contiene una chiave <code>X-API-Key</code> in chiaro, usata per parlare col loro backend. <strong>Non l'ho usata e non l'ho scritta nel tuo repository.</strong></p>
+    <p>Non per prudenza legale: perché usare la chiave di qualcun altro per interrogare il suo server è una cosa che non si fa, e perché scriverla in un repository pubblico come il tuo la metterebbe in giro. Te lo dico perché è il tipo di cosa che vuoi sapere quando qualcuno analizza dei siti per conto tuo: ho letto quello che il loro sito serve a tutti, e mi sono fermato lì.</p>
+  </section>
+
+  <section class="prosa">
+    <p class="eyebrow">In sintesi</p>
+    <h2>Dove sei messo</h2>
+    <p><strong>Sui dati sei primo.</strong> Nessuno degli altri sei ha una matrice con la copertura della tua, e nessuno mostra un numero che sia stato confrontato con esiti veri.</p>
+    <p><strong>Sul modello sei secondo</strong>, dietro Deep Draft, che ha un motore di ricerca vero e due idee (terzetti, conflitto di ruolo) che io non ho i dati per copiare.</p>
+    <p><strong>Su quello che sa di te sei primo e da solo.</strong> Nessuno degli altri sa quali brawler puoi davvero schierare a potenza 11 tranne Deep Draft, e nessuno tiene il tuo record fuori dalle decisioni mostrandotelo lo stesso.</p>
+    <p>E la cosa da portarsi dietro non è una classifica: è che <strong>i due dataset migliori del settore non sono d'accordo su chi counteri chi</strong>. Quando un'app ti dà un numero sui counter, quel numero è meno solido di come appare — la tua compresa.</p>
+    <hr>
+    <p class="coda">Misure riproducibili dal repository: <code>script/misura-lookahead.js</code>, <code>script/verifica-matrice.js</code>, <code>script/verifica-generale.js</code>. Il confronto fra le due fonti è stato fatto su file scaricati pubblicamente dai due siti, senza chiavi e senza aggirare blocchi.</p>
+  </section>
+</div>
