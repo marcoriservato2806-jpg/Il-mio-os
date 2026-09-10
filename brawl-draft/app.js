@@ -2248,15 +2248,17 @@ function renderSuggestions() {
       // che parlava di percentuali: due unità diverse nella stessa schermata.
       // L'ordine resta forza × quanto viene scelto davvero, ed è scritto
       // sopra; il numero mostrato è la cosa che si capisce senza spiegazioni.
+      // Stessa regola dei pick: una riga, un numero. Quanto viene scelto e
+      // quanto sai rispondergli restano nell'ordinamento e nel title, non a
+      // schermo.
+      const dett = [`vince il ${Math.round(s.wr)}% su ${s.source}`, `lo sceglie il ${s.use}%`];
+      if (s.risposta) dett.push(`se glielo lasci, la tua risposta migliore è ${s.risposta.chi} e vale ${s.risposta.valore}%`);
       row.innerHTML = `
-        <span class="sugg-name">${s.name}<span class="chip-row"><span class="echip meas ${s.use >= 2 ? "neg" : "est"}" title="quanto spesso viene scelto davvero: più è alto, più è probabile che te lo prendano">${s.use}% lo prende</span>${
-          s.risposta
-            ? `<span class="floor-chip ${s.risposta.valore < 52 ? "warn" : s.risposta.valore < 56 ? "mid" : "ok"}" title="Se glielo lasci, il tuo pick migliore contro di lui è ${s.risposta.chi} e vale circa ${s.risposta.valore}%. Sotto il 52% vuol dire che una risposta comoda non ce l'hai: è il ban che ti conviene di più. Sopra il 56% sai già gestirlo, e il ban rende meno.">rispondi ${s.risposta.valore}%</span>`
-            : ""
-        }</span></span>
+        <span class="sugg-name">${s.name}</span>
         <span class="sugg-class">${s.class}</span>
-        <span class="sugg-score" title="win rate su ${s.source}; l'ordine tiene conto anche di quanto viene scelto">${Math.round(s.wr)}%</span>
+        <span class="sugg-score">${Math.round(s.wr)}%</span>
       `;
+      row.title = dett.join(" · ");
       row.insertBefore(ritrattoMini(s.name, "ban"), row.firstChild);
       row.addEventListener("click", () => toggleBrawler(s.name));
       el.appendChild(row);
@@ -2287,194 +2289,46 @@ function renderSuggestions() {
   //
   // La riga compare solo sotto la mediana: un avviso sempre presente diventa
   // sfondo e non lo legge piu' nessuno.
-  {
-    const p = document.createElement("p");
-    p.className = "hint sedia";
-    p.innerHTML = rigaSedia(turn);
-    el.appendChild(p);
-  }
-
-  // IL CONFRONTO VA FATTO CON LA SITUAZIONE GIUSTA, NON CON UN NUMERO FISSO.
+  // ---- UNA RIGA, UN NUMERO ------------------------------------------------
   //
-  // Qui c'erano due soglie fisse (avviso sotto 59, allarme sotto 53) e la frase
-  // «contro una mediana di 62%». Erano tarate su una versione del punteggio che
-  // non esiste piu': dopo la correzione della forza dell'avversario e la nuova
-  // taratura del caso peggiore, tutti i numeri sono scesi di alcuni punti.
-  // Misurato su 132 posizioni: l'avviso scattava in 126, l'allarme in 78 — e
-  // l'allarme diceva «succede in una posizione su cento». Un avviso che compare
-  // sempre non e' un avviso, e' sfondo.
+  // Richiesta esplicita, e va rispettata alla lettera: «lascia solo un numero
+  // per ogni brawler, e quel numero e' il valore di quel brawler nella mappa.
+  // Sopra il 50% e' sopra, sotto e' sotto. Niente piu' numeri, niente piu'
+  // trappole, niente di niente.»
   //
-  // E c'era un secondo errore, strutturale: il punteggio scende man mano che il
-  // tabellone si riempie, perche' entrano matchup veri e la forza dei nemici in
-  // campo. Un numero fisso quindi bolla come «brutta» ogni posizione tarda. La
-  // mediana vera per numero di avversari gia' schierati:
-  //     0 nemici  56,4      1 nemico  53,1      2 nemici  49,4      3 nemici  46,1
-  // Il caso dello screenshot dell'utente — primo pick, migliore 57% — era SOPRA
-  // la mediana della sua situazione, e l'app diceva «sotto la media».
+  // Tolti dalla riga: le etichette «trappola» e «sottovalutato», i riquadrini
+  // per avversario, il pavimento, la rarita', il record personale. Tolte anche
+  // le tre righe di spiegazione sopra la lista (in che sedia sei, il migliore
+  // di mappa, la risposta piu' forte) e l'avviso sulla situazione.
   //
-  // Le soglie qui sotto sono i quartili misurati: sotto il 25% delle posizioni
-  // e' «peggio del solito», sotto il 10% e' «brutta davvero».
-  const RIFERIMENTO = [
-    { mediana: 56.4, q25: 54.3, q10: 52.9 }, // 0 avversari in campo
-    { mediana: 53.1, q25: 51.0, q10: 50.1 },
-    { mediana: 49.4, q25: 47.8, q10: 46.2 },
-    { mediana: 46.1, q25: 44.5, q10: 43.2 },
-  ];
-  const meglio = suggestions[0].total;
-  const nemiciInCampo = Math.min(3, state.picks[turn.team === "A" ? "B" : "A"].filter(Boolean).length);
-  const rif = RIFERIMENTO[nemiciInCampo];
-  if (meglio < rif.q25) {
-    const p = document.createElement("p");
-    p.className = "hint scarso";
-    const quando = nemiciInCampo === 0 ? "a inizio draft" : nemiciInCampo === 3 ? "con la loro squadra al completo" : `con ${nemiciInCampo} avversari in campo`;
-    p.innerHTML = meglio < rif.q10
-      ? `<strong>Posizione brutta davvero.</strong> Il migliore vale ${Math.round(meglio)}%, e ${quando} il valore tipico è ${Math.round(rif.mediana)}%: sei nel 10% peggiore. Hanno draftato bene loro. Prendi il meno peggio e giocatela.`
-      : `<strong>Sotto il solito.</strong> Il migliore vale ${Math.round(meglio)}%, contro ${Math.round(rif.mediana)}% tipico ${quando}. Non è un disastro, ma nessun pick ti regala la partita.`;
-    el.appendChild(p);
-  }
-  // Il migliore per la sola win rate di mappa, quando il punteggio non e'
-  // d'accordo. Serve a rispondere alla domanda che l'utente fa davvero ("qual
-  // e' il migliore qui") e a far vedere il disaccordo invece di subirlo.
-  const mm = suggestions.migliorMappa;
-  if (mm) {
-    const dentro = suggestions.some((s) => s.name === mm.name);
-    const p = document.createElement("p");
-    p.className = "hint mappa-top";
-    const buco = mm.media !== undefined ? Math.round(mm.media - mm.floor) : null;
-    p.innerHTML = `<strong>Il migliore per la sola win rate di mappa è ${mm.name}</strong> (${Math.round(mm.base)}% su questa mappa)` +
-      `, ma qui vale ${Math.round(mm.total)}%${dentro ? "" : " e non entra nei primi sei"}` +
-      (mm.risk && buco !== null && buco >= 6
-        ? `: contro ${mm.risk.enemy} scende al ${mm.floor}%, cioè ${buco} punti sotto la sua media. È forte in media e fragile.`
-        : `.`);
-    el.appendChild(p);
-  }
-  // LA RISPOSTA A CHI HAI DAVANTI, sopra la piega.
+  // NIENTE E' STATO TOLTO DAL CALCOLO. Il numero e' lo stesso di prima: parte
+  // dalla win rate di questo brawler su questa mappa, corretta per rarita', e
+  // ci somma i matchup contro chi e' gia' in campo, cosa puo' ancora arrivare,
+  // la sinergia coi compagni e il caso peggiore. Quello che e' sparito e' il
+  // modo di VEDERLO spezzato in pezzi.
   //
-  // Segnalazione, due volte: «al primo pick non c'e' nessuno buono contro
-  // Amber». I contro-Amber ci sono e l'app li conosce (in Brawl Ball Berry
-  // +9,8, Shelly +8,2, Leon +8,1), ma stavano solo nel pannello counter, che sul
-  // telefono e' SOTTO i suggerimenti: con 22 secondi di timer non lo si scorre.
-  // Se la risposta migliore non e' fra i sei consigliati, va detta qui, e va
-  // detto anche quanto vale come pick — perche' spesso e' uno specialista che
-  // sulla mappa non regge, e sapere entrambe le cose e' il punto.
-  const nemiciOra = state.picks[turn.team === "A" ? "B" : "A"].filter(Boolean);
-  if (nemiciOra.length > 0) {
-    const nomiSug = new Set(suggestions.map((s) => s.name));
-    const fuori = [];
-    for (const en of nemiciOra) {
-      let best = null;
-      for (const b of BRAWLERS) {
-        if (usedNames().has(b.name) || !schierabile(b.name)) continue;
-        const v = advReale(b.name, en);
-        if (v === null) continue;
-        if (!best || v > best.adv) best = { name: b.name, adv: v, tot: _classifica.get(b.name) };
-      }
-      if (best && best.adv >= 3 && !nomiSug.has(best.name)) fuori.push({ en, ...best });
-    }
-    if (fuori.length) {
-      const p = document.createElement("p");
-      p.className = "hint risposta";
-      p.innerHTML = `<strong>Risposta più forte a chi hai davanti:</strong> ` + fuori.map((f) =>
-        `contro ${f.en} è <strong>${f.name}</strong> (${f.adv > 0 ? "+" : ""}${f.adv.toFixed(1)})${
-          f.tot === undefined ? "" : `, che però come pick qui vale ${Math.round(f.tot)}%`}`).join("; ") +
-        `. Non è nei sei sopra perché il vantaggio non basta a coprire la mappa: è una risposta da specialista.`;
-      el.appendChild(p);
-    }
-  }
+  // Il dettaglio resta nel `title` della riga — sul computer si legge passando
+  // il mouse, sul telefono no, ed e' un compromesso accettato: la richiesta era
+  // di togliere, non di nascondere meglio. Se un giorno serve di nuovo a
+  // schermo, si riaccende da qui.
   suggestions.forEach((s, i) => {
     const row = document.createElement("div");
     row.className = "suggestion-row" + (i === 0 ? " top" : "");
     row.style.borderColor = CLASS_COLORS[s.class] || "#666";
-    // Le etichette "trappola" e "raro" sono deduzioni sulla POPOLAZIONE: dicono
-    // che il numero generale e' gonfiato o ingannevole. Prima venivano zittite
-    // quando lui aveva abbastanza partite proprie con quel brawler — aveva
-    // senso finche' il suo record entrava nel punteggio, perche' allora era il
-    // suo dato a decidere e l'etichetta parlava di un numero che non veniva
-    // piu' usato. Ora decide il dato generale, quindi le etichette che lo
-    // descrivono restano sempre: sono la spiegazione della correzione che il
-    // punteggio applica davvero.
-    const flag = pickFlag(s.name);
-    const badge = flag
-      ? `<span class="badge ${flag.kind}" title="${
-          flag.kind === "trap"
-            ? `Scelto dal ${flag.use}% dei giocatori ma vince solo il ${flag.wr}% delle volte: lo prendono più di quanto valga.`
-            : `Vince il ${flag.wr}% delle volte ma lo sceglie solo il ${flag.use}%: quasi nessuno lo banna, quindi resta libero. Il rovescio: quel ${flag.wr}% è misurato su chi lo gioca abitualmente, che è poca gente e allenata. Se non lo sai già usare, aspettati meno.`
-        }">${flag.kind === "trap" ? "trappola" : "sottovalutato"}</span>`
-      : "";
-    // Contro ciascun avversario si mostra la percentuale, non il residuo:
-    // "vs Rosa 72%" si capisce, "+13.5" no.
-    // Il riquadrino porta DUE numeri, e il secondo e' quello che conta.
-    //
-    // "vs Nita 78%" e' la percentuale di vittorie vera, verificabile sulle
-    // fonti — ma comprende anche il fatto che tu sia in generale piu' forte di
-    // Nita, che e' GIA' dentro la base del punteggio. Quello che sposta il
-    // punteggio e' di quanto sei sopra il normale per quella coppia.
-    //
-    // Senza il secondo numero la lista sembrava sbagliata, e la segnalazione
-    // e' arrivata: un pick con "vs Bolt 53% · vs Nita 78%" sotto uno con
-    // "vs Bolt 29% · vs Nita 59%". Il colore ora segue lo scarto, non la
-    // percentuale assoluta, per la stessa ragione.
-    const chips = (s.perEnemy || [])
-      .map((p) => {
-        const sc = Math.round(p.edge);
-        // il colore segue il numero MOSTRATO, non quello prima
-        // dell'arrotondamento: un "+0" rosso e' un numero che non torna
-        return `<span class="echip ${p.measured ? "meas" : "est"} ${sc > 0 ? "pos" : sc < 0 ? "neg" : "pari"}" title="${
-          p.measured
-            ? p.ricostruita
-              ? "Il vantaggio di questa coppia è misurato su partite vere; la percentuale qui sotto è ricostruita da quel vantaggio, perché la fonte pubblica la win rate solo sopra una soglia di partite più alta"
-              : "Matchup misurato su partite reali, in questa modalità"
-            : "Nessun dato per questa coppia: media dei vantaggi veri fra le due classi, in questa modalità"
-        }: vinci il ${Math.round(p.wr * 10) / 10}% contro ${p.enemy}. Il ${sc >= 0 ? "+" : ""}${sc} è quanto questo è sopra o sotto il normale per questa coppia, ed è la parte che sposta il punteggio — il resto è forza generale, già contata nella base.">vs ${p.enemy} ${Math.round(p.wr)}% <b>${sc >= 0 ? "+" : ""}${sc}</b></span>`;
-      })
-      .join("");
-    // Il riquadrino diventa un avviso quando il caso peggiore è molto più
-    // basso della media: è lì che un pick apparentemente ottimo è fragile.
-    const drop = (s.media === undefined ? s.total : s.media) - s.floor;
-    const floorClass = s.floor < 50 || drop >= 12 ? "warn" : drop >= 7 ? "mid" : "ok";
-    const floorChip =
-      s.risk || (s.perEnemy && s.perEnemy.length)
-        ? `<span class="floor-chip ${floorClass}" title="${s.risk ? "il peggio che ti può capitare, contro " + s.risk.enemy : "contro l'avversario in campo che ti va peggio"}">peggio ${s.floor}%</span>`
-        : "";
-    // Quando il pick è raro, la correzione ha spostato parecchio il numero:
-    // va detto, altrimenti sembra che l'app "non veda" un brawler forte.
-    // Il tuo record con quel brawler: e' la cosa che sposta di piu' il numero,
-    // quindi deve essere la piu' visibile. Senza, l'app sembrerebbe cambiare
-    // idea senza motivo su un brawler che ieri consigliava.
-    const mio = s.mio;
-    // Il riquadrino MOSTRA il suo record e NON lo somma: il punteggio e' fatto
-    // di dati generali. Il colore segue la differenza grezza dalla sua media,
-    // non lo scarto ristretto, perche' e' il numero che gli sta scritto sopra.
-    const diffMio = mio ? mio.mio - PARTITE_RANKED_MEDIA : 0;
-    const chipMio = mio
-      ? `<span class="mio-chip ${diffMio <= -6 ? "giu" : diffMio >= 6 ? "su" : "pari"}" title="Le TUE partite, per informazione: ${Math.round(mio.mio)}% di vittorie su ${mio.partite}${mio.dove ? " " + mio.dove : ""}, contro la tua media in Classificata del ${PARTITE_RANKED_MEDIA}%.${mio.brawler ? " Col brawler in generale " + Math.round(100*mio.brawler.v/mio.brawler.n) + "% su " + mio.brawler.n + "." : ""}${mio.mappaRec ? " Su questa mappa, con qualunque brawler, " + Math.round(100*mio.mappaRec.v/mio.mappaRec.n) + "% su " + mio.mappaRec.n + "." : ""} NON entra nel punteggio: il ${Math.round(s.total)}% viene dai dati generali (mappa e avversario). Hai chiesto tu che sia cosi\u2019.">tuo ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}</span>`
-      : "";
-    const raro = s.pick !== undefined && s.pick < 1.5;
-    const rarita = raro
-      ? `<span class="risk-chip warn" title="Lo sceglie solo lo ${s.pick.toFixed(1)}% delle squadre. Il dato grezzo dice ${Math.round(s.grezza)}%, ma è misurato su chi lo gioca apposta: per te vale circa ${Math.round(s.base)}%.">raro ${s.pick.toFixed(1)}%</span>`
-      : "";
-    const parts = [`base ${s.base}% (${s.baseSource})`];
-    if (mio) parts.push(`tuo record ${Math.round(mio.mio)}% su ${mio.partite}${mio.dove ? " " + mio.dove : ""}: mostrato, non contato`);
-    if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) {
-      parts.push(`grezzo ${Math.round(s.grezza)}% corretto per rarità`);
-    }
-    if (typeof PROFILO !== "undefined" && PROFILO[s.name]) parts.push(`tuoi trofei: ${PROFILO[s.name].trofei}`);
-    if (s.matchupAvg) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}${s.vuote ? " (su 3 caselle, " + s.vuote + " ancora vuot" + (s.vuote > 1 ? "e" : "a") + ")" : ""}`);
-    if (s.synergy) parts.push(s.sinFonte
-      ? `sinergia coi compagni ${s.synergy > 0 ? "+" : ""}${s.synergy} (misurata su ${s.sinFonte.misurata} di ${s.sinFonte.su})`
-      : `composizione ${s.synergy > 0 ? "+" : ""}${s.synergy} (euristica di classe: la sinergia misurata non c'è)`);
-    if (s.traits) parts.push(`tratti mappa ${s.traits > 0 ? "+" : ""}${s.traits}`);
-    // Il numero mostrato e' la miscela, quindi il dettaglio DEVE arrivare
-    // fino a lui: un totale che non torna con le sue righe non e' verificabile.
-    if (s.q > 0 && s.media !== undefined) {
-      parts.push(`= media ${Math.round(s.media * 10) / 10}%`);
-      parts.push(`mostrato: ${Math.round((1 - s.q) * 100)}% della media + ${Math.round(s.q * 100)}% del caso peggiore (${s.floor}%), perché all'avversario resta${s.vuote > 1 ? "no " + s.vuote + " scelte" : " una scelta"} per trovare la risposta`);
-    }
+
+    const parts = [`${Math.round(s.base)}% su questa mappa`];
+    if (s.grezza !== undefined && Math.abs(s.grezza - s.base) >= 1.5) parts.push(`dato grezzo ${Math.round(s.grezza)}%, corretto perché lo sceglie poca gente`);
+    if (s.matchupAvg) parts.push(`matchup ${s.matchupAvg > 0 ? "+" : ""}${s.matchupAvg}`);
+    if (s.synergy) parts.push(`squadra ${s.synergy > 0 ? "+" : ""}${s.synergy}`);
+    if (s.floor !== undefined && s.risk) parts.push(`nel caso peggiore ${s.floor}% contro ${s.risk.enemy}`);
+    if (s.mio) parts.push(`le tue partite: ${Math.round(s.mio.mio)}% su ${s.mio.partite}${s.mio.dove ? " " + s.mio.dove : ""} — mostrato, non contato`);
+
     row.innerHTML = `
-      <span class="sugg-name">${s.name}${badge}${chips || floorChip || rarita || chipMio ? `<span class="chip-row">${chips}${floorChip}${chipMio}${rarita}</span>` : ""}</span>
+      <span class="sugg-name">${s.name}</span>
       <span class="sugg-class">${s.class}</span>
-      <span class="sugg-score" title="${parts.join(" · ")}">${Math.round(s.total)}%</span>
+      <span class="sugg-score">${Math.round(s.total)}%</span>
     `;
+    row.title = parts.join(" · ");
     row.insertBefore(ritrattoMini(s.name, "sugg"), row.firstChild);
     row.addEventListener("click", () => toggleBrawler(s.name));
     el.appendChild(row);
