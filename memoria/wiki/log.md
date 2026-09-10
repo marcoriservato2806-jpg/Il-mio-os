@@ -1,5 +1,11 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-10 12:05] errore mio | Due bottoni, e quello sbagliato diceva "fatto"
+Marco ha scritto "caricato": archivio vuoto, nessuna partita, nemmeno il resoconto degli scarti. Non era colpa dell'API.
+La pagina aveva **Salva** (tag e chiave nel telefono) e **Raccogli le partite**. Salva rispondeva con un messaggio verde "Salvati su questo telefono": sembra la conferma che il lavoro è fatto, e invece non era ancora partito niente.
+**La regola che ne esce:** un messaggio di conferma verde deve confermare *la cosa che l'utente voleva*, non un passaggio intermedio. Se conferma un passaggio intermedio, o non è verde, o quel passaggio non deve esistere.
+Risolto togliendo la scelta: il bottone ora è "Salva e raccogli" e la raccolta parte da sola.
+
 ## [2026-09-10 11:50] strumento | La pagina di raccolta ora dice perché scarta una partita
 Ho scritto `estrai()` senza aver mai visto una risposta vera dell'API: se sbaglio un nome di campo, l'unico messaggio è "nessuna partita utilizzabile" e non si capisce di chi è la colpa.
 Ora la pagina conta gli scarti **per motivo**, registra i valori di `battle.type` che ha incontrato e i nomi dei campi del primo elemento, e salva il resoconto in `diagnostica/ultima`. Solo conteggi e nomi di campo: nessun tag, nessun nome di giocatore, nessun valore.
