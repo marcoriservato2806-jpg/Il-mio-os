@@ -1,0 +1,192 @@
+[
+ {
+  "quando": "20260910T000558.000Z",
+  "modalita": "gemGrab",
+  "mappa": "Undermine",
+  "round": 2,
+  "vinti": 2,
+  "mio": "Meeple",
+  "miei": [
+   "Janet",
+   "Meeple",
+   "Otis"
+  ],
+  "loro": [
+   "Jessie",
+   "Edgar",
+   "Gale"
+  ],
+  "esito": 1
+ },
+ {
+  "quando": "20260910T001321.000Z",
+  "modalita": "bounty",
+  "mappa": "Layer Cake",
+  "round": 3,
+  "vinti": 2,
+  "mio": "Willow",
+  "miei": [
+   "Bonnie",
+   "Willow",
+   "Griff"
+  ],
+  "loro": [
+   "Dynamike",
+   "Maisie",
+   "Meeple"
+  ],
+  "esito": 1
+ },
+ {
+  "quando": "20260910T002155.000Z",
+  "modalita": "gemGrab",
+  "mappa": "Double Swoosh",
+  "round": 3,
+  "vinti": 2,
+  "mio": "Wendy",
+  "miei": [
+   "Chester",
+   "Wendy",
+   "Pearl"
+  ],
+  "loro": [
+   "Maisie",
+   "Lily",
+   "Lou"
+  ],
+  "esito": 1
+ },
+ {
+  "quando": "20260910T003735.000Z",
+  "modalita": "brawlBall",
+  "mappa": "Pinball Dreams",
+  "round": 2,
+  "vinti": 2,
+  "mio": "Shade",
+  "miei": [
+   "Penny",
+   "Shade",
+   "Bo"
+  ],
+  "loro": [
+   "Brock",
+   "Fang",
+   "Crow"
+  ],
+  "esito": 1
+ },
+ {
+  "quando": "20260910T004425.000Z",
+  "modalita": "heist",
+  "mappa": "Safe Zone",
+  "round": 3,
+  "vinti": 1,
+  "mio": "Wendy",
+  "miei": [
+   "Griff",
+   "Penny",
+   "Wendy"
+  ],
+  "loro": [
+   "Carl",
+   "Gus",
+   "Brock"
+  ],
+  "esito": 0
+ },
+ {
+  "quando": "20260910T005414.000Z",
+  "modalita": "knockout",
+  "mappa": "Out in the Open",
+  "round": 2,
+  "vinti": 0,
+  "mio": "Pearl",
+  "miei": [
+   "Gray",
+   "Angelo",
+   "Pearl"
+  ],
+  "loro": [
+   "Gus",
+   "Mandy",
+   "8-Bit"
+  ],
+  "esito": 0
+ },
+ {
+  "quando": "20260910T123724.000Z",
+  "modalita": "gemGrab",
+  "mappa": "Undermine",
+  "round": 3,
+  "vinti": 1,
+  "mio": "Pearl",
+  "miei": [
+   "Buzz",
+   "Pearl",
+   "Squeak"
+  ],
+  "loro": [
+   "Chester",
+   "Colette",
+   "Amber"
+  ],
+  "esito": 0
+ },
+ {
+  "quando": "20260910T124954.000Z",
+  "modalita": "heist",
+  "mappa": "Hot Potato",
+  "round": 3,
+  "vinti": 2,
+  "mio": "Nita",
+  "miei": [
+   "Nita",
+   "Kaze",
+   "Edgar"
+  ],
+  "loro": [
+   "Chuck",
+   "Surge",
+   "Bull"
+  ],
+  "esito": 1
+ },
+ {
+  "quando": "20260910T125831.000Z",
+  "modalita": "brawlBall",
+  "mappa": "Triple Dribble",
+  "round": 2,
+  "vinti": 0,
+  "mio": "Damian",
+  "miei": [
+   "Rico",
+   "Mina",
+   "Damian"
+  ],
+  "loro": [
+   "Griff",
+   "Amber",
+   "Surge"
+  ],
+  "esito": 0
+ },
+ {
+  "quando": "20260910T130620.000Z",
+  "modalita": "knockout",
+  "mappa": "Out in the Open",
+  "round": 2,
+  "vinti": 2,
+  "mio": "Pearl",
+  "miei": [
+   "Pearl",
+   "Bea",
+   "Byron"
+  ],
+  "loro": [
+   "Gray",
+   "Leon",
+   "Piper"
+  ],
+  "esito": 1
+ }
+]

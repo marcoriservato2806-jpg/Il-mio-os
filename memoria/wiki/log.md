@@ -1,5 +1,15 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-10 13:35] dati | Prima raccolta vera: 25 round sono 10 partite, non 25
+Il comando rapido iOS funziona. Primo battlelog vero letto e verificato contro le ipotesi che avevo scritto senza dati.
+**Le ipotesi reggono tutte:** `battle.type` vale `soloRanked`; `teams` sono due squadre da tre; `result` e' `victory`/`defeat`; `event.map` e `event.mode` ci sono.
+**Due cose che non sapevo, e cambiano il conto:**
+1. I nomi dei brawler arrivano **tutti maiuscoli** (`8-BIT`, `PEARL`). Vanno normalizzati contro il roster: lo fa `nomeRoster()` togliendo tutto cio' che non e' lettera o cifra. Tutti e 25 i round si sono tradotti, nessun nome fuori roster.
+2. **Il battlelog elenca i round, non le partite.** La Classificata e' al meglio dei tre e il draft e' uno solo per partita: 25 righe erano **10 partite**. Contarle come 25 avrebbe gonfiato il campione di due volte e mezzo e reso ogni misura falsamente sicura.
+`script/estrai-partite.js` ricuce i round consecutivi con stessa mappa e stessi sei giocatori (entro 20 minuti), anonimizza, e **si rifiuta di scrivere** se nel file di uscita comparissero un tag o un campo `name`.
+Riscontro: somma dei round delle 10 partite = 25, torna. Prima raccolta: **6 vinte su 10**.
+**Conseguenza sull'obiettivo:** 300 partite non sono 12 raccolte ma circa 30, e il battlelog tiene solo le ultime 25 battaglie: va lanciato dopo ogni sessione, non una volta ogni tanto.
+
 ## [2026-09-10 12:40] errore mio | Un artifact non puo' chiamare nessun sito esterno
 "Load failed" sul telefono, con wifi acceso, chiave nuova e indirizzo autorizzato giusto: la fetch non arrivava mai a un codice HTTP, cadeva prima.
 **Causa:** le pagine artifact girano dietro una CSP che vieta `fetch`/XHR verso qualsiasi host. Non e' aggirabile e non dipende dalla rete.
