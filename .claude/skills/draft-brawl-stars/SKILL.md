@@ -22,6 +22,12 @@ description: Aggiorna o modifica l'app Assistente Draft Classificata (Brawl Star
 
 **Meta generale e counter: `brawlmetrics.gg`** — `/tier-list/ranked`, `/tier-list/ranked/masters`, `/brawlers/<slug>`. Non usarlo per le mappe: segue la rotazione trofei, quindi le mappe solo-ranked non si aggiornano mai e alcune non hanno pagina.
 
+**Aggiornare i dati è un comando solo:** `./script/aggiorna-dati.sh`. Rifà mappe e matrice dal bucket, lancia tutti i controlli, ricostruisce il file pubblicabile, e si rifiuta di procedere se qualcosa non torna. Non pubblica e non committa. Gira anche da solo ogni lunedì (Routine `trig_01Ndx6Nc7SYmXUJvJU23wJdn`).
+
+**Le mappe NON si grattano più dall'HTML.** `fetch-brawlplanet-ranked.js` è superato da `fetch-mappe-ranked.js`, che legge `pl-results.json.gz` dal bucket: un file solo, nessuna scheda sbagliata da scegliere. Verificato al cambio: 3.467 win rate confrontate, differenza media 0,0136 punti, e trova una mappa che lo scraper si perdeva.
+
+**Validare sugli esiti veri:** `script/raccogli-partite.js` (accumula le partite dall'API ufficiale, che dà i pick avversari) e `script/valida-consigli.js`. Serve una chiave da developer.brawlstars.com, gratis ma legata a un IP fisso. **Tag e chiave solo da variabili d'ambiente: il repository è pubblico.**
+
 **Roster e mappe attive:** `api.brawlapi.com/v1/brawlers` (campo `released`) e `/v1/maps` (campo `disabled`) — API pubblica, niente chiave. Le letture arrivano troncate: fidati dei singoli campi, non dei conteggi.
 
 Riscontro incrociato: Dexerto, Pocket Tactics, Brawlvision.
