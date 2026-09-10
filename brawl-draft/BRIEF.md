@@ -1,0 +1,279 @@
+# Brief: costruire il miglior assistente di draft per Brawl Stars Classificata
+
+Questo documento è il capitolato. Non descrive un'app che vorrei: descrive quella che ho costruito, dove ho sbagliato, e cosa ho misurato — così chi la rifà non ripaga lo stesso prezzo. Ogni numero qui dentro è misurato o citato dalla fonte che lo pubblica. Dove non lo è, c'è scritto.
+
+Chi lo esegue deve comportarsi da ingegnere, non da assistente: misurare prima di credere, rifiutarsi di inventare un numero, e dire "non lo so" quando è la risposta giusta.
+
+---
+
+## 0. Cosa deve fare, e per chi
+
+Un giocatore in Classificata da Diamante in su, **da solo**, col telefono in mano e **22 secondi per turno**. Deve poter guardare lo schermo e sapere cosa prendere. Non deve interpretare, non deve confrontare, non deve scorrere.
+
+L'output è **una lista di brawler con un numero ciascuno**. Il numero è una percentuale di vittorie stimata in quella posizione di draft. Sopra 50 è sopra la parità.
+
+Non è un cruscotto di analisi. È uno strumento che si usa mentre un timer scorre.
+
+---
+
+## 1. Il tetto — leggilo prima di promettere qualcosa
+
+| Misura | Valore |
+|---|---|
+| Draft di Brawl Stars, composizione da sola | AUC 0,625 su 1.059.778 partite ranked |
+| Miglior modello di draft per League of Legends (rete neurale) | accuratezza 55,88%, Brier 0,2449 su 32.750 partite |
+| Un modello "somma di coppie" sullo stesso test | accuratezza 54,66%, Brier 0,2469 |
+| Chi tira a indovinare | Brier 0,25 |
+
+**Due millesimi di Brier** separano la rete neurale migliore che esista da un modello che somma coppie di numeri. Il tetto è basso per tutti.
+
+Conseguenza operativa, e vale più di ogni scelta di architettura: **il guadagno grande sta fra "nessun modello" e "un modello decente". Fra un modello decente e uno ottimo c'è quasi niente.** Chi spende tre settimane su una rete neurale prima di aver corretto le distorsioni dei dati sta ottimizzando il decimale sbagliato.
+
+Vale anche come onestà verso l'utente: un'app di draft perfetta sposta pochi punti percentuali. Se il giocatore ha un effetto tilt (nel caso misurato: 74% di vittorie dopo una vittoria, 49% dopo una sconfitta), quello è più grande di tutto il draft messo insieme, e nessuna app lo risolve.
+
+---
+
+## 2. I dati: dove sono davvero
+
+La regola che ha sbloccato tutto: **una pagina che mostra dieci righe non prova che il dato sia dieci righe.** Se la pagina è interattiva, il dato pieno è già passato dal browser. Si trova guardando *cosa scarica*, non rileggendo l'HTML.
+
+### Le fonti che servono
+
+| Cosa | Dove | Note |
+|---|---|---|
+| **Matrice matchup + sinergie, per modalità** | `storage.googleapis.com/brawlanalyzer-public/draft/pairs-<modalità>.json.gz` | 108×108 per ognuna delle 6 modalità ranked. Contiene `matchup.adv` (vantaggio al netto della forza dei due, ×10), `matchup.wr` (win rate vera, ×10), `synergy.adv`, `synergy.wr`, e `calibration` |
+| **Tutte le mappe ranked** | `storage.googleapis.com/brawlanalyzer-public/pl-results.json.gz` | Un file: win rate, pick rate, star rate per brawler, campione, quali mappe sono attive, i 10 trii più vincenti |
+| **Roster e mappe attive** | `api.brawlapi.com/v1/brawlers` e `/v1/maps` | Campi `released` e `disabled`. Le letture arrivano troncate: fidati dei campi, non dei conteggi |
+| **Le partite del giocatore, coi pick avversari** | `api.brawlstars.com/v1/players/{tag}/battlelog` | Ufficiale Supercell. **L'unica fonte al mondo che dà i pick avversari.** Chiave gratis, legata a IP fisso. Tiene solo le ultime ~25 partite: va interrogata spesso e accumulata |
+
+Modalità ranked: `gemGrab`, `brawlBall`, `bounty`, `heist`, `hotZone`, `knockout`.
+
+### Il formato ranked, da fonte primaria (Supercell)
+
+- Bronze → Gold III: al meglio di 1, **senza fase ban**.
+- Diamante I e sopra: al meglio di 3, **con fase ban**.
+- I ban sono individuali: ognuno *può* bannare, quindi in una partita ne vedi **da 3 a 6**, non sempre 6. L'app deve permettere di registrarne quattro e andare avanti.
+- Ordine dei pick: **1-2-2-1**.
+
+### Cosa NON esiste, verificato
+
+- **Dati sui ban.** Nessuno li ha, e la fonte migliore lo scrive per iscritto. Un ban non lascia traccia nel risultato della partita. Qualunque "priorità di ban" usa la pick rate come sostituto della probabilità: va detto, non spacciato.
+- **Dati divisi per rango.** La fonte dichiara di mettere insieme tutte le leghe da Diamante 1 in su, perché dividendole restano troppe poche partite per coppia. Quindi **pesi diversi per rango sarebbero inventati.**
+- **Win rate per gadget e star power.** Le fonti raggiungibili pubblicano solo la pick rate di ciascuno.
+
+---
+
+## 3. Il modello, termine per termine — e la regola che li tiene insieme
+
+**Tutto è in punti percentuali di win rate. Sempre. Ogni termine, ogni somma, ogni sottrazione.**
+
+Questa non è una preferenza estetica: **la maggioranza dei bug seri che ho trovato erano due scale diverse che si incontravano nella stessa sottrazione**, e nessuno di quei bug si vede rileggendo il codice.
+
+Il punteggio di un candidato *c*, in una posizione di draft:
+
+```
+punteggio(c) = base(c)
+             + media sui 3 posti avversari di [ vantaggio(c, nemico) + scartoForza(nemico) ]
+             + sinergia(c, compagni già schierati)
+             + composizione(c, squadra)
+```
+
+e poi la miscela col caso peggiore, spiegata sotto.
+
+### base(c) — quanto vale su questa mappa
+
+Win rate di *c* su questa mappa, **corretta per selezione**:
+
+```
+base = 50 + (grezza − 50) · p/(p + p0)      con p0 = 2 sulla scala dove le pick rate sommano 600
+```
+
+**Perché serve.** La win rate di un brawler scelto dallo 0,3% delle squadre è misurata su chi lo gioca di mestiere. L'utente non la riprodurrà. Senza questa correzione l'app mette in cima brawler rari e il giocatore perde — è il primo difetto che l'utente reale segnala, sempre.
+
+**Asimmetria importante:** per l'**avversario** si usa il dato **grezzo**. Lui quel brawler l'ha scelto, quindi probabilmente *è* uno di quelli. La correzione dice "tu non riprodurrai quel numero", non "quel numero è falso".
+
+Quando la mappa ha pochi dati, si **miscela** col dato di modalità in proporzione all'affidabilità (campione × freschezza). Mai media fra due fonti diverse: il dato di modalità va **calcolato** dalle stesse tabelle di mappa, così la scala è la stessa per costruzione.
+
+### vantaggio(c, nemico) — il counter
+
+Lettura diretta dalla matrice: `adv[c][nemico]`. È **già** al netto della forza generale dei due, quindi non va normalizzato di nuovo.
+
+Dove la coppia non ha abbastanza partite (dal 4% all'11% secondo la modalità), si usa **la media dei vantaggi veri fra quelle due classi, nella stessa modalità**. Il ripiego viene dalla stessa fonte del dato, mai da un'altra.
+
+### scartoForza(nemico) — quanto è forte chi hai davanti
+
+```
+scartoForza(nemico) = forzaTipica(mappa) − forza(nemico)
+```
+
+**Perché esiste.** `base` è misurata contro l'avversario *tipico* di quella mappa. Se davanti hai il brawler più forte del pool, quella base non vale più.
+
+**La forza va presa sulla scala giusta, e questa è la trappola più costosa del documento.** Non usare la win rate generale di un brawler presa da un'altra fonte: è la win rate di *chi lo gioca*, gonfiata dalla rarità. La forza corretta si ricava **dalla matrice stessa**, risolvendo:
+
+```
+wr(a,b) = 50 + (forza_a − forza_b) + adv(a,b)
+```
+
+Il modello additivo tiene: residuo con deviazione standard fra 0,41 e 0,48 punti su tutte le modalità. E il risultato va verificato contro una misura indipendente — nel mio caso la win rate di modalità calcolata dalle tabelle di mappa: **r = 0,991, pendenza 0,98**.
+
+Cosa costava sbagliarlo: la fonte esterna diceva che Amber vale 64,9 contro una media di mappa di 50,3, cioè "affrontarla costa 14,6 punti", quando la sua win rate vera su quella mappa era 48,8. Il termine è **uguale per tutti i candidati**, quindi non cambiava l'ordine: schiacciava tutta la lista di cinque punti, e l'utente scriveva "contro Amber non c'è nessuno buono".
+
+### I posti avversari ancora vuoti
+
+La squadra avversaria ha **sempre** tre posti. Contare solo quelli pieni significa decidere **cinque turni su sei** senza che l'avversario pesi per intero — in 1-2-2-1 solo l'ultimo pick vede la squadra completa.
+
+Ogni posto vuoto vale il valore atteso di chi ci può finire, con le probabilità di scelta vere di quella mappa (pick rate rinormalizzata sui disponibili).
+
+### sinergia e composizione — sono due cose diverse
+
+**Sinergia** = `synergy.adv[c][compagno]`, media sui compagni già schierati. Media, non somma: è lo scostamento *di quella coppia*.
+
+**Composizione** = una penalità per classi ripetute, **sommata alla sinergia, non al posto suo**. Sembra ridondante e non lo è: anche la sinergia misurata è una somma di **coppie**, e un difetto che sta nella squadra intera non compare in nessuna delle sue coppie. Il caso noto è un tool per League of Legends che dava 64,88% a una squadra tutta dello stesso tipo di danno, che un modello vero valuta 40,2% — **24 punti di errore invisibili a qualunque modello a coppie**.
+
+Misurato sui 320 trii con la win rate più alta di 34 mappe, contro quello che darebbe il caso con le pick rate vere: monoclasse **1,56% osservato contro 4,30% atteso** (z = −2,41); tutte tre le classi diverse **64,4% contro 50,5%**. La penalità va spenta dove il dato di mappa dice che quella classe lì rende: i trii monoclasse vincenti stanno tutti in Heist e Hot Zone.
+
+### Il caso peggiore, e l'unico parametro che non si può calibrare
+
+```
+mostrato = media · (1 − q) + pavimento · q
+pavimento = base + il vantaggio peggiore fra le minacce plausibili
+q = 1 − (1 − Q)^(pick avversari rimasti / 3)
+```
+
+`q` è la probabilità che l'avversario trovi la risposta migliore. **È l'unico parametro dichiaratamente non calibrabile**: per calibrarlo servono gli esiti delle partite *con i pick avversari*, che solo l'API ufficiale dà.
+
+In mancanza, si sceglie sul ginocchio della curva del compromesso — quanti punti di pavimento si guadagnano per ogni punto di media perso:
+
+| q | media persa | pavimento guadagnato | cambio |
+|---|---|---|---|
+| 0,1 | −0,07 | +2,30 | 33 : 1 |
+| 0,2 | −0,19 | +3,34 | 18 : 1 |
+| 0,3 | −0,57 | +4,80 | 8 : 1 |
+| 0,4 | −0,83 | +5,47 | 7 : 1 |
+
+Il ginocchio è a 0,2. **Rifai questa curva ogni volta che cambia la scala del punteggio**: quando la matrice vera ha sostituito le stime, il ginocchio si è spostato da 0,4 a 0,2 e nessuno se ne sarebbe accorto.
+
+Il pavimento e il numero grande **devono usare la stessa unità**. Se il pavimento nasce da una formula diversa, sceglierà il nemico sbagliato: nel mio caso diceva "la minaccia peggiore per Surge è Clancy, vantaggio +0,7" quando Clancy contro Surge vale −5,4.
+
+### Il filtro che nessun concorrente ha
+
+**Quali brawler il giocatore può davvero schierare.** In Classificata serve potenza 9, e da Mythic in su potenza 11. Su una mappa reale, di 108 brawler ne restano **39**. Consigliare un brawler non schierabile è peggio che inutile: fa perdere i secondi che non ci sono.
+
+Va anche gestito che Classificata regala **tre brawler maxati a stagione**, che il profilo del giocatore non riporta con la potenza vera.
+
+### Il record personale del giocatore: mostralo, non fargli decidere
+
+Questa è la conclusione meno intuitiva del documento, e viene da una misura.
+
+Usare il record personale nel punteggio **predice meglio**: la parte che differenzia i candidati dà AUC 0,650 contro 0,500 del caso, su 310 partite. Non è rumore.
+
+E però **rovina la lista**. Su 132 posizioni di draft, col record dentro il punteggio i nomi che uscivano primi erano **nove**, e uno solo si prendeva il **40,9%** delle posizioni. Senza, i nomi diversi sono **ventidue** e il più frequente sta al 18,2%. Il record schiaccia i consigli sui pochi brawler con cui il giocatore ha già giocato — cioè trasforma un assistente di draft in uno specchio.
+
+**Mostralo accanto al numero, tienilo fuori dal conto.** E scrivi a schermo che è fuori dal conto.
+
+---
+
+## 4. Le sette trappole che costano un giorno ciascuna
+
+1. **Due scale nella stessa sottrazione.** Ogni volta che un numero preso da una fonte incontra un numero preso da un'altra, fermati. È la causa della maggioranza dei bug seri che ho trovato, e nessuno si vede rileggendo il codice.
+
+2. **Il doppio conteggio della forza generale.** Un brawler forte contro chiunque ha, per questo, una win rate di mappa più alta. Sommarci anche il suo vantaggio grezzo nei matchup conta due volte lo stesso fatto. Sintomo: un solo nome prende il 21% dei primi posti.
+
+3. **Un errore che non cambia l'ordine è il più difficile da vedere.** Il termine di forza sbagliato era identico per tutti i candidati: non cambiava la classifica, abbassava tutto di cinque punti. La lista sembrava dire "qui non c'è niente di buono". Il rimedio non è rileggere: è **un invariante**. Contro l'avversario *tipico* di una mappa, il termine di forza deve fare **zero** — misuralo su tutte le mappe a ogni modifica.
+
+4. **Le soglie e le mediane non si aggiornano da sole.** Un avviso tarato su una versione vecchia del punteggio diceva "sotto la media, mediana 62%" quando la mediana vera era 51,5%, e scattava in **126 posizioni su 132**. Peggio: il punteggio **scende naturalmente** man mano che il tabellone si riempie (56,4 → 53,1 → 49,4 → 46,1 con 0, 1, 2, 3 avversari), quindi una soglia fissa bolla come brutta ogni posizione tarda. Le soglie vanno per situazione, e vanno rifatte quando cambia la scala.
+
+5. **Il campione a code inventa effetti che non esistono.** Le fonti pubblicano i 3 migliori e i 3 peggiori matchup per brawler. Stimando su quelli si ottiene un "questo brawler è genericamente scomodo" con tanto di validazione split-half r=0,91 — e sulla matrice vera quell'effetto ha deviazione standard **0,26 punti**, cioè non esiste. La validazione era corretta *dentro* il campione a code: è per questo che non l'ha smascherato.
+
+6. **Sul telefono, quello che sta nella colonna laterale non esiste.** Con 22 secondi non si scorre. Due volte in due giorni ho messo l'informazione giusta nel posto sbagliato. Regola: ciò che serve **durante** il turno sta sopra la lista; la colonna laterale è per ciò che si guarda fra un pick e l'altro.
+
+7. **Un numero identico su tutte le mappe è quasi sempre un bug del misuratore.** Mi è capitato: "il migliore di mappa finisce in settima posizione ovunque". Era il fallback del mio script di controllo. Prima di annunciare un difetto, sospetta lo strumento.
+
+---
+
+## 5. Come si verifica: quattro controlli, non uno
+
+**Rileggere il codice non trova niente di quanto sopra.** Servono controlli che girino.
+
+1. **Verificare il decodificatore contro la fonte, cella per cella.** Se la matrice è codificata (base64, triangolo superiore, interi), **un solo indice sbagliato sposta tutti i vantaggi su coppie sbagliate senza che niente sembri rotto**: i numeri restano plausibili e i consigli diventano spazzatura silenziosa. Nel mio caso: 277.344 confronti, zero differenze. Da rifare a ogni aggiornamento.
+
+2. **Invarianti algebriche.** La matrice dei vantaggi deve essere antisimmetrica esatta; le win rate complementari a 100; le sinergie simmetriche; le pick rate di una mappa devono sommare a 600 (sei pick per partita, prova che la tabella non è troncata); il termine di forza deve fare zero sull'avversario tipico.
+
+3. **Una politica va confrontata con un giudice che non è suo.** Non valutare il tuo punteggio col tuo punteggio. Esiste una funzione calibrata su esiti veri (la fonte pubblica intercetta, pendenza e Brier): usa quella. Riferimento misurato: l'app 48,9% contro 47,2% di una scelta greedy e 47,7% di un lookahead, contro un avversario che risponde al meglio.
+
+4. **Un test in browser vero, con la CPU rallentata quattro volte.** La maggior parte dei difetti di interfaccia è emersa lì o da uno screenshot dell'utente, mai rileggendo il CSS.
+
+E un principio sopra tutti: **quando ottimizzi contro una controparte simulata, rivaluta con un modello della controparte diverso da quello che l'ottimizzatore assume.** È il controllo che ha smascherato il lookahead (vedi sotto).
+
+---
+
+## 6. Cosa NON fare, e la misura che lo dice
+
+Sono tutte cose che sembrano ovvie e che ho provato e scartato **con un numero**.
+
+| Idea | Perché sembra giusta | Cosa dice la misura |
+|---|---|---|
+| **Ricerca ad albero sul draft** | La ricerca accademica le dà +5–8% contro il greedy, e le guide dei giocatori dicono la stessa cosa a parole | Cambia il pick in 20/132 posizioni e guadagna +2,79 punti dove cambia **se l'avversario risponde sempre al meglio**. Contro un avversario che prende il brawler più giocato — cioè quello che fa la gente — il guadagno è **−0,03**. Sfruttava la propria ipotesi |
+| **Estendere la matrice con "tratti" dei brawler** (raggio, ruolo, mobilità) | Il 95% delle coppie non era misurato, sembrava l'unico modo di coprirlo | Nove tratti, 36 coefficienti di interazione, validazione a 10 pieghe: dal 53,2% al **53,4%** di varianza spiegata. Niente. Il termine per brawler assorbe già tutto quello che una descrizione a grana grossa può dire |
+| **Descrivere a mano la geometria delle mappe** | "Su una mappa aperta i corto raggio soffrono" è vero | La geometria **è già dentro** la win rate di mappa: misurando l'ingombro dalle immagini e togliendo l'effetto della modalità, i segni escono giusti da soli. Aggiungerla la conterebbe due volte |
+| **Euristiche di classe scritte a mano** ("manca la prima linea, prendi un tank") | Sensato, e i giocatori lo dicono | Su 9 mappe su 33 il dato misurato la smentisce. Una regola generica ha promosso un brawler dal sesto al primo posto su una mappa dove la sua classe era la peggiore. Se la applichi, **spegnila dove il dato di mappa la contraddice** |
+| **Cursori per i pesi** ("quanto contano i counter") | Due concorrenti su tre lo fanno | È un modo di far scegliere all'utente un numero che dovrebbe misurare l'ingegnere. Se non sai tararlo, il problema non si risolve dandolo in mano a chi ne sa meno di te |
+
+---
+
+## 7. L'interfaccia: i vincoli sono più stretti di quanto sembri
+
+- **22 secondi a turno**, in piedi, con una mano. Il ridisegno deve stare sotto i 20 ms **con la CPU rallentata quattro volte** (è il telefono vero). Riferimento raggiunto: 15–17 ms.
+- **Una riga, un numero.** Nome e percentuale. Ho provato la versione ricca — riquadrini per avversario, pavimento, etichette "trappola", record personale — e l'utente reale ha chiesto di togliere tutto. Aveva ragione: sotto timer, ogni elemento in più è tempo di lettura. Il dettaglio va nel tooltip, non a schermo.
+- **Il numero va spiegato una volta**: scende naturalmente man mano che il tabellone si riempie, quindi un 52% al primo pick e un 52% all'ultimo non valgono lo stesso. Senza questa frase, l'utente li confronta e conclude che l'app sbaglia.
+- **Registrare un pick deve costare un gesto.** Ricerca che accetta il nome senza punteggiatura (`mrp` → Mr. P, `8bit` → 8-Bit, `rt` → R-T: sono nove brawler introvabili scrivendoli di corsa), Invio che prende il primo, un tocco per togliere un pick sbagliato, reset sempre raggiungibile.
+- **Tutto in un file solo**, immagini incluse come data URI. Deve aprirsi da un link, senza installare niente e senza rete.
+
+---
+
+## 8. Il problema aperto che decide chi vince davvero
+
+Tutto quanto sopra è **misurato contro modelli**, non contro la realtà. Nessuna app di draft esistente — nessuna delle sette che ho analizzato — mostra un numero validato sugli esiti veri del suo utente.
+
+Il collo di bottiglia è uno solo: **servono le partite con i pick avversari**. I tracker pubblici danno mappa, brawler ed esito, non chi c'era dall'altra parte. L'API ufficiale di Supercell li dà, ma tiene solo le ultime ~25 partite e la chiave è legata a un IP fisso.
+
+**Chi risolve la raccolta vince, non chi costruisce il modello più elegante.** Con qualche centinaio di partite accumulate si può finalmente:
+
+- misurare l'AUC del punteggio sugli esiti veri;
+- verificare la **taratura per fasce** — quando l'app dice 57%, si vince il 57% delle volte?
+- calibrare `q` su un bersaglio invece che sul ginocchio di una curva;
+- decidere se la correzione per rarità aiuta o fa danni.
+
+E c'è una ragione in più per cui serve. Ho confrontato i due dataset pubblici migliori sui counter, sulle stesse mappe e sulle stesse coppie, 24.558 confronti: **correlazione r = 0,007, concordanza di segno 50%.** Sono tutti e due coerenti al proprio interno (uno dà r = −0,895 fra i due versi della stessa coppia, come una misura vera) e la loro dispersione è dieci volte il rumore di campionamento. Misurano qualcosa di reale, e non la stessa cosa.
+
+**Quando un'app ti mostra un numero sui counter, quel numero è meno solido di come appare.** Solo gli esiti veri possono dire quale delle due fonti ha ragione.
+
+---
+
+## 9. Criteri di accettazione
+
+Non è finita finché:
+
+- [ ] Tutti i numeri a schermo sono in punti percentuali di win rate, e il totale torna con la somma delle sue parti.
+- [ ] Il decodificatore dei dati è verificato contro la fonte cella per cella, e il controllo è uno script che gira.
+- [ ] Le invarianti algebriche del §5.2 girano a ogni build e bloccano la pubblicazione se falliscono.
+- [ ] Il punteggio batte una scelta greedy sotto **due** modelli diversi dell'avversario, giudicato da una funzione che non è la sua.
+- [ ] Con l'avversario a zero pick, il migliore della mappa è nei primi tre. Quando non lo è, l'app **dice perché**.
+- [ ] Le soglie degli avvisi sono i quartili misurati **per situazione**, non numeri fissi, e sono rifatte dopo ogni cambio di scala.
+- [ ] Il ridisegno sta sotto i 20 ms con CPU a un quarto, su un file solo, senza rete.
+- [ ] Ogni parametro non calibrabile è **dichiarato tale a schermo**, non nascosto.
+- [ ] I dati si aggiornano da soli, e l'aggiornamento **si rifiuta di pubblicare** se un controllo fallisce. Un dato vecchio dichiarato è meglio di uno fresco e sbagliato.
+- [ ] Nessun tag giocatore, nessuna chiave API e nessun nome di terzi finisce in un file del repository.
+
+---
+
+## 10. Le regole di condotta, che valgono più delle specifiche
+
+1. **Se una cosa non la sai, dillo.** Non riempire il buco con una supposizione scritta bene. Una risposta sicura e sbagliata costa più di un "non lo so".
+2. **I numeri si controllano.** Se un totale non torna con la somma delle righe, fermati e dillo invece di aggiustarlo.
+3. **Misurato e stimato restano distinguibili**, nel codice e a schermo.
+4. **Specifico batte generico e non si sommano** — mappa > modalità > meta. Con un'eccezione, e ci sono cascato: un effetto di *composizione* non è "generico" rispetto a uno di coppia, è di un altro tipo. Quelli si sommano.
+5. **Il dato incerto si miscela** in proporzione all'affidabilità, non si scarta né si prende per buono.
+6. **Mai mescolare due fonti dentro lo stesso numero.** Due fonti che misurano la stessa cosa danno numeri diversi perché contano popolazioni diverse. Si usa l'una o l'altra, o si confrontano.
+7. **Fonte irraggiungibile → tieni il dato vecchio e annota la data del tentativo fallito.** Meglio un dato dichiaratamente vecchio che uno inventato.
+8. **Leggi solo quello che un sito serve a tutti.** Se in un bundle pubblico trovi una chiave API, non usarla e non scriverla da nessuna parte.
