@@ -17,7 +17,7 @@ const fs = require("fs");
 const path = require("path");
 
 const RADICE = path.join(__dirname, "..");
-const USCITA = path.join(RADICE, "brawl-draft", "partite-raccolte.json");
+const USCITA = path.join(RADICE, "dati", "partite-ranked.json");
 const DISTANZA_MAX_MS = 20 * 60 * 1000; // due round della stessa partita non distano di piu'
 
 const tag = (process.env.BS_TAG || process.argv[3] || "").trim().toUpperCase();
@@ -132,14 +132,14 @@ buone.forEach((p) => delete p._pari);
 
 // --- 3. si uniscono a quelle gia' raccolte -------------------------------
 let archivio = [];
-if (fs.existsSync(USCITA)) archivio = JSON.parse(fs.readFileSync(USCITA, "utf8"));
+if (fs.existsSync(USCITA)) archivio = (JSON.parse(fs.readFileSync(USCITA, "utf8")).partite) || [];
 const per = new Map(archivio.map((p) => [p.quando, p]));
 let nuove = 0;
 for (const p of buone) { if (!per.has(p.quando)) nuove++; per.set(p.quando, p); }
 const finale = [...per.values()].sort((a, b) => (a.quando < b.quando ? -1 : 1));
 
 // --- 4. il controllo che conta: niente tag, niente nomi ------------------
-const testo = JSON.stringify(finale, null, 1);
+const testo = JSON.stringify({ aggiornato: new Date().toISOString().slice(0, 10), partite: finale }, null, 1);
 if (testo.toUpperCase().includes(tag.replace(/^#/, ""))) {
   console.error("FERMO: il tag comparirebbe nel file di uscita. Non scrivo niente.");
   process.exit(2);
@@ -149,6 +149,7 @@ if (/"tag"|"name"/.test(testo)) {
   process.exit(2);
 }
 
+fs.mkdirSync(path.dirname(USCITA), { recursive: true });
 fs.writeFileSync(USCITA, testo + "\n");
 
 // --- 5. il resoconto ------------------------------------------------------

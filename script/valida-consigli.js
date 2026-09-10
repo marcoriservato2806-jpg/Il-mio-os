@@ -33,7 +33,7 @@ const partite = store.partite || [];
 console.log(`partite raccolte: ${partite.length} (aggiornate al ${store.aggiornato})`);
 if (partite.length < 60) {
   console.error(`\nTroppo poche per misurare. Sotto le 60 qualunque numero che esce e' rumore;`);
-  console.error(`per una misura che regga ne servono 300. Continua a lanciare raccogli-partite.js.`);
+  console.error(`per una misura che regga ne servono 300. Lancia il comando rapido dopo ogni sessione e passa il grezzo a script/estrai-partite.js.`);
   process.exit(1);
 }
 
