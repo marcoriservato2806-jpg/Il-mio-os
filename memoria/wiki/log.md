@@ -1,5 +1,14 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-10 07:40] documento | Il capitolato diventa anche il collaudo dell'app vera
+Tre risposte dell'utente cambiano cosa serve al documento: **e' un documento di riferimento, non un piano di lavoro** (l'app resta questa); **l'app e' solo per lui** (quindi resta l'architettura col profilo dentro il file); **resta privato**.
+**Conseguenza utile:** i criteri di accettazione smettono di essere aspirazioni e diventano un collaudo. Verificati uno per uno contro l'app che esiste, non dichiarati:
+- il totale torna con la somma delle sue parti: **816 suggerimenti controllati, scarto massimo 0,140 punti** (l'arrotondamento a un decimale). Script in scratchpad, il controllo vale la pena di renderlo fisso se il punteggio cambia ancora.
+- otto criteri su dieci soddisfatti, uno «quasi» (il migliore di mappa e' nei primi tre 24 volte su 33).
+- **uno NON soddisfatto, e di proposito**: «quando il migliore di mappa non e' primo, l'app dice perche'». Quella riga esisteva ed e' stata tolta stanotte su richiesta esplicita («una riga, un numero, niente di niente»). Annotato nel capitolato come deviazione con la sua ragione, invece di cancellare il criterio o fingere che sia soddisfatto. **Un criterio scritto da chi costruisce puo' essere giusto in astratto e sbagliato per chi usa la cosa: quando succede vince l'utente.**
+**E una trappola del mio stesso capitolato trovata addosso a me** (la numero 4, «le soglie e i numeri nella documentazione non si aggiornano da soli»): la sezione tecnica dell'app diceva ancora che il ginocchio della curva del caso peggiore e' a 0,4, quando l'ho spostato a 0,2 ieri. Paragrafo marcato come superato coi valori giusti. E' esattamente il modo in cui un documento comincia a mentire: non sbagliando, ma restando indietro.
+Aggiunte due avvertenze in cima al capitolato: che e' privato (nomina gli indirizzi delle fonti, e una fonte viva conviene non disturbarla) e che non e' un piano di lavoro.
+
 ## [2026-09-10 07:00] documento | Il capitolato: tutto quello che serve per rifare l'app senza ripagare gli errori
 Richiesta: «scriviti un prompt per creare ufficialmente la migliore app di draft, completo, che arrivi a ragionamenti che io non so». File: `brawl-draft/BRIEF.md` (23 KB). Pagina copiabile generata da `script/build-brief.js` -> `dist/brief.html`, pubblicata come artifact.
 **Generata dal file, non scritta due volte**: il markdown e' incorporato tale e quale nella pagina e il tasto «copia» restituisce esattamente il file. Un documento che vive in due copie diverge, e quella che l'utente incolla e' sempre la vecchia.

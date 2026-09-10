@@ -4,6 +4,10 @@ Questo documento è il capitolato. Non descrive un'app che vorrei: descrive quel
 
 Chi lo esegue deve comportarsi da ingegnere, non da assistente: misurare prima di credere, rifiutarsi di inventare un numero, e dire "non lo so" quando è la risposta giusta.
 
+> **Documento privato.** Il §2 dice esattamente dove stanno i dati, indirizzi compresi. Sono file che quei siti servono pubblicamente ai propri browser, quindi leggerli è legittimo — ma se il documento circola, chi li possiede può accorgersene e chiuderli, e l'app che ci sta sopra perde la fonte da cui prende tutto. Non è una questione di segreto: è che la fonte è viva e conviene non disturbarla.
+
+> **Non è un piano di lavoro.** L'app esiste e incorpora tutto quello che segue. Questo testo serve a due cose: ritrovare il ragionamento quando sarà stato dimenticato, e fare da collaudo — vedi §9, dove ogni criterio è verificato contro l'app vera, comprese le due righe in cui non è soddisfatto e il perché.
+
 ---
 
 ## 0. Cosa deve fare, e per chi
@@ -250,7 +254,26 @@ E c'è una ragione in più per cui serve. Ho confrontato i due dataset pubblici 
 
 ---
 
-## 9. Criteri di accettazione
+## 9. Criteri di accettazione — e come sta messa l'app che esiste
+
+Questi criteri sono anche il **collaudo** dell'app costruita. Verificati, non dichiarati:
+
+| Criterio | Stato | Misura |
+|---|---|---|
+| Tutti i numeri in punti percentuali, e il totale torna con la somma delle parti | **sì** | 816 suggerimenti controllati: scarto massimo **0,140 punti**, cioè l'arrotondamento a un decimale |
+| Il decodificatore dei dati è verificato contro la fonte cella per cella | **sì** | 277.344 confronti, zero differenze, a ogni aggiornamento |
+| Le invarianti girano e bloccano la pubblicazione se falliscono | **sì** | `aggiorna-dati.sh` esce con errore e non pubblica. Il solo `build` fa i controlli minimi |
+| Batte una scelta greedy sotto due modelli dell'avversario, con giudice esterno | **sì** | 48,9% contro 47,2% (avversario perfetto); 58,9% contro 56,7% (avversario realistico) |
+| Con l'avversario a zero pick, il migliore della mappa è nei primi tre | **quasi** | 24 volte su 33. Nelle altre è più giù, per via del suo caso peggiore |
+| Quando non lo è, l'app **dice perché** | **NO — scavalcato di proposito** | La riga esisteva («il migliore per la sola win rate di mappa è Bolt, ma qui vale 53%: contro Clancy scende al 44%»). È stata **tolta su richiesta esplicita dell'utente**, che ha chiesto una riga e un numero e nient'altro. Il criterio resta scritto perché è giusto in generale; qui ha perso contro chi usa l'app tutti i giorni, e ha ragione lui |
+| Soglie degli avvisi = quartili misurati per situazione, rifatti a ogni cambio di scala | **sì** | 56,4 / 53,1 / 49,4 / 46,1 secondo quanti avversari sono in campo |
+| Ridisegno sotto i 20 ms con CPU a un quarto, un file solo, senza rete | **sì** | 15–17 ms |
+| Ogni parametro non calibrabile è dichiarato a schermo | **sì** | `q` è dichiarato assunzione nella documentazione dell'app, non accanto al numero: è il posto giusto: nei 22 secondi non si legge, dopo sì |
+| Nessun tag, chiave o nome di terzi in un file del repository | **sì** | Controllo automatico a ogni build, e cerca la *forma* di un tag, non un tag preciso |
+
+**La riga più istruttiva è la sesta.** Un criterio scritto da chi costruisce può essere giusto in astratto e sbagliato per chi usa la cosa. Quando succede vince l'utente, e la deviazione si annota con la sua ragione — non si cancella il criterio e non si fa finta che sia soddisfatto.
+
+### La lista, per chi riparte da zero
 
 Non è finita finché:
 

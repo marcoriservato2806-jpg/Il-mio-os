@@ -103,7 +103,7 @@ const html = `<title>Capitolato di un draft engine</title>
   <header class="testa">
     <p class="firma">Capitolato tecnico · 10 settembre 2026</p>
     <h1>Capitolato di un draft engine</h1>
-    <p class="occhiello">Tutto quello che serve per costruire il miglior assistente di draft per la Classificata di Brawl Stars: dove stanno i dati, come si compone il punteggio, le trappole che costano un giorno ciascuna, e le idee ovvie che ho provato e scartato con una misura. Scritto per essere consegnato a chi lo costruisce.</p>
+    <p class="occhiello">Tutto quello che serve per costruire il miglior assistente di draft per la Classificata di Brawl Stars: dove stanno i dati, come si compone il punteggio, le trappole che costano un giorno ciascuna, e le idee ovvie che ho provato e scartato con una misura. L'app esiste gi\u00e0 e lo incorpora: questo testo serve a ritrovare il ragionamento quando sar\u00e0 stato dimenticato, e a collaudarla.</p>
     <div class="azioni">
       <button id="copia" type="button">Copia il capitolato</button>
       <span class="peso">Markdown · ${(Buffer.byteLength(md, "utf8") / 1024).toFixed(0)} KB</span>
