@@ -186,6 +186,11 @@ async function main() {
       sinAdv: codifica(d.synergy, n, roster, idx, "adv"),
       sinWr: codifica(d.synergy, n, roster, idx, "wr"),
       forza: Buffer.from(forzaRoster.buffer).toString("base64"),
+      // La calibrazione della FONTE: come loro convertono la somma dei vantaggi
+      // di tutto il tabellone in una probabilita' di vittoria. E' l'unico numero
+      // di questo mestiere che sia stato confrontato con gli esiti veri delle
+      // partite, e loro pubblicano anche quanto vale (Brier).
+      cal: d.calibration || null,
     };
     if (!calib) calib = d.calibration;
   }
@@ -197,7 +202,7 @@ async function main() {
 
   const oggi = new Date().toISOString().slice(0, 10);
   const righe = Object.entries(pezzi).map(([m, p]) =>
-    `  ${m}: {\n    adv: "${p.adv}",\n    wr: "${p.wr}",\n    sinAdv: "${p.sinAdv}",\n    sinWr: "${p.sinWr}",\n    forza: "${p.forza}",\n  },`).join("\n");
+    `  ${m}: {\n    adv: "${p.adv}",\n    wr: "${p.wr}",\n    sinAdv: "${p.sinAdv}",\n    sinWr: "${p.sinWr}",\n    forza: "${p.forza}",\n    cal: ${JSON.stringify(p.cal)},\n  },`).join("\n");
   const out = `// GENERATO da script/fetch-matchup-matrix.js il ${oggi} — non modificare a mano.
 //
 // LA MATRICE COMPLETA DEI MATCHUP, per modalita' di Classificata. Fonte:
@@ -225,9 +230,14 @@ async function main() {
 // sinergia simmetriche — verificato esatto su tutte le coppie, non assunto.
 // ${VUOTO} vuol dire "troppe poche partite per questa coppia".
 //
-// Calibrazione dichiarata dalla fonte: ${JSON.stringify(calib)}
-// (Brier ${calib && calib.brier} su ${calib && calib.matches} partite; 0,25 e' il
-// valore di chi tira a indovinare.)
+//   cal     la loro calibrazione: probabilita' = 1/(1+e^-(intercept + slope*S)),
+//           dove S e' la somma dei vantaggi di TUTTO il tabellone (vedi
+//           probabilitaTabellone in app.js). Porta anche brier e matches:
+//           quanto quel modello vale, misurato sugli esiti veri delle partite.
+//           E' l'unico numero di questo mestiere confrontato con la realta',
+//           quindi va usato e va citato.
+// Esempio (Gem Grab): ${JSON.stringify(calib)}
+// Brier 0,25 e' il valore di chi tira a indovinare; piu' basso e' meglio.
 const MX_VUOTO = ${VUOTO};
 const MX_SCALA = 10; // i numeri sono decimi di punto percentuale
 const MATRICE = {

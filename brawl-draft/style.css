@@ -1191,3 +1191,37 @@ html { scroll-padding-top: 64px; }
   font-size: 0.78rem;
 }
 .hint.risposta strong { color: var(--good); }
+
+/* Il valore del TABELLONE, col numero calibrato della fonte. E' l'unico numero
+   dell'app confrontato con gli esiti veri delle partite, quindi si vede: sta in
+   cima al riquadro della situazione e non e' un riquadrino fra gli altri. */
+.tabellone {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.tabellone strong { font-size: 1.05rem; }
+.tabellone.su { border-color: rgba(87, 217, 154, 0.5); }
+.tabellone.su strong { color: var(--good); }
+.tabellone.giu { border-color: rgba(255, 122, 122, 0.45); }
+.tabellone.giu strong { color: var(--bad); }
+.tabellone.pari strong { color: var(--text); }
+.tab-parziale { color: var(--text-dim); font-size: 0.72rem; }
+
+/* In che sedia sei. Non e' un numero: e' il tipo di pick che quella posizione
+   nel giro premia, e cambia di piu' del numero stesso. */
+.hint.sedia {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 194, 61, 0.06);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
+  font-size: 0.78rem;
+}
+.hint.sedia strong { color: var(--accent); }

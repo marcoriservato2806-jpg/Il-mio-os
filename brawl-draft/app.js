@@ -1062,6 +1062,66 @@ function contextualWinRate(name) {
   return { base: generale, source, grezza, aff, pick: comparizioneSu600(name), generale, mio };
 }
 
+// ---- LA PROBABILITA' DI VINCERE IL TABELLONE, CALIBRATA ------------------
+//
+// Questo e' il modello della FONTE, riprodotto identico, e sta qui per una
+// ragione precisa: e' l'unico numero di questo mestiere che qualcuno abbia
+// confrontato con gli esiti veri delle partite. La fonte pubblica insieme alla
+// matrice la sua calibrazione — intercetta, pendenza, e il punteggio di Brier
+// che ne esce su quante partite. Per Gem Grab: Brier 0,2368 su 12.785 partite,
+// dove 0,25 e' il valore di chi tira a indovinare.
+//
+// La formula, letta nel loro codice (non dedotta):
+//   S = somma su tutte le 9 coppie (mio, loro) del vantaggio di matchup
+//     + somma delle sinergie DENTRO la mia squadra
+//     - somma delle sinergie dentro la loro
+//     + somma di (win rate di mappa - 50) dei miei
+//     - la stessa cosa per i loro
+//   probabilita' = 1 / (1 + e^-(intercetta + pendenza * S))
+//
+// Due cose che NON fa, e che il mio punteggio invece fa: non corregge per
+// rarita' (usa la win rate di mappa grezza, quindi sovrastima i brawler che
+// giocano in pochi) e non guarda la potenza dei miei brawler. Per questo non
+// sostituisce il punteggio: e' un secondo parere, con la sua provenienza e il
+// suo Brier scritti accanto.
+//
+// A cosa serve davvero: e' una funzione di VALUTAZIONE DEL TABELLONE. Senza
+// una di queste non si puo' fare nessun ragionamento a piu' mosse, perche' non
+// c'e' modo di dire se un tabellone e' meglio di un altro.
+function calibrazioneModo() {
+  const m = mxModo();
+  return m && MATRICE[m] && MATRICE[m].cal ? MATRICE[m].cal : null;
+}
+// La somma dei vantaggi di tutto il tabellone, nell'unita' della fonte.
+// `null` quando non c'e' niente da sommare.
+function sommaTabellone(miei, loro) {
+  if (!mxModo()) return null;
+  const wrMappa = (n) => (state.map && state.map.winRates ? state.map.winRates[n] : undefined);
+  let s = 0, pezzi = 0;
+  for (const a of miei) for (const t of loro) {
+    const v = advReale(a, t);
+    if (v !== null) { s += v; pezzi++; }
+  }
+  for (const [squadra, segno] of [[miei, 1], [loro, -1]]) {
+    for (let i = 0; i < squadra.length; i++) {
+      for (let j = i + 1; j < squadra.length; j++) {
+        const v = sinergiaReale(squadra[i], squadra[j]);
+        if (v !== null) { s += segno * v; pezzi++; }
+      }
+      const w = wrMappa(squadra[i]);
+      if (w !== undefined) { s += segno * (w - 50); pezzi++; }
+    }
+  }
+  return pezzi === 0 ? null : s;
+}
+// La stessa somma, tradotta in probabilita' con la calibrazione della fonte.
+function probabilitaTabellone(miei, loro) {
+  const cal = calibrazioneModo();
+  const s = sommaTabellone(miei, loro);
+  if (cal === null || s === null) return null;
+  return 1 / (1 + Math.exp(-(cal.intercept + cal.slope * s)));
+}
+
 // ---- LE CASELLE AVVERSARIE ANCORA VUOTE ---------------------------------
 //
 // La squadra avversaria ha SEMPRE tre caselle. Il punteggio contava solo
@@ -1333,9 +1393,41 @@ function scoreCandidate(candidateName, candidateClass, ownClasses, enemyClasses,
     }
     if (n > 0) { synergy = somma / n; sinFonte = { misurata: n, su: alleati.length }; }
   }
+
+  // LA COMPOSIZIONE, che una somma di COPPIE non puo' vedere.
+  //
+  // Questa penalita' era stata TOLTA quando e' arrivata la sinergia misurata,
+  // con la regola «specifico batte generico». Era un errore, e la ricerca sui
+  // draft dice perche': anche la sinergia misurata e' una somma di coppie, e un
+  // difetto che sta nella squadra INTERA non compare in nessuna delle sue
+  // coppie. Il caso noto e' un tool per League of Legends che dava 64,9% a una
+  // squadra tutta dello stesso tipo di danno, che un modello vero valuta 40,2%:
+  // 24 punti di errore, invisibili a qualunque modello a coppie.
+  //
+  // MISURATA, non ripresa per fede (`script/misura-composizione-trii.js`). La
+  // fonte pubblica i dieci trii con la win rate piu' alta per ogni mappa
+  // ranked: 320 trii vincenti su 34 mappe. Confrontati con quello che si
+  // otterrebbe pescando a caso con le probabilita' di scelta vere di ogni mappa:
+  //   tutti tre della stessa classe   1,56% osservato   4,30% atteso   z = -2,41
+  //   esattamente due uguali         34,06% osservato  45,17% atteso
+  //   tutte tre diverse              64,38% osservato  50,53% atteso
+  // I trii che vincono evitano la classe ripetuta piu' del caso, e l'effetto c'e'
+  // anche sulla COPPIA ripetuta, non solo sul terzetto. Da qui -1,5 punti per
+  // ogni doppione, che e' meno del -2 scritto a mano di prima.
+  //
+  // CAUTELA scritta perche' e' vera: sono i dieci trii MIGLIORI per mappa, cioe'
+  // un campione di coda. E tutti e cinque i trii vincenti monoclasse stanno in
+  // Heist e Hot Zone, dove accumulare la stessa cosa funziona — per questo la
+  // penalita' passa da `classeRendeQui`, che la spegne dove il dato di mappa
+  // dice che quella classe qui rende. E' lo stesso guardiano che ha impedito
+  // all'euristica di promuovere Otis su una mappa che la smentiva.
+  if (ownClasses.length > 0) {
+    const doppioni = ownClasses.filter((c) => c === candidateClass).length;
+    if (doppioni > 0 && !classeRendeQui(candidateClass)) synergy -= 1.5 * doppioni;
+    else if (doppioni > 1) synergy -= 1.5 * (doppioni - 1); // tre della stessa classe pesa anche dove la classe rende
+  }
+
   if (sinFonte === null && ownClasses.length > 0) {
-    const sameClassCount = ownClasses.filter((c) => c === candidateClass).length;
-    synergy = -2 * sameClassCount;
     // "Manca la frontline, prendi un Tank o un Controller" e' un'euristica
     // generica, e su questa mappa puo' essere semplicemente falsa. Su Bridge
     // Too Far (Heist) Tank e Controller sono le DUE CLASSI PEGGIORI della
@@ -1990,6 +2082,51 @@ function renderTeamCounter() {
           ? `, e ne ${enemyLeft > 1 ? "mancano" : "manca"} ancora <strong>${enemyLeft}</strong> da schierare: guarda anche il rischio.`
           : ". È il loro ultimo schieramento: quello che vedi è tutto.")
     }</p>`;
+
+  // ---- QUANTO VALE IL TABELLONE, con il numero calibrato della fonte -----
+  //
+  // E' l'unico numero di questa app che sia stato confrontato con gli esiti veri
+  // delle partite, e per questo va mostrato e va citato. Guarda TUTTE E SEI le
+  // caselle: i miei contro i loro, le sinergie dentro le due squadre, e la mappa
+  // per ciascuno. Il punteggio dei suggerimenti invece guarda un candidato per
+  // volta — sono due cose diverse e servono entrambe.
+  {
+    const miei = state.picks[own].filter(Boolean);
+    const p = probabilitaTabellone(miei, enemyNames);
+    const cal = calibrazioneModo();
+    if (p !== null && cal && (miei.length || enemyNames.length)) {
+      const pieno = miei.length === 3 && enemyNames.length === 3;
+      const pc = Math.round(p * 100);
+      const classe = pc >= 55 ? "su" : pc <= 45 ? "giu" : "pari";
+      html += `<p class="tabellone ${classe}" title="Modello della fonte, riprodotto identico: somma i vantaggi di tutte le coppie fra le due squadre, le sinergie dentro ciascuna, e la win rate di mappa di ognuno; poi converte in probabilità con una calibrazione tarata sugli esiti veri delle partite. Punteggio di Brier ${String(cal.brier).replace(".", ",")} su ${cal.matches.toLocaleString("it-IT")} partite di ${state.mode} — 0,25 è il valore di chi tira a indovinare, più basso è meglio. NON corregge per rarità e non guarda la potenza dei tuoi brawler, per questo non sostituisce il punteggio dei suggerimenti: è un secondo parere, calibrato.">` +
+        `Il tabellone così com'è vale <strong>${pc}%</strong>` +
+        (pieno ? "" : ` <span class="tab-parziale">(${miei.length} contro ${enemyNames.length}, ancora incompleto)</span>`) +
+        `</p>`;
+    }
+  }
+
+  // ---- IN CHE SEDIA SEI, e cosa vuol dire ------------------------------
+  //
+  // Viene dalla ricerca sui draft, e le due fonti dicono la stessa cosa: chi
+  // sceglie per primo non puo' essere counterato in anticipo ma verra'
+  // counterato dopo, quindi vuole un brawler solido senza counter secchi; chi
+  // sceglie per ULTIMO e' l'unico che puo' prendere uno specialista, perche'
+  // dopo di lui non sceglie nessuno. E' l'informazione che il numero da solo
+  // non da', ed e' quella che cambia il tipo di pick che cerchi.
+  {
+    const mieiRimasti = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === own && !nomeDelTurno(sq)).length;
+    let riga = null;
+    if (enemyLeft === 0) {
+      riga = "<strong>Ultimo pick.</strong> È l'unica sedia dove uno specialista è sicuro: dopo di te non sceglie nessuno, quindi nessuno può counterare il tuo counter. Prendi la risposta secca, non il pick prudente.";
+    } else if (enemyNames.length === 0) {
+      riga = `<strong>Primo pick, alla cieca.</strong> Non c'è niente da counterare e loro ti vedranno: qui serve un brawler solido sulla mappa e senza counter secchi, non una risposta a qualcosa che non c'è. Guarda il riquadrino «peggio»: è la parte che conta in questa sedia.`;
+    } else if (mieiRimasti > 1) {
+      riga = `<strong>Hai due pick di fila e loro ${enemyLeft === 1 ? "uno solo dopo" : "ancora " + enemyLeft}.</strong> Riempi i buchi adesso — prima linea, distanza, quello che serve alla modalità — perché il prossimo turno è ancora tuo e poi non scegli più.`;
+    } else {
+      riga = `<strong>Loro hanno ancora ${enemyLeft === 1 ? "un pick" : enemyLeft + " pick"} dopo di te.</strong> Quello che prendi ora può essere punito: pesa il riquadrino «peggio» quanto il numero grande.`;
+    }
+    html += `<p class="hint sedia">${riga}</p>`;
+  }
 
   if (enemyNames.length === 0 && enemyLeft === 0) { el.innerHTML = html; el.hidden = false; return; }
 

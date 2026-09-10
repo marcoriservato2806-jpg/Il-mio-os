@@ -5,7 +5,7 @@ description: Aggiorna o modifica l'app Assistente Draft Classificata (Brawl Star
 
 # Lavorare sull'app draft Brawl Stars
 
-**Leggi prima `memoria/wiki/app-draft-classificata.md`, `metodo-counter.md`, `fonti-brawl-stars.md` e `errori-trovati.md`.** Contengono il contesto che segue in forma estesa; qui c'è la procedura operativa.
+**Leggi prima `memoria/wiki/app-draft-classificata.md`, `metodo-counter.md`, `fonti-brawl-stars.md`, `draft-come-ragionano-i-migliori.md` e `errori-trovati.md`.** Contengono il contesto che segue in forma estesa; qui c'è la procedura operativa.
 
 ## Regole non negoziabili
 
@@ -118,11 +118,21 @@ Nel browser: scegli modalità e mappa, verifica che compaiano ban e pick, che "C
 
 L'app vive su un artifact. Ripubblica sullo **stesso URL** passandolo come `url`, altrimenti ne crei uno nuovo e il link dell'utente resta indietro. Prima di pubblicare fai `action: "read"` sull'URL.
 
+## Il controllo che dice se un cambiamento al punteggio migliora o peggiora
+
+```bash
+node script/misura-lookahead.js 11 18
+```
+
+Valuta 132 posizioni di draft con la **probabilità calibrata della fonte** — l'unica funzione tarata su esiti veri — e confronta la scelta dell'app con quella greedy e con quella di un lookahead vero, sotto due modelli dell'avversario. Riferimento attuale: app 48,15% / greedy 46,78% contro un avversario perfetto, app 57,95% / greedy 56,09% contro uno realistico. **Se l'app scende sotto il greedy, il cambiamento ha rotto qualcosa.** Vedi [[draft-come-ragionano-i-migliori]].
+
 ## Cosa NON rifare
 
 - ~~Non ricercare la matrice completa dei matchup: nessuna fonte la pubblica~~ — **questa riga era sbagliata e ha fatto smettere di cercare per settimane.** La matrice completa 108×108 per modalità sta su `storage.googleapis.com/brawlanalyzer-public/draft/pairs-<modalità>.json.gz` (il bucket pubblico del Draft Helper di brawlplanet), insieme alla matrice delle **sinergie**. È già dentro l'app: `brawl-draft/matrice.js`, generato da `script/fetch-matchup-matrix.js`, verificato cella per cella da `script/verifica-matrice.js`. Vedi [[fonti-brawl-stars]] per il metodo con cui si è trovata — che vale in generale: *una pagina che mostra dieci righe non prova che il dato sia dieci righe; se è interattiva, il dato pieno è già passato dal browser.*
 - Non reintrodurre l'euristica di classe scritta a mano: è stata sostituita da `CLASS_EDGE`, calibrata sui dati, che la smentisce in più punti.
 - Non ordinare i pick per matchup nudo: premia i brawler senza dati. Usa la win rate nel contesto.
+- **Non implementare la ricerca ad albero sul draft.** La ricerca accademica le dà +5-8% contro il greedy e sembra la mossa ovvia; misurata qui (`script/misura-lookahead.js`) guadagna +2,79 punti dove cambia idea **solo se** l'avversario risponde sempre al meglio, e **−0,03** contro un avversario che gioca il brawler più giocato. Sfrutta la propria ipotesi. Il `q` del caso peggiore fa già il lavoro, e meglio.
+- **Non togliere la penalità per classi ripetute** perché «c'è la sinergia misurata». È l'errore fatto il 9/9: anche la sinergia misurata è una somma di COPPIE, e un difetto della squadra intera non compare in nessuna coppia. Va sommata, non sostituita. Misurata: sui 320 trii vincenti, monoclasse 1,56% contro 4,30% atteso, z = −2,41.
 - **Non sommare il vantaggio nei matchup senza centrarlo sul candidato**: la sua forza generale è già nella win rate di mappa, che è la base. Contarla due volte fa uscire sempre gli stessi nomi. Quello dell'avversario invece va contato.
 - **Non riportare `CLASS_EDGE_SHRINK` a 0,75**: quel valore è corretto solo *senza* il favore per brawler accanto. Con il favore nel modello, stimati insieme fuori campione, la classe vale 0,2.
 - Non ri-ordinare i ban in base a quanto sai rispondere alla minaccia: il divario è piccolo (57,3% contro 53,3%) e non esiste un giudice indipendente per validarlo — ogni giudice costruibile usa lo stesso modello dell'ordinamento. Il numero si mostra, l'ordine no.

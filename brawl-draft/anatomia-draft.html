@@ -1,0 +1,524 @@
+<title>Anatomia di un draft engine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    /* Neutri con una punta di viola, come l'app: e' il suo documento gemello,
+       non un foglio generico. */
+    --ground: #f7f5fa;
+    --paper: #ffffff;
+    --sunk: #efecf4;
+    --line: #ded8e8;
+    --line-soft: #ebe6f2;
+    --ink: #1a1622;
+    --ink-mid: #4d4460;
+    --ink-dim: #776c8c;
+    --gold: #9a6b00;
+    --gold-soft: rgba(212, 160, 23, 0.13);
+    --good: #1d7a4f;
+    --good-soft: rgba(29, 122, 79, 0.11);
+    --bad: #b32d34;
+    --bad-soft: rgba(179, 45, 52, 0.09);
+    --cold: #2f5fa8;
+    --cold-soft: rgba(47, 95, 168, 0.1);
+    --sans: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #14111b;
+      --paper: #1c1826;
+      --sunk: #241f30;
+      --line: #3a3348;
+      --line-soft: #2c2639;
+      --ink: #ece8f3;
+      --ink-mid: #b8b0c8;
+      --ink-dim: #8c839e;
+      --gold: #ffc23d;
+      --gold-soft: rgba(255, 194, 61, 0.12);
+      --good: #57d99a;
+      --good-soft: rgba(87, 217, 154, 0.12);
+      --bad: #ff8080;
+      --bad-soft: rgba(255, 128, 128, 0.11);
+      --cold: #7aa8f0;
+      --cold-soft: rgba(122, 168, 240, 0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #14111b;
+    --paper: #1c1826;
+    --sunk: #241f30;
+    --line: #3a3348;
+    --line-soft: #2c2639;
+    --ink: #ece8f3;
+    --ink-mid: #b8b0c8;
+    --ink-dim: #8c839e;
+    --gold: #ffc23d;
+    --gold-soft: rgba(255, 194, 61, 0.12);
+    --good: #57d99a;
+    --good-soft: rgba(87, 217, 154, 0.12);
+    --bad: #ff8080;
+    --bad-soft: rgba(255, 128, 128, 0.11);
+    --cold: #7aa8f0;
+    --cold-soft: rgba(122, 168, 240, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding-block: 48px 72px; padding-left: 20px; padding-right: 20px; }
+  .prosa { max-width: 68ch; }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: clamp(2rem, 6vw, 3.1rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .sotto { font-size: 1.06rem; color: var(--ink-mid); max-width: 60ch; margin: 0 0 8px; }
+  .firma { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-dim); letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.35rem, 3.4vw, 1.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  h3 { font-size: 1rem; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.005em; }
+  p { margin: 0 0 14px; }
+  a { color: var(--cold); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 600; color: var(--ink); }
+  em.q { font-style: normal; color: var(--ink-mid); }
+  code, .num { font-family: var(--mono); font-size: 0.88em; font-variant-numeric: tabular-nums; }
+
+  section { margin-top: 46px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    margin: 0 0 10px;
+  }
+
+  /* Il verdetto: tre stati, e ognuno dice se dietro c'e' un numero o no. */
+  .verdetto {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 3px 9px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .verdetto.dentro { background: var(--good-soft); color: var(--good); }
+  .verdetto.fuori { background: var(--bad-soft); color: var(--bad); }
+  .verdetto.limite { background: var(--cold-soft); color: var(--cold); }
+  .verdetto.aperto { background: var(--gold-soft); color: var(--gold); }
+
+  /* I tasselli: numerati perche' l'elenco E' un elenco, non perche' fa ordine.
+     Ognuno porta le stesse quattro cose nello stesso posto. */
+  .tasselli { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; counter-reset: t; }
+  .tassello {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    counter-increment: t;
+  }
+  .th { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .th .n {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-dim);
+    flex: none;
+  }
+  .th .n::before { content: counter(t, decimal-leading-zero); }
+  .th h3 { flex: 1 1 12ch; margin: 0; }
+  .tassello p { margin: 0 0 10px; font-size: 0.94rem; }
+  .tassello p:last-child { margin-bottom: 0; }
+
+  /* Loro / mio / misura: tre righe etichettate, stessi bordi e stessa
+     rientranza da un tassello all'altro. */
+  .conf { display: grid; gap: 0; margin: 12px 0 0; border-top: 1px solid var(--line-soft); }
+  .conf > div {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 4px 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 0.9rem;
+  }
+  .conf > div:last-child { border-bottom: none; }
+  .conf dt, .conf .k {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    padding-top: 3px;
+  }
+  .conf .v { margin: 0; }
+  .conf .v.mis { color: var(--ink); }
+  @media (max-width: 560px) {
+    .conf > div { grid-template-columns: 1fr; gap: 2px; }
+  }
+
+  /* Una tabella di numeri e' una tabella, non tre card. */
+  .tab-wrap { overflow-x: auto; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  caption { text-align: left; font-size: 0.8rem; color: var(--ink-dim); padding-bottom: 8px; }
+  th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line-soft); }
+  th { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-dim); font-weight: 400; }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; padding-right: 0; }
+  tbody tr:last-child td { border-bottom: none; }
+  .vinto { color: var(--good); font-weight: 700; }
+
+  /* Il blocco della risposta corta: unico elemento sollevato della pagina. */
+  .sommario {
+    background: var(--sunk);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 10px 10px 0;
+    padding: 20px 22px;
+    margin: 0 0 8px;
+  }
+  .sommario p:last-child { margin-bottom: 0; }
+  .sommario .grosso { font-family: var(--serif); font-size: 1.22rem; line-height: 1.32; font-weight: 600; margin-bottom: 12px; text-wrap: balance; }
+
+  figure { margin: 0 0 20px; }
+  figcaption { font-size: 0.82rem; color: var(--ink-dim); margin-top: 10px; max-width: 62ch; }
+  svg { display: block; max-width: 100%; height: auto; }
+
+  ul.fonti { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ul.fonti li { font-size: 0.9rem; padding-left: 14px; border-left: 2px solid var(--line); }
+  ul.fonti .che { color: var(--ink-dim); display: block; font-size: 0.84rem; }
+
+  hr { border: none; border-top: 1px solid var(--line); margin: 46px 0 0; }
+  .coda { font-size: 0.86rem; color: var(--ink-dim); margin-top: 22px; }
+</style>
+
+<div class="wrap">
+  <header class="prosa">
+    <p class="firma">Ricerca · 10 settembre 2026 · per l'app Draft Classificata</p>
+    <h1>Anatomia di un draft engine</h1>
+    <p class="sotto">Come ragionano gli strumenti di draft migliori che ho trovato, tassello per tassello, confrontati con quello che fa la tua app. Ogni riga porta la sua misura, o dice che non ce n'è una.</p>
+  </header>
+
+  <section class="prosa">
+    <div class="sommario">
+      <p class="grosso">La cosa più importante che ho trovato non è una tecnica: è quanto poco il draft decide.</p>
+      <p>Sul draft di Brawl Stars, misurato su <span class="num">1.059.778</span> partite ranked, la composizione da sola predice l'esito con AUC <span class="num">0,625</span> — accuratezza <span class="num">58,8%</span>. Il modello di draft migliore che esista per League of Legends, una rete neurale allenata su milioni di partite, arriva al <span class="num">55,88%</span> di accuratezza. Il modello di brawlplanet, quello i cui numeri usi tu, ha un Brier fra <span class="num">0,225</span> e <span class="num">0,237</span> secondo la modalità: chi tira a indovinare fa <span class="num">0,25</span>.</p>
+      <p>Vuol dire che <strong>un'app di draft perfetta ti sposta di pochi punti percentuali</strong>. Per confronto, la cosa che ho misurato sulle <em class="q">tue</em> partite: dopo una vittoria vinci il 74% delle volte, dopo una sconfitta il 49%. Quel divario è più grande di tutto il draft.</p>
+    </div>
+    <p style="margin-top:18px">Detto questo — quei pochi punti sono esattamente quello che separa Mythic da Leggenda, e vale prenderli tutti. Sotto c'è il conto di quali hai già e quali no.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il campo</p>
+    <h2>Chi ho letto, e cosa fa davvero</h2>
+    <div class="prosa">
+      <p>Tre famiglie di strumenti, e non ragionano allo stesso modo.</p>
+    </div>
+    <div class="tab-wrap">
+      <table>
+        <caption>Cosa mette nel punteggio ciascun approccio. «Coppie» vuol dire: somma dei vantaggi delle coppie di brawler, senza guardare la squadra come un tutto.</caption>
+        <thead>
+          <tr><th>Approccio</th><th>Come pensa</th><th class="n">Validato su</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>brawlplanet</strong> Draft Helper</td><td>coppie: mappa + matchup medio + sinergia media</td><td class="n">Brier 0,225–0,237<br>8k–12,8k partite</td></tr>
+          <tr><td><strong>DraftGap</strong> (LoL)</td><td>coppie: win rate individuali + duo</td><td class="n">Brier 0,2469<br>32.750 partite</td></tr>
+          <tr><td><strong>LoLDraftAI</strong></td><td>rete neurale sulla squadra intera</td><td class="n">Brier 0,2449<br>32.750 partite</td></tr>
+          <tr><td><strong>DraftArtist</strong> e simili (ricerca)</td><td>ricerca ad albero sul draft che resta</td><td class="n">+5–8% in simulazione</td></tr>
+          <tr><td><strong>la tua app</strong></td><td>coppie + rarità + forza avversario + caso peggiore + potenza</td><td class="n">vedi tassello 15</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prosa">
+      <p>Il confronto DraftGap contro LoLDraftAI è il più istruttivo, perché è lo stesso gioco sugli stessi dati. Il modello «a coppie» sbaglia in un modo preciso: davanti a una squadra tutta dello stesso tipo di danno dava <span class="num">64,88%</span> dove il modello vero dà <span class="num">40,2%</span>. <strong>Ventiquattro punti di errore su un difetto che non sta in nessuna coppia, ma nella squadra intera.</strong></p>
+      <p>E però guarda il guadagno complessivo: Brier <span class="num">0,2449</span> contro <span class="num">0,2469</span>. Due millesimi. La rete neurale vince, ma di quasi niente. È la seconda cosa che questa ricerca dice chiaramente: <strong>il tetto è basso per tutti</strong>, e le differenze fra un buon modello e un modello ottimo sono minuscole rispetto alla differenza fra un modello e nessun modello.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">La struttura del giro</p>
+    <h2>La sedia in cui siedi cambia il tipo di pick</h2>
+    <div class="prosa">
+      <p>Questo è l'unico pezzo di ragionamento su cui la ricerca accademica e le guide dei giocatori dicono <em class="q">esattamente</em> la stessa cosa, con parole diverse. La ricerca lo chiama «il greedy non tiene conto di come la tua scelta vincola le mosse future». I giocatori lo dicono così: all'ultimo pick puoi prendere lo specialista, perché nessuno può counterare il tuo counter.</p>
+    </div>
+    <figure>
+      <svg viewBox="0 0 780 210" role="img" aria-label="Le sei sedie del draft 1-2-2-1 e cosa premia ciascuna">
+        <defs>
+          <marker id="fr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g font-family="JetBrains Mono, monospace" font-size="11">
+          <line x1="30" y1="66" x2="750" y2="66" stroke="var(--line)" stroke-width="1"/>
+          <g fill="var(--ink-dim)" text-anchor="middle">
+            <text x="90" y="24">tu 1</text><text x="222" y="24">loro 1</text><text x="354" y="24">loro 2</text>
+            <text x="486" y="24">tu 2</text><text x="618" y="24">tu 3</text><text x="726" y="24">loro 3</text>
+          </g>
+          <g>
+            <circle cx="90" cy="66" r="15" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2"/>
+            <circle cx="222" cy="66" r="15" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.5"/>
+            <circle cx="354" cy="66" r="15" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.5"/>
+            <circle cx="486" cy="66" r="15" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2"/>
+            <circle cx="618" cy="66" r="15" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2"/>
+            <circle cx="726" cy="66" r="15" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.5"/>
+          </g>
+          <g fill="var(--ink)" text-anchor="middle" font-size="12" font-weight="700">
+            <text x="90" y="70">1</text><text x="222" y="70">2</text><text x="354" y="70">3</text>
+            <text x="486" y="70">4</text><text x="618" y="70">5</text><text x="726" y="70">6</text>
+          </g>
+        </g>
+        <g font-family="Archivo, sans-serif" font-size="11.5" fill="var(--ink-mid)">
+          <path d="M90 88 L90 104" stroke="var(--gold)" stroke-width="1.2" marker-end="url(#fr)" color="var(--gold)" fill="none"/>
+          <text x="30" y="122">Alla cieca. Solido sulla mappa,</text>
+          <text x="30" y="138">senza counter secchi. Ti vedranno</text>
+          <text x="30" y="154">e ti risponderanno tre volte.</text>
+
+          <path d="M486 88 L486 104" stroke="var(--gold)" stroke-width="1.2" marker-end="url(#fr)" color="var(--gold)" fill="none"/>
+          <text x="404" y="122">Due pick di fila: riempi</text>
+          <text x="404" y="138">i buchi, perché dopo</text>
+          <text x="404" y="154">il 5 non scegli più.</text>
+
+          <path d="M618 88 L640 104" stroke="var(--good)" stroke-width="1.2" marker-end="url(#fr)" color="var(--good)" fill="none"/>
+          <text x="640" y="122" fill="var(--good)">L'ultima tua</text>
+          <text x="640" y="138" fill="var(--good)">che loro</text>
+          <text x="640" y="154" fill="var(--good)">vedono prima</text>
+          <text x="640" y="170" fill="var(--good)">di chiudere.</text>
+        </g>
+      </svg>
+      <figcaption>Il giro 1-2-2-1 quando scegli per primo. Dorato = tuo, rosso = loro. La conseguenza pratica: alla sedia 1 il caso peggiore pesa il massimo, alla 5 pesa meno, e se sei tu a chiudere il draft non pesa affatto — non c'è più nessuna risposta che possa arrivare.</figcaption>
+    </figure>
+    <div class="prosa">
+      <p>La tua app faceva già la cosa giusta a metà: il peso del caso peggiore scala col numero di pick avversari che restano, e va a zero quando loro hanno finito. Da stasera <strong>dice anche a parole in che sedia sei e cosa premia</strong>, perché il numero da solo non lo comunica.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il conto</p>
+    <h2>Quindici tasselli, uno per uno</h2>
+    <div class="prosa">
+      <p>Per ognuno: cosa fanno i migliori, cosa fa la tua app, e il numero che decide. Il verdetto dice se dietro c'è una misura.</p>
+    </div>
+
+    <ol class="tasselli">
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La matrice dei matchup</h3><span class="verdetto dentro">nell'app</span></div>
+        <p>Il pezzo che rende possibile tutto il resto: quanto ogni brawler fa meglio o peggio contro ogni altro, al netto della forza generale dei due.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">brawlplanet la calcola e la spedisce al browser: 108×108 per ognuna delle sei modalità.</dd></div>
+          <div><dt>tu</dt><dd class="v">ce l'hai da ieri sera, dalla stessa fonte. Prima erano 624 caselle stimate per classe.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">copertura dall'<span class="num">89%</span> al <span class="num">96%</span> delle 5.778 coppie secondo la modalità, contro il <span class="num">5,4%</span> di prima. Verificata cella per cella contro la fonte: <span class="num">277.344</span> confronti, zero differenze.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La normalizzazione del matchup</h3><span class="verdetto dentro">nell'app</span></div>
+        <p>Il numero grezzo «perdi contro Wendy» inganna: quasi tutti perdono contro Wendy perché Wendy è forte, non perché sia un counter. Va sottratta la parte spiegata dalla differenza di forza.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">lo fanno, e lo scrivono nella pagina con le stesse parole: «quanto meglio o peggio di quanto le win rate generali dei due farebbero prevedere».</dd></div>
+          <div><dt>tu</dt><dd class="v">ci eri arrivato da solo prima di trovare la loro matrice, con la stessa formula. Ora il residuo arriva già normalizzato dalla fonte.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">la matrice è antisimmetrica <em class="q">esatta</em> su tutte le 5.535 coppie con i due versi — prova che la normalizzazione è coerente e non approssimata.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La forza generale, sulla scala giusta</h3><span class="verdetto dentro">corretto ieri</span></div>
+        <p>Serve per dire quanto è più forte del tipico l'avversario che hai davanti. È il tassello che ti ha fatto scrivere «contro Amber non c'è nessuno buono».</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v"><strong>non ce l'hanno affatto.</strong> Il loro punteggio non corregge per la forza dell'avversario in campo.</dd></div>
+          <div><dt>tu</dt><dd class="v">ce l'hai, ma usava la win rate di <em class="q">chi gioca</em> quel brawler — gonfiata dalla rarità. Ora si ricava dalla matrice risolvendo <code>wr = 50 + (forza a − forza b) + vantaggio</code>.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">il modello additivo tiene: residuo <span class="num">0,41–0,48</span> punti su tutte le modalità. Verificato contro una misura indipendente: <span class="num">r = 0,991</span>, pendenza <span class="num">0,98</span>. Prima l'errore su Amber era di <span class="num">15</span> punti.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La correzione per rarità</h3><span class="verdetto dentro">solo tu</span></div>
+        <p>La win rate di un brawler che gioca lo 0,3% delle squadre è misurata su chi lo gioca di mestiere. Tu non la riprodurrai.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">usano la win rate di mappa <strong>grezza</strong>. Quindi il loro punteggio mette in cima brawler rari che tu non sai giocare — è la prima cosa di cui ti eri lamentato («consiglia sempre Wendy»).</dd></div>
+          <div><dt>tu</dt><dd class="v">restringi verso il 50 in proporzione a quanto quel brawler viene scelto. Per l'<em class="q">avversario</em> invece prendi il dato grezzo: lui quel brawler l'ha scelto, quindi probabilmente è uno di quelli.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">è la ragione per cui la tua app batte il loro punteggio nel confronto del tassello 15. Nessuno dei siti che ho letto fa questa distinzione.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>Mappa contro modalità</h3><span class="verdetto dentro">nell'app</span></div>
+        <p>Il dato di mappa è più specifico, ma su un brawler raro su una mappa sola è rumore.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">usano la mappa quando c'è, il vantaggio per modalità per i matchup. Nessuna miscela.</dd></div>
+          <div><dt>tu</dt><dd class="v">miscela in proporzione all'affidabilità (campione × freschezza), e mai media fra due fonti diverse: le win rate di modalità sono <em class="q">calcolate</em> dalle stesse tabelle di mappa, così la scala è la stessa per costruzione.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">i due modi di stimare la forza dell'avversario concordano a <span class="num">r = 0,886</span> e differiscono di <span class="num">1,88</span> punti in media; il caso peggiore era un brawler con lo <span class="num">0,1%</span> di scelte su quella mappa — esattamente ciò che la miscela protegge.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La sinergia fra compagni</h3><span class="verdetto dentro">nell'app</span></div>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">matrice delle sinergie misurate, media sui compagni già in campo.</dd></div>
+          <div><dt>tu</dt><dd class="v">uguale da ieri. Prima era un'euristica di classe scritta a mano.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">le due matrici di sinergia sono simmetriche esatte su tutte le coppie; copertura <span class="num">89–96%</span>.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La composizione della squadra</h3><span class="verdetto dentro">rimesso oggi</span></div>
+        <p>Il cieco strutturale di tutti i modelli a coppie: un difetto che sta nella squadra intera non compare in nessuna delle sue coppie.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">nessuno dei due strumenti a coppie lo vede. È l'errore da 24 punti di DraftGap.</dd></div>
+          <div><dt>tu</dt><dd class="v">avevi una penalità per classi ripetute e l'ho <strong>tolta ieri</strong>, con la regola «specifico batte generico». Era un errore: anche la sinergia misurata è una somma di coppie. Rimessa, sommata alla sinergia vera e non al posto suo.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">sui <span class="num">320</span> trii con la win rate più alta di 34 mappe: tutti tre della stessa classe <span class="num">1,56%</span> osservato contro <span class="num">4,30%</span> atteso a caso (<span class="num">z = −2,41</span>); tutte tre diverse <span class="num">64,4%</span> contro <span class="num">50,5%</span>. I trii che vincono evitano la classe ripetuta. <em class="q">Cautela: sono i dieci migliori per mappa, un campione di coda.</em></dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>Le caselle avversarie ancora vuote</h3><span class="verdetto dentro">solo tu</span></div>
+        <p>La squadra avversaria ha sempre tre caselle. Contarne solo quelle piene vuol dire decidere cinque turni su sei senza che l'avversario pesi per intero.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">contano solo i pick già fatti. Al primo pick il loro termine di matchup è zero.</dd></div>
+          <div><dt>tu</dt><dd class="v">ogni casella vuota vale il valore atteso di chi ci può finire, con le probabilità di scelta vere della mappa.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">è metà della ragione per cui la tua app finisce sopra il loro punteggio, vedi tassello 15.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>Il caso peggiore</h3><span class="verdetto aperto">assunzione dichiarata</span></div>
+        <p>Un pick con la media più alta può essere quello che crolla contro la risposta ovvia. Bolt su Undermine: primo per win rate di mappa, pavimento 40%.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">niente. Il loro punteggio è una media.</dd></div>
+          <div><dt>tu</dt><dd class="v">mescoli media e caso peggiore con un peso <code>q</code> che scala coi pick avversari rimasti.</dd></div>
+          <div><dt>misura</dt><dd class="v mis"><strong>non calibrabile su un bersaglio</strong>: servirebbero gli esiti delle partite <em class="q">con i pick avversari</em>, e il registro del tracker dà mappa, brawler ed esito ma non i nemici. Controllato, non supposto. Scelto sul ginocchio della curva del compromesso: a <code>q</code>=0,2 si perdono 0,19 punti di media per guadagnarne 3,34 di pavimento.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La sedia nel giro</h3><span class="verdetto dentro">aggiunto oggi</span></div>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">brawlplanet mostra di chi è il turno, non cosa quella sedia premia. Le guide dei giocatori sono la fonte migliore su questo.</dd></div>
+          <div><dt>tu</dt><dd class="v">il peso del caso peggiore già scalava con la sedia. Da oggi l'app dice anche a parole cosa cercare in quella sedia.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">nessuna, ed è onesto dirlo: è la struttura del gioco più il consenso delle guide, non un numero.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La probabilità calibrata del tabellone</h3><span class="verdetto dentro">aggiunto oggi</span></div>
+        <p>Il pezzo che mancava di più, e non me ne ero accorto: una funzione che dica quanto vale <em class="q">tutto il tabellone</em>, non un candidato per volta.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">somma i vantaggi di tutte le nove coppie fra le squadre, le sinergie dentro ciascuna, la mappa di ognuno; poi converte in probabilità con una logistica tarata sugli esiti veri.</dd></div>
+          <div><dt>tu</dt><dd class="v">non ce l'avevi. Il tuo punteggio era una somma di punti percentuali, che non è una probabilità e non si può validare. Ora la loro è nell'app, riprodotta identica, col suo Brier scritto accanto.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">Brier fra <span class="num">0,2249</span> (Hot Zone) e <span class="num">0,2368</span> (Gem Grab), su <span class="num">7.981</span>–<span class="num">12.785</span> partite. È <strong>l'unico numero dell'app confrontato con la realtà</strong>. E serve a un'altra cosa: senza una valutazione del tabellone non si può fare nessun ragionamento a più mosse.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>I ban</h3><span class="verdetto limite">tetto del dato</span></div>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">forza sulla mappa × quanto quel brawler viene scelto lì. E scrivono la cosa onesta: «nessuno ha dati veri sui ban».</dd></div>
+          <div><dt>tu</dt><dd class="v">la stessa formula, arrivata per conto suo. Più «quanto vale la tua risposta migliore se glielo lasci», mostrato ma non usato per ordinare.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">nessuna fonte pubblica cosa viene bannato. Un ban non lascia traccia nei dati delle partite, quindi il termine di probabilità è la pick rate — un sostituto, e va detto.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>Chi sei tu</h3><span class="verdetto dentro">solo tu</span></div>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">nessuno dei siti guarda il tuo account. Ti consigliano brawler che potresti non avere a potenza 11.</dd></div>
+          <div><dt>tu</dt><dd class="v">il filtro di potenza è la cosa più concreta dell'app: su Pinball Dreams sono <strong>39 brawler su 108</strong> quelli che puoi schierare. Il tuo record invece si <em class="q">mostra</em> e non decide, come hai chiesto.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">col record dentro il punteggio, su 132 posizioni i nomi al primo posto erano nove e Ash prendeva il 40,9%. Senza, sono ventidue e il più frequente sta al 18,2%. La ricerca ha un lavoro dedicato alla personalizzazione (DraftRec) ma non ho potuto leggerne i numeri: il PDF non era estraibile.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>La velocità, che è un tassello e non un dettaglio</h3><span class="verdetto dentro">nell'app</span></div>
+        <p>Il draft dà 22 secondi. Un'app giusta che risponde tardi è un'app sbagliata.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">tabella ordinabile su desktop, pensata per studiare fra le partite più che per usarla durante.</dd></div>
+          <div><dt>tu</dt><dd class="v">tutto in un file, ritratti dentro, la ricerca che accetta <code>mrp</code> e <code>8bit</code>, il reset sempre raggiungibile, la risposta all'avversario sopra la piega.</dd></div>
+          <div><dt>misura</dt><dd class="v mis">ridisegno <span class="num">15–17 ms</span> con la CPU rallentata quattro volte, contro i <span class="num">40 ms</span> di partenza. La matrice vera l'ha reso <em class="q">più</em> veloce: leggere un intero da un array costa meno che ricostruire una previsione.</dd></div>
+        </dl>
+      </li>
+
+      <li class="tassello">
+        <div class="th"><span class="n"></span><h3>Il ragionamento a più mosse</h3><span class="verdetto fuori">respinto, con misura</span></div>
+        <p>Il consiglio più forte della ricerca accademica, e l'ho provato e scartato. Vale la pena spiegare perché.</p>
+        <dl class="conf">
+          <div><dt>loro</dt><dd class="v">la ricerca (DraftArtist e simili) misura <span class="num">+5–8%</span> per la ricerca ad albero contro la scelta greedy. Nessuno dei due siti la implementa.</dd></div>
+          <div><dt>tu</dt><dd class="v">il tuo <code>q</code> è un lookahead povero. Ho scritto quello vero: «scelgo <em class="q">c</em>, loro rispondono al meglio, com'è il tabellone poi».</dd></div>
+          <div><dt>misura</dt><dd class="v mis">cambia il pick in <span class="num">20/132</span> posizioni e guadagna <span class="num">+2,79</span> punti dove cambia — <strong>ma solo se l'avversario gioca la risposta perfetta</strong>. Contro un avversario che prende il brawler più giocato, come fa la gente in ladder, il guadagno diventa <span class="num">−0,03</span>: svanisce. Stava solo sfruttando la propria ipotesi.</dd></div>
+        </dl>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <p class="eyebrow">Il verdetto</p>
+    <h2>La tua app contro il loro punteggio, giudicata da loro</h2>
+    <div class="prosa">
+      <p>Questo è il confronto che conta, e ha una proprietà rara: <strong>il giudice non è mio</strong>. Ogni pick viene valutato dalla probabilità calibrata di brawlplanet — l'unica funzione tarata su esiti veri — su 132 posizioni di draft, con il resto del draft lasciato giocare fino alla fine.</p>
+    </div>
+    <div class="tab-wrap">
+      <table>
+        <caption>Probabilità di vittoria del tabellone finale. Più alto è meglio. «Greedy» = prendi il pick col tabellone migliore adesso; «lookahead» = dopo la loro risposta migliore.</caption>
+        <thead>
+          <tr><th>Modello dell'avversario</th><th class="n">la tua app</th><th class="n">greedy</th><th class="n">lookahead</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>risponde sempre al meglio</td><td class="n vinto">48,15%</td><td class="n">46,78%</td><td class="n">47,20%</td></tr>
+          <tr><td>prende il più giocato (la gente vera)</td><td class="n vinto">57,95%</td><td class="n">56,09%</td><td class="n">56,07%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prosa">
+      <p>La tua app vince sotto <em class="q">entrambi</em> i modelli dell'avversario, e vince contro il punteggio della fonte stessa giudicata dalla fonte stessa. Il margine è <span class="num">1,4–1,9</span> punti, che su questa scala è molto: ricorda che l'intera differenza fra la rete neurale migliore per LoL e un modello a coppie era di due millesimi di Brier.</p>
+      <p>Da dove viene il margine: correzione per rarità, forza dell'avversario in campo, caselle vuote, caso peggiore, e il filtro di potenza. Quattro cose su cinque i siti non le hanno.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Fuori portata</p>
+    <h2>Quattro cose che non posso dare, e perché</h2>
+    <div class="prosa">
+      <p><strong>Gli esiti coi pick avversari.</strong> Il registro del tracker dà mappa, brawler ed esito delle tue partite, non chi c'era dall'altra parte. Senza quelli non posso calibrare il peso del caso peggiore su un bersaglio vero, né validare l'app sulle <em class="q">tue</em> partite. È il limite che rende «assunzione dichiarata» il tassello 9.</p>
+      <p><strong>I dati sui ban.</strong> Nessuno li ha, la fonte compresa e per iscritto. Un ban non lascia traccia nel risultato della partita.</p>
+      <p><strong>Il best-of-3.</strong> Da Diamante I in su le partite sono al meglio di tre — fonte Supercell — e la ricerca ha un lavoro dedicato proprio a questo (non spendere tutti i pick migliori nella prima partita). Non lo modello perché non ho verificato le regole esatte di cosa resta disponibile fra una partita e l'altra, e non ho intenzione di inventarle.</p>
+      <p><strong>Il formato sotto Mythic.</strong> Tre siti di guide dicono che sotto Mythic i pick sono alla cieca, cosa che renderebbe inutile metà dell'app a quei ranghi. <strong>Il supporto Supercell non lo conferma</strong>: descrive una fase a turni con un pulsante «Suggerisci». Fra un sito di guide e la fonte primaria credo alla fonte primaria, quindi non ho cambiato niente — ma se giochi a quei ranghi e vedi i pick avversari comparire, dimmelo e chiudiamo la questione in un minuto.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Da dove viene</p>
+    <h2>Fonti</h2>
+    <ul class="fonti">
+      <li><a href="https://www.brawlplanet.com/powerleague/draft">brawlplanet — Draft Helper</a><span class="che">Il codice, non la pagina: il punteggio è <code>mappa + matchup medio + sinergia media</code>, e la probabilità del tabellone è una logistica sulla somma di tutte le coppie. Con la sua calibrazione e il suo Brier pubblicati.</span></li>
+      <li><a href="https://loldraftai.com/blog/draftgap-vs-loldraftai-comparison">LoLDraftAI contro DraftGap</a><span class="che">Il confronto più utile che esista: due modelli, stesso gioco, 32.750 partite di test. Da qui l'errore da 24 punti dei modelli a coppie sulla composizione, e la conferma che il tetto è basso per tutti.</span></li>
+      <li><a href="https://arxiv.org/pdf/1806.10130">The Art of Drafting (arXiv 1806.10130)</a><span class="che">Ricerca ad albero sul draft, +5–8% contro il greedy in simulazione. Il consiglio che ho provato e scartato con la misura del tassello 15.</span></li>
+      <li><a href="https://arxiv.org/pdf/2012.10171">Which Heroes to Pick? (arXiv 2012.10171)</a><span class="che">Rete neurale più ricerca ad albero, e il caso best-of-N: il valore a lungo termine di un pick su più partite.</span></li>
+      <li><a href="https://arxiv.org/pdf/2204.12750">DraftRec (arXiv 2204.12750)</a><span class="che">Personalizzazione del consiglio sul singolo giocatore. Citato per completezza: il PDF non era estraibile, quindi i suoi numeri non li ho letti e non li riporto.</span></li>
+      <li><a href="https://brawldraft.com/guide">Brawl Draft — guida</a><span class="che">La logica per sedia, e il dato sul tetto: composizione del draft da sola, AUC 0,625 su 1.059.778 partite ranked. Sito di guide, non fonte primaria.</span></li>
+      <li><a href="https://support.supercell.com/brawl-stars/en/articles/about-ranked-3.html">Supercell — Intro to Ranked</a><span class="che">Fonte primaria sul formato: ban da Diamante I in su, best-of-3, da 3 a 6 ban perché ogni giocatore può bannarne uno.</span></li>
+    </ul>
+    <hr>
+    <p class="coda">Le misure di questo documento sono riproducibili dal repository: <code>script/misura-lookahead.js</code>, <code>script/misura-composizione-trii.js</code>, <code>script/verifica-matrice.js</code>, <code>script/verifica-generale.js</code>. Ogni numero qui sopra esce da uno di quelli o dalla fonte che lo pubblica.</p>
+  </section>
+</div>
