@@ -1,5 +1,11 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-10 14:20] strumento | Chi sono i compagni ricorrenti, dal battlelog
+Marco cerca gente con cui giocare per arrivare a Leggenda e non la trova su Telegram ne' Discord. Il dato che gia' ha risponde in parte da solo: `script/compagni-ricorrenti.js` conta con chi ha giocato e come e' finita.
+Prima raccolta: 13 persone diverse in 10 partite, **due ricorrenti** — una con 6 partite (4 vinte), una con 3 (3 vinte).
+**Errore preso al volo, prima di mostrarlo:** contavo "vinta" ogni partita in cui c'era almeno un round vinto, quindi una partita persa 1-2 risultava vinta. Il numero sbagliato era del tutto plausibile (1 partita, 1 vinta) e non si notava. L'ho visto solo perche' una riga diceva vinta una partita che nella tabella delle 10 risultava persa.
+**La regola:** quando due conti diversi guardano gli stessi fatti, vanno confrontati. Qui il riscontro e' immediato — le vinte di un singolo compagno non possono superare le vinte totali (4 <= 6).
+
 ## [2026-09-10 13:35] dati | Prima raccolta vera: 25 round sono 10 partite, non 25
 Il comando rapido iOS funziona. Primo battlelog vero letto e verificato contro le ipotesi che avevo scritto senza dati.
 **Le ipotesi reggono tutte:** `battle.type` vale `soloRanked`; `teams` sono due squadre da tre; `result` e' `victory`/`defeat`; `event.map` e `event.mode` ci sono.
