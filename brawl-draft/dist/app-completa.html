@@ -4107,14 +4107,32 @@ function edgeCasellaVuota(candidato, minacce) {
   // La minaccia peggiore si porta dietro anche il nome e la win rate, perche'
   // servono al riquadrino "peggio" a schermo: prima le stesse otto minacce
   // venivano scorse due volte, qui e in residualRisk, per gli stessi numeri.
+  //
+  // IL CASO PEGGIORE VA MISURATO CON LA STESSA UNITA' DEL RESTO. Qui c'era un
+  // residuo della versione senza matrice: la percentuale veniva dal dato vero
+  // ma l'atteso da cui la si sottraeva veniva da BRAWLER_OVERALL, che sta su
+  // un'altra scala (e' la win rate di CHI GIOCA quel brawler). Due scale dentro
+  // la stessa sottrazione.
+  //
+  // Non era solo una taratura sbagliata: sceglieva il nemico SBAGLIATO. Su
+  // Undermine il pavimento di Surge diceva «minaccia Clancy, vantaggio +0,7»
+  // quando Clancy contro Surge vale -5,4 — sei punti di ottimismo sul pick
+  // sbagliato. E su Bolt diceva 40% invece di 44%: quattro punti di pessimismo.
+  // Sbagliava nei due versi, quindi non si vedeva nemmeno come una distorsione
+  // costante.
+  //
+  // Ora il vantaggio e' lo STESSO numero che il riquadrino mostra per gli
+  // avversari in campo: vantaggio della coppia piu' quanto quel nemico e' piu'
+  // forte del tipico di questa mappa.
   let peggio = media;
   let quale = null;
   for (const t of minacce) {
     if (t === candidato) continue;
-    const p = predictedWinRate(candidato, t);
-    const e = p.wr - (BRAWLER_OVERALL[candidato] !== undefined && BRAWLER_OVERALL[t] !== undefined
-      ? 50 + (BRAWLER_OVERALL[candidato] - BRAWLER_OVERALL[t]) : 50) - favoreMatchup(candidato);
-    if (quale === null || e < quale.edge) quale = { enemy: t, wr: p.wr, edge: e, measured: p.measured };
+    const e = edgeCentrato(candidato, t) + scartoForzaAvversario(t);
+    if (quale === null || e < quale.edge) {
+      const p = predictedWinRate(candidato, t);
+      quale = { enemy: t, wr: p.wr, edge: e, measured: p.measured };
+    }
     if (e < peggio) peggio = e;
   }
   // Il valore di una casella vuota e' l'ASPETTATIVA PURA, senza pessimismo.
@@ -4860,8 +4878,6 @@ function residualRisk(candidateName, threats) {
     // valutarlo contro sé stesso produceva righe assurde come
     // "Wendy — peggio: Wendy 48%" e falsava il caso peggiore.
     if (t === candidateName) continue;
-    const p = predictedWinRate(candidateName, t);
-    const expected = p.wr - edgeCentrato(candidateName, t);
     // Si sceglie la minaccia col VANTAGGIO peggiore, non col win rate
     // assoluto piu' basso. Il pavimento e' `base + vantaggio`, quindi e' il
     // vantaggio a determinarlo: scegliendo per win rate assoluto, un brawler
@@ -4869,12 +4885,50 @@ function residualRisk(candidateName, threats) {
     // Bull+Rosa il pavimento veniva 59% (minaccia R-T, vantaggio +8,3) invece
     // di 48% (minaccia Emz, vantaggio -2,7): undici punti di ottimismo, ed
     // esattamente sul pick che l'utente ha segnalato come consigliato troppo.
-    const edge = p.wr - expected;
+    //
+    // E il vantaggio deve essere lo STESSO di quello mostrato a schermo per gli
+    // avversari in campo — coppia piu' scarto di forza. Qui c'era solo la
+    // coppia, mentre `edgeCasellaVuota` ne usava un terzo tipo: tre unita'
+    // diverse che finivano tutte nello stesso `Math.min`, quindi il pavimento
+    // dipendeva da quale delle tre capitava di guardare.
+    const edge = edgeCentrato(candidateName, t) + scartoForzaAvversario(t);
     if (worst === null || edge < worst.edge) {
+      const p = predictedWinRate(candidateName, t);
       worst = { enemy: t, wr: p.wr, edge, measured: p.measured };
     }
   }
   return worst;
+}
+
+// ---- IN CHE SEDIA SEI, e cosa vuol dire --------------------------------
+//
+// Viene dalla ricerca sui draft, e le due fonti dicono la stessa cosa: chi
+// sceglie per primo non puo' essere counterato in anticipo ma verra' counterato
+// dopo, quindi vuole un brawler solido senza counter secchi; chi sceglie per
+// ULTIMO e' l'unico che puo' prendere uno specialista, perche' dopo di lui non
+// sceglie nessuno. E' l'informazione che il numero da solo non da', ed e' quella
+// che cambia il TIPO di pick che cerchi.
+//
+// Sta sopra la lista, non nel riquadro della situazione: sul telefono quel
+// riquadro finisce sotto il roster, cioe' fuori schermo proprio al primo pick,
+// che e' il turno in cui questo consiglio serve di piu'. Visto nello screenshot
+// dell'utente, non dedotto.
+function rigaSedia(turn) {
+  const own = turn.team;
+  const enemy = own === "A" ? "B" : "A";
+  const enemyNames = state.picks[enemy].filter(Boolean);
+  const enemyLeft = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === enemy && !nomeDelTurno(sq)).length;
+  const mieiRimasti = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === own && !nomeDelTurno(sq)).length;
+  if (enemyLeft === 0) {
+    return "<strong>Ultimo pick.</strong> È l'unica sedia dove uno specialista è sicuro: dopo di te non sceglie nessuno, quindi nessuno può counterare il tuo counter. Prendi la risposta secca, non il pick prudente.";
+  }
+  if (enemyNames.length === 0) {
+    return "<strong>Primo pick, alla cieca.</strong> Non c'è niente da counterare e loro ti vedranno: serve un brawler solido sulla mappa e senza counter secchi, non una risposta a qualcosa che non c'è. Il riquadrino «peggio» è la parte che conta in questa sedia.";
+  }
+  if (mieiRimasti > 1) {
+    return `<strong>Hai due pick di fila e loro ${enemyLeft === 1 ? "uno solo dopo" : "ancora " + enemyLeft}.</strong> Riempi i buchi adesso — prima linea, distanza, quello che serve alla modalità — perché il prossimo turno è ancora tuo e poi non scegli più.`;
+  }
+  return `<strong>Loro hanno ancora ${enemyLeft === 1 ? "un pick" : enemyLeft + " pick"} dopo di te.</strong> Quello che prendi ora può essere punito: pesa il riquadrino «peggio» quanto il numero grande.`;
 }
 
 function renderTeamCounter() {
@@ -4921,29 +4975,6 @@ function renderTeamCounter() {
         (pieno ? "" : ` <span class="tab-parziale">(${miei.length} contro ${enemyNames.length}, ancora incompleto)</span>`) +
         `</p>`;
     }
-  }
-
-  // ---- IN CHE SEDIA SEI, e cosa vuol dire ------------------------------
-  //
-  // Viene dalla ricerca sui draft, e le due fonti dicono la stessa cosa: chi
-  // sceglie per primo non puo' essere counterato in anticipo ma verra'
-  // counterato dopo, quindi vuole un brawler solido senza counter secchi; chi
-  // sceglie per ULTIMO e' l'unico che puo' prendere uno specialista, perche'
-  // dopo di lui non sceglie nessuno. E' l'informazione che il numero da solo
-  // non da', ed e' quella che cambia il tipo di pick che cerchi.
-  {
-    const mieiRimasti = state.sequence.filter((sq) => sq.phase === "pick" && sq.team === own && !nomeDelTurno(sq)).length;
-    let riga = null;
-    if (enemyLeft === 0) {
-      riga = "<strong>Ultimo pick.</strong> È l'unica sedia dove uno specialista è sicuro: dopo di te non sceglie nessuno, quindi nessuno può counterare il tuo counter. Prendi la risposta secca, non il pick prudente.";
-    } else if (enemyNames.length === 0) {
-      riga = `<strong>Primo pick, alla cieca.</strong> Non c'è niente da counterare e loro ti vedranno: qui serve un brawler solido sulla mappa e senza counter secchi, non una risposta a qualcosa che non c'è. Guarda il riquadrino «peggio»: è la parte che conta in questa sedia.`;
-    } else if (mieiRimasti > 1) {
-      riga = `<strong>Hai due pick di fila e loro ${enemyLeft === 1 ? "uno solo dopo" : "ancora " + enemyLeft}.</strong> Riempi i buchi adesso — prima linea, distanza, quello che serve alla modalità — perché il prossimo turno è ancora tuo e poi non scegli più.`;
-    } else {
-      riga = `<strong>Loro hanno ancora ${enemyLeft === 1 ? "un pick" : enemyLeft + " pick"} dopo di te.</strong> Quello che prendi ora può essere punito: pesa il riquadrino «peggio» quanto il numero grande.`;
-    }
-    html += `<p class="hint sedia">${riga}</p>`;
   }
 
   if (enemyNames.length === 0 && enemyLeft === 0) { el.innerHTML = html; el.hidden = false; return; }
@@ -5074,13 +5105,49 @@ function renderSuggestions() {
   //
   // La riga compare solo sotto la mediana: un avviso sempre presente diventa
   // sfondo e non lo legge piu' nessuno.
+  {
+    const p = document.createElement("p");
+    p.className = "hint sedia";
+    p.innerHTML = rigaSedia(turn);
+    el.appendChild(p);
+  }
+
+  // IL CONFRONTO VA FATTO CON LA SITUAZIONE GIUSTA, NON CON UN NUMERO FISSO.
+  //
+  // Qui c'erano due soglie fisse (avviso sotto 59, allarme sotto 53) e la frase
+  // «contro una mediana di 62%». Erano tarate su una versione del punteggio che
+  // non esiste piu': dopo la correzione della forza dell'avversario e la nuova
+  // taratura del caso peggiore, tutti i numeri sono scesi di alcuni punti.
+  // Misurato su 132 posizioni: l'avviso scattava in 126, l'allarme in 78 — e
+  // l'allarme diceva «succede in una posizione su cento». Un avviso che compare
+  // sempre non e' un avviso, e' sfondo.
+  //
+  // E c'era un secondo errore, strutturale: il punteggio scende man mano che il
+  // tabellone si riempie, perche' entrano matchup veri e la forza dei nemici in
+  // campo. Un numero fisso quindi bolla come «brutta» ogni posizione tarda. La
+  // mediana vera per numero di avversari gia' schierati:
+  //     0 nemici  56,4      1 nemico  53,1      2 nemici  49,4      3 nemici  46,1
+  // Il caso dello screenshot dell'utente — primo pick, migliore 57% — era SOPRA
+  // la mediana della sua situazione, e l'app diceva «sotto la media».
+  //
+  // Le soglie qui sotto sono i quartili misurati: sotto il 25% delle posizioni
+  // e' «peggio del solito», sotto il 10% e' «brutta davvero».
+  const RIFERIMENTO = [
+    { mediana: 56.4, q25: 54.3, q10: 52.9 }, // 0 avversari in campo
+    { mediana: 53.1, q25: 51.0, q10: 50.1 },
+    { mediana: 49.4, q25: 47.8, q10: 46.2 },
+    { mediana: 46.1, q25: 44.5, q10: 43.2 },
+  ];
   const meglio = suggestions[0].total;
-  if (meglio < 59) {
+  const nemiciInCampo = Math.min(3, state.picks[turn.team === "A" ? "B" : "A"].filter(Boolean).length);
+  const rif = RIFERIMENTO[nemiciInCampo];
+  if (meglio < rif.q25) {
     const p = document.createElement("p");
     p.className = "hint scarso";
-    p.innerHTML = meglio < 53
-      ? `<strong>Non c'è niente di buono qui.</strong> Il migliore vale ${Math.round(meglio)}%: succede in una posizione su cento. Hanno preso bene loro. Prendi il meno peggio e giocatela.`
-      : `<strong>Situazione sotto la media.</strong> Il migliore vale ${Math.round(meglio)}%, contro una mediana di 62%. Nessun pick ti fa vincere: la decide come giocate.`;
+    const quando = nemiciInCampo === 0 ? "a inizio draft" : nemiciInCampo === 3 ? "con la loro squadra al completo" : `con ${nemiciInCampo} avversari in campo`;
+    p.innerHTML = meglio < rif.q10
+      ? `<strong>Posizione brutta davvero.</strong> Il migliore vale ${Math.round(meglio)}%, e ${quando} il valore tipico è ${Math.round(rif.mediana)}%: sei nel 10% peggiore. Hanno draftato bene loro. Prendi il meno peggio e giocatela.`
+      : `<strong>Sotto il solito.</strong> Il migliore vale ${Math.round(meglio)}%, contro ${Math.round(rif.mediana)}% tipico ${quando}. Non è un disastro, ma nessun pick ti regala la partita.`;
     el.appendChild(p);
   }
   // Il migliore per la sola win rate di mappa, quando il punteggio non e'
