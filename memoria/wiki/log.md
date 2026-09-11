@@ -1,5 +1,12 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-11 09:10] documento | Catalogo delle nove abilita', ordinato con i suoi dati
+Marco chiede quali abilita' imparare e come allenarle. Pagina pubblicata: https://claude.ai/code/artifact/0d84b961-62a2-4a28-bbc4-68d61ef037d4
+**L'ordine non e' generico:** viene da cosa saltava fuori dalle 10 partite raccolte — 6 su 10 giocate alle 2 di notte, 7 brawler diversi in 10 partite, 5 partite su 10 al terzo round e 2 sconfitte su 4 arrivate dopo aver vinto un round. Da qui le tre segnate "inizia da qui": sessione, profondita' del roster, non morire per primo.
+**Misurato e stimato restano separati, come vuole il metodo:** i cinque numeri in cima sono suoi e dichiarati come "dieci partite non misurano niente"; le nove abilita' sono dichiarate come giudizio, non come risultato calcolato.
+**Due abilita' si misureranno da sole** con i dati che gia' raccogliamo: il numero di brawler diversi per raccolta, e le partite perse 1-2 che diventano vinte 2-1.
+Identita' visiva presa dalle pagine gia' esistenti del progetto (Archivo + JetBrains Mono, la stessa tavolozza della pagina di raccolta), cosi' gli strumenti sembrano una cosa sola.
+
 ## [2026-09-10 14:20] strumento | Chi sono i compagni ricorrenti, dal battlelog
 Marco cerca gente con cui giocare per arrivare a Leggenda e non la trova su Telegram ne' Discord. Il dato che gia' ha risponde in parte da solo: `script/compagni-ricorrenti.js` conta con chi ha giocato e come e' finita.
 Prima raccolta: 13 persone diverse in 10 partite, **due ricorrenti** — una con 6 partite (4 vinte), una con 3 (3 vinte).
