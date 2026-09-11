@@ -1,5 +1,12 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-11 09:40] strumento | I replay si possono leggere: video tagliato in fotogrammi
+Marco chiede se posso analizzare i suoi replay. Un video non lo so guardare, ma so leggere immagini: `script/replay-fotogrammi.py` fa il ponte.
+Due modi: **provino** (una sola immagine a griglia, un fotogramma ogni N secondi, l'istante stampato sopra) per trovare i momenti; **momento** (fotogrammi a piena risoluzione attorno a un istante, due al secondo) per guardarli. Due passaggi perche' leggere 200 fotogrammi uno per uno costerebbe piu' di quanto rende.
+**ffmpeg non c'era**: installato con `pip install imageio-ffmpeg`, che porta un binario statico. Quella build **non ha il filtro `drawtext`**, quindi griglia ed etichette le compone Pillow.
+**Provato davvero**, non solo scritto: video finto generato con `testsrc`, provino letto come immagine, e il contatore stampato dentro il video combacia con gli istanti che ho etichettato io (1, 5, 9, 13... a 4 secondi di passo). Se avessi solo controllato che il file esistesse, un errore di campionamento non si sarebbe visto.
+**Limite da dire sempre:** sono immagini ferme. Posizioni, vita, Super carica e chi c'era si leggono; quello che succede fra un fotogramma e l'altro no.
+
 ## [2026-09-11 09:10] documento | Catalogo delle nove abilita', ordinato con i suoi dati
 Marco chiede quali abilita' imparare e come allenarle. Pagina pubblicata: https://claude.ai/code/artifact/0d84b961-62a2-4a28-bbc4-68d61ef037d4
 **L'ordine non e' generico:** viene da cosa saltava fuori dalle 10 partite raccolte — 6 su 10 giocate alle 2 di notte, 7 brawler diversi in 10 partite, 5 partite su 10 al terzo round e 2 sconfitte su 4 arrivate dopo aver vinto un round. Da qui le tre segnate "inizia da qui": sessione, profondita' del roster, non morire per primo.
