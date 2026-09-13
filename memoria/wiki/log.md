@@ -1,5 +1,12 @@
 Cosa è stato fatto e quando. Voce nuova sempre in cima, formato `## [AAAA-MM-GG HH:MM] tipo | cosa è stato fatto`.
 
+## [2026-09-13 10:20] verifica | I dati dell'app reggono al bilanciamento del 1 settembre, tranne nove
+Marco segnala bilanciamenti in arrivo. Il piu' recente che ho potuto verificare e' del **1 settembre 2026** (27 buffati, 20 nerfati, con nove che hanno preso entrambi): i nostri dati sono del **10 settembre**, nove giorni dopo. Domanda vera: la finestra della fonte stava ancora smaltendo partite pre-patch?
+**Misurato, non supposto.** Riscaricata la fonte oggi e confrontata con quella del 10: la deriva media dei soli nerfati e dei soli buffati e' **dentro il rumore** (−0,15 e −0,07 punti rispetto ai non toccati, con errori standard di 0,14 e 0,11). Nessuna prova di contaminazione diffusa.
+**Ma nove brawler si muovono ancora** di piu' di un punto: Amber +2,98, Shade +2,45, Gus +1,87, El Primo +1,48 da una parte; Damian −2,06, Crow −1,52, Bolt −1,33, Starr Nova −1,33, Surge −1,06 dall'altra. Sono in buona parte quelli che hanno avuto **riprogettazioni**, non solo ritocchi di numeri: la gente li sta ancora imparando.
+**Un buco nel mio metodo, da dire:** le liste buffati/nerfati le ho prese dal riepilogo di brawlplanet e sono **incomplete** — Gus si muove di +1,87 e non compare in nessuna delle due, mentre la prosa della stessa pagina dice che e' stato riprogettato. Quindi il raggruppamento e' indicativo, non autorevole. La deriva misurata invece non dipende dalle liste e regge da sola.
+`script/deriva-dati.js` rende il controllo ripetibile: confronta i dati dell'app con la fonte di oggi e segnala chi si muove piu' del rumore di fondo. Da lanciare dopo ogni bilanciamento e prima di fidarsi dei numeri.
+
 ## [2026-09-11 09:40] strumento | I replay si possono leggere: video tagliato in fotogrammi
 Marco chiede se posso analizzare i suoi replay. Un video non lo so guardare, ma so leggere immagini: `script/replay-fotogrammi.py` fa il ponte.
 Due modi: **provino** (una sola immagine a griglia, un fotogramma ogni N secondi, l'istante stampato sopra) per trovare i momenti; **momento** (fotogrammi a piena risoluzione attorno a un istante, due al secondo) per guardarli. Due passaggi perche' leggere 200 fotogrammi uno per uno costerebbe piu' di quanto rende.
