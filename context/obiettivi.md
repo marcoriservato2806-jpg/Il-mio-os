@@ -1,7 +1,8 @@
-> **Questa `/setup` te la deve chiedere: nel tuo sito non c'è.**
->
-> Ci va cosa deve succedere nei prossimi sei mesi, e **cosa invece non vuoi che succeda**.
->
-> La seconda metà è quella che serve di più, ed è quella che tutti saltano: è come fa Claude a dirti che una cosa non vale la pena, invece di aiutarti a farla bene.
->
-> È anche il file che invecchia peggio, perché invecchia in silenzio. Rileggilo ogni tre mesi.
+# Obiettivi
+
+## Prossimi sei mesi
+- Andare molto bene all'università (secondo anno di fisioterapia).
+- Non fermarsi allo studio superficiale: arrivare a capire davvero l'anatomia, al punto di poterci ragionare sopra, non solo ripeterla.
+
+## Cosa non deve succedere
+- Passare esami raschiando il voto solo per andare avanti. Se una materia non è capita a fondo, è un problema anche se il voto è sufficiente per proseguire.
